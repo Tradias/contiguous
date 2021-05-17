@@ -23,6 +23,7 @@ class ContiguousVector
     using TupleProperties = detail::ContiguousTuplePropertiesT<Tuple>;
     using value_type = detail::ToContiguousTupleOfValueReturnTypes<Tuple>;
     using reference = detail::ToContiguousTupleOfReferenceReturnTypes<Tuple>;
+    using const_reference = detail::ToContiguousTupleOfConstReferenceReturnTypes<Tuple>;
     using difference_type = std::ptrdiff_t;
     using size_type = std::size_t;
 
@@ -73,10 +74,12 @@ class ContiguousVector
         this->emplace_back_impl(std::make_index_sequence<sizeof...(Args)>{}, std::forward<Args>(args)...);
     }
 
-    reference operator[](size_type i) { return this->subscript_operator(i); }
+    reference operator[](size_type i) noexcept { return this->subscript_operator(i); }
+
+    const_reference operator[](size_type i) const noexcept { return this->subscript_operator(i); }
 
     template <std::size_t I>
-    size_type get_fixed_size()
+    size_type get_fixed_size() const noexcept
     {
         return std::get<I>(fixed_sizes);
     }
@@ -106,20 +109,20 @@ class ContiguousVector
          ...);
     }
 
-    template <class... T, std::size_t... I>
-    constexpr auto to_reference(const std::tuple<T...>& tuple_of_pointer, std::index_sequence<I...>) noexcept
+    template <class Result, class... T, std::size_t... I>
+    constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer, std::index_sequence<I...>) const noexcept
     {
-        return reference{detail::dereference(std::get<I>(tuple_of_pointer))...};
+        return Result{detail::dereference(std::get<I>(tuple_of_pointer))...};
     }
 
-    template <class... T>
-    constexpr auto to_reference(const std::tuple<T...>& tuple_of_pointer) noexcept
+    template <class Result, class... T>
+    constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) const noexcept
     {
-        return this->to_reference(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
+        return this->convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
     }
 
     template <class... T, class Function, std::size_t... I>
-    constexpr auto for_each_impl(std::tuple<T...>& tuple, Function&& function, std::index_sequence<I...>)
+    constexpr auto for_each_impl(std::tuple<T...>& tuple, Function&& function, std::index_sequence<I...>) const noexcept
     {
         return (function(std::get<I>(tuple),
                          detail::FixedSizeGetter<std::tuple_element_t<I, Tuple>, Types...>::get<I>(fixed_sizes),
@@ -128,20 +131,32 @@ class ContiguousVector
     }
 
     template <class T, class Function>
-    constexpr auto for_each(T&& tuple, Function&& function)
+    constexpr auto for_each(T&& tuple, Function&& function) const noexcept
     {
         return this->for_each_impl(std::forward<T>(tuple), std::forward<Function>(function),
                                    std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<T>>>{});
     }
 
-    reference subscript_operator(size_type i)
+    auto get_tuple_pointers_at(size_type i) const noexcept
     {
-        detail::ToContiguousTupleOfPointerReturnTypes<Tuple> temp;
+        detail::ToContiguousTupleOfPointerReturnTypes<Tuple> result;
         auto* start = this->element_addresses()[i];
-        this->for_each(temp, [&](auto& element, size_type size, auto traits) {
+        this->for_each(result, [&](auto& element, size_type size, auto traits) {
             std::tie(element, start) = decltype(traits)::from_address(start, size);
         });
-        return this->to_reference(temp);
+        return result;
+    }
+
+    auto subscript_operator(size_type i) noexcept
+    {
+        const auto tuple = get_tuple_pointers_at(i);
+        return this->convert_tuple_to<reference>(tuple);
+    }
+
+    auto subscript_operator(size_type i) const noexcept
+    {
+        const auto tuple = get_tuple_pointers_at(i);
+        return this->convert_tuple_to<const_reference>(tuple);
     }
 };
 }  // namespace cntgs

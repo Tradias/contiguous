@@ -14,6 +14,7 @@ struct ContiguousTraits
 {
     using Type = T;
     using ReturnType = std::add_pointer_t<T>;
+    using ConstReturnType = std::add_const_t<std::add_pointer_t<T>>;
     using value_type = T;
     using iterator_type = ReturnType;
 
@@ -22,7 +23,7 @@ struct ContiguousTraits
     static constexpr auto SIZE_IN_MEMORY = sizeof(value_type);
     static constexpr auto VALUE_BYTES = SIZE_IN_MEMORY;
 
-    static auto from_address(std::byte* address, std::size_t)
+    static auto from_address(std::byte* address, std::size_t) noexcept
     {
         auto result = reinterpret_cast<ReturnType>(address);
         return std::pair{result, address + SIZE_IN_MEMORY};
@@ -42,6 +43,7 @@ struct ContiguousTraits<cntgs::VaryingSize<T>>
 {
     using Type = cntgs::VaryingSize<T>;
     using ReturnType = cntgs::Span<T>;
+    using ConstReturnType = cntgs::Span<std::add_const_t<T>>;
     using value_type = T;
     using iterator_type = T*;
 
@@ -50,7 +52,7 @@ struct ContiguousTraits<cntgs::VaryingSize<T>>
     static constexpr auto SIZE_IN_MEMORY = sizeof(iterator_type);
     static constexpr auto VALUE_BYTES = sizeof(value_type);
 
-    static auto from_address(std::byte* address, std::size_t)
+    static auto from_address(std::byte* address, std::size_t) noexcept
     {
         ReturnType result;
         result.last = *reinterpret_cast<iterator_type*>(address);
@@ -75,6 +77,7 @@ struct ContiguousTraits<cntgs::FixedSize<T>>
 {
     using Type = cntgs::FixedSize<T>;
     using ReturnType = cntgs::Span<T>;
+    using ConstReturnType = cntgs::Span<std::add_const_t<T>>;
     using value_type = T;
     using iterator_type = T*;
 
@@ -83,7 +86,7 @@ struct ContiguousTraits<cntgs::FixedSize<T>>
     static constexpr auto SIZE_IN_MEMORY = std::size_t(0);
     static constexpr auto VALUE_BYTES = sizeof(value_type);
 
-    static auto from_address(std::byte* address, std::size_t size)
+    static auto from_address(std::byte* address, std::size_t size) noexcept
     {
         ReturnType result;
         result.first = reinterpret_cast<iterator_type>(address);

@@ -17,6 +17,11 @@ struct Span
 
     Span() = default;
 
+    template <class U>
+    explicit Span(Span<U> other) noexcept : first(other.first), last(other.last)
+    {
+    }
+
     constexpr Span(iterator_type first, iterator_type last) noexcept : first(first), last(last) {}
 
     constexpr Span(iterator_type first, size_type size) noexcept : first(first), last(first + size) {}

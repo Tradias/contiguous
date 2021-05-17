@@ -18,7 +18,7 @@ constexpr auto dereference(const cntgs::Span<T>& memory) noexcept
 }
 
 template <class T>
-constexpr decltype(auto) dereference(T* memory) noexcept
+constexpr decltype(auto) dereference(T&& memory) noexcept
 {
     return *memory;
 }

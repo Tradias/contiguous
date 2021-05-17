@@ -97,14 +97,23 @@ TEST_CASE("ContiguousTest: two varying size: emplace_back with lists and subscri
     CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
 }
 
-TEST_CASE("ContiguousTest: one varying size: subscript operator returns a modifyable reference")
+TEST_CASE("ContiguousTest: one varying size: subscript operator returns a reference")
 {
     OneVarying vector{1, 0};
     vector.emplace_back(10, std::initializer_list<float>{});
-    auto&& [id1, e1] = vector[0];
-    id1 = 20u;
-    auto&& [id2, e2] = vector[0];
-    CHECK_EQ(20u, id2);
+    SUBCASE("mutable")
+    {
+        auto&& [id1, e1] = vector[0];
+        id1 = 20u;
+        auto&& [id2, e2] = vector[0];
+        CHECK_EQ(20u, id2);
+    }
+    SUBCASE("const")
+    {
+        auto&& [id, span] = std::as_const(vector)[0];
+        CHECK(std::is_same_v<const uint32_t&, decltype(id)>);
+        CHECK(std::is_same_v<cntgs::Span<const float>, decltype(span)>);
+    }
 }
 
 TEST_CASE("ContiguousTest: one varying size: emplace_back c-style array")

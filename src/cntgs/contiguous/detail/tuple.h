@@ -31,7 +31,15 @@ using ToContiguousReference =
                        std::add_lvalue_reference_t<T>>;
 
 template <class T>
+using ToContiguousConstReference =
+    std::conditional_t<detail::IS_CONTIGUOUS<T>, typename detail::ContiguousTraits<T>::ConstReturnType,
+                       std::add_lvalue_reference_t<std::add_const_t<T>>>;
+
+template <class T>
 using ToContiguousTupleOfReferenceReturnTypes = typename TransformTuple<ToContiguousReference, T>::Type;
+
+template <class T>
+using ToContiguousTupleOfConstReferenceReturnTypes = typename TransformTuple<ToContiguousConstReference, T>::Type;
 
 template <class T>
 using ToContiguousPointer = std::conditional_t<detail::IS_CONTIGUOUS<T>,
