@@ -3,6 +3,7 @@
 #include "cntgs/contiguous/detail/traits.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/vector.h"
+#include "cntgs/contiguous/iterator.h"
 #include "cntgs/contiguous/parameter.h"
 #include "cntgs/contiguous/span.h"
 
@@ -19,11 +20,14 @@ template <class... Types>
 class ContiguousVector
 {
   public:
+    using Self = cntgs::ContiguousVector<Types...>;
     using Tuple = std::tuple<Types...>;
     using TupleProperties = detail::ContiguousTuplePropertiesT<Tuple>;
     using value_type = detail::ToContiguousTupleOfValueReturnTypes<Tuple>;
     using reference = detail::ToContiguousTupleOfReferenceReturnTypes<Tuple>;
     using const_reference = detail::ToContiguousTupleOfConstReferenceReturnTypes<Tuple>;
+    using iterator = cntgs::ContiguousVectorIterator<Self>;
+    using const_iterator = cntgs::ContiguousVectorIterator<std::add_const_t<Self>>;
     using difference_type = std::ptrdiff_t;
     using size_type = std::size_t;
 
@@ -81,16 +85,30 @@ class ContiguousVector
     template <std::size_t I>
     size_type get_fixed_size() const noexcept
     {
-        return std::get<I>(fixed_sizes);
+        return std::get<I>(this->fixed_sizes);
     }
 
-    bool empty() const noexcept { return last_element_address == reinterpret_cast<std::byte**>(this->memory.get()); }
+    bool empty() const noexcept
+    {
+        return this->last_element_address == reinterpret_cast<std::byte**>(this->memory.get());
+    }
 
-    size_type size() const noexcept { return last_element_address - reinterpret_cast<std::byte**>(this->memory.get()); }
+    size_type size() const noexcept
+    {
+        return this->last_element_address - reinterpret_cast<std::byte**>(this->memory.get());
+    }
 
-    constexpr size_type capacity() const noexcept { return element_count; }
+    constexpr size_type capacity() const noexcept { return this->element_count; }
 
-    constexpr size_type memory_consumption() const noexcept { return memory_size; }
+    constexpr size_type memory_consumption() const noexcept { return this->memory_size; }
+
+    constexpr iterator begin() noexcept { return {*this}; }
+
+    constexpr const_iterator begin() const noexcept { return {*this}; }
+
+    constexpr iterator end() noexcept { return {*this, this->size()}; }
+
+    constexpr const_iterator end() const noexcept { return {*this, this->size()}; }
 
     constexpr bool operator==(const ContiguousVector& other) const noexcept { return false; }
 
@@ -101,10 +119,10 @@ class ContiguousVector
     template <std::size_t... I, class... Args>
     auto emplace_back_impl(std::index_sequence<I...>, Args&&... args)
     {
-        *last_element_address = last_element;
-        ++last_element_address;
+        *this->last_element_address = this->last_element;
+        ++this->last_element_address;
         ((last_element = detail::ContiguousTraits<std::tuple_element_t<I, Tuple>>::store_contiguously(
-              std::forward<Args>(args), last_element,
+              std::forward<Args>(args), this->last_element,
               detail::FixedSizeGetter<std::tuple_element_t<I, Tuple>, Types...>::get<I>(fixed_sizes))),
          ...);
     }
