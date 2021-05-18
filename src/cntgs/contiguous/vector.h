@@ -46,7 +46,7 @@ class ContiguousVector
     std::unique_ptr<std::byte[]> memory{};
     std::byte* last_element{};
     std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes{};
-    ElementLocator locator{};
+    ElementLocator locator;
 
     ContiguousVector() = default;
 

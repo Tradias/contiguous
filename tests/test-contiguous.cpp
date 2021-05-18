@@ -60,7 +60,7 @@ TEST_CASE("ContiguousTest: size() and capacity()")
         v.emplace_back(firsts, 10u, seconds);
         vector.emplace(std::move(v));
     }
-    REQUIRE(vector);
+    CHECK(vector);
     std::visit(
         [&](auto&& v) {
             CHECK_EQ(1, v.size());
@@ -191,7 +191,7 @@ TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript 
     vector.emplace_back(std::vector{std::string("a very long test string")},
                         std::string("another very long test string"));
     auto&& [fixed, string] = vector[0];
-    REQUIRE_EQ(1, fixed.size());
+    CHECK_EQ(1, fixed.size());
     CHECK_EQ("a very long test string", fixed[0]);
     CHECK_EQ("another very long test string", string);
 }

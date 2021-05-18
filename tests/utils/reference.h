@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-struct Vector
+struct ReferenceFixedSizeVector
 {
     const uint32_t first_count;
     const uint32_t second_count;
@@ -20,7 +20,7 @@ struct Vector
 
     inline auto get_node(const uint32_t i) const { return memory + i * byte_size_per_node; }
 
-    inline auto operator[](const uint32_t i) const { return reinterpret_cast<uint32_t*>(get_node(i) + second_offset); }
+    inline auto get_second(const uint32_t i) const { return reinterpret_cast<uint32_t*>(get_node(i) + second_offset); }
 
     void emplace_back(const uint32_t third, const char* first, const uint32_t* second)
     {
@@ -31,10 +31,3 @@ struct Vector
         std::memcpy(node_memory + third_offset, &third, 4);
     }
 };
-
-auto a(Vector& vector, uint32_t& out, uint32_t i, const std::vector<char>& first, const std::vector<uint32_t>& second)
-{
-    vector.emplace_back(i, first.data(), second.data());
-    auto&& firsts = vector[i];
-    std::for_each_n(firsts, vector.second_count, [&](auto&& v) { out += v; });
-}
