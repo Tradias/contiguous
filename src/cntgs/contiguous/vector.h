@@ -131,7 +131,8 @@ class ContiguousVector
         const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
         std::index_sequence<I...>) noexcept
     {
-        return ((detail::ParameterTraits<Types>::VALUE_BYTES * FixedSizeGetter<Types>::get<I>(fixed_sizes)) + ...);
+        return ((detail::ParameterTraits<Types>::VALUE_BYTES * FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
+                ...);
     }
 
     static constexpr auto calculate_needed_memory_size(
@@ -149,7 +150,7 @@ class ContiguousVector
     {
         this->locator.add_element(this->last_element);
         ((this->last_element = detail::ParameterTraits<TypeAt<I>>::store_contiguously(
-              std::forward<Args>(args), this->last_element, FixedSizeGetter<TypeAt<I>>::get<I>(fixed_sizes))),
+              std::forward<Args>(args), this->last_element, FixedSizeGetter<TypeAt<I>>::template get<I>(fixed_sizes))),
          ...);
     }
 
@@ -168,7 +169,7 @@ class ContiguousVector
     template <class... T, class Function, std::size_t... I>
     constexpr auto for_each_impl(std::tuple<T...>& tuple, Function&& function, std::index_sequence<I...>) const noexcept
     {
-        return (function(std::get<I>(tuple), FixedSizeGetter<TypeAt<I>>::get<I>(fixed_sizes),
+        return (function(std::get<I>(tuple), FixedSizeGetter<TypeAt<I>>::template get<I>(fixed_sizes),
                          detail::ParameterTraits<TypeAt<I>>{}),
                 ...);
     }

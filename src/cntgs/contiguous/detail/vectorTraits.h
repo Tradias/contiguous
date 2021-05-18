@@ -28,7 +28,7 @@ struct FixedSizeGetterImplementation<cntgs::FixedSize<T>, detail::TypeList<Types
     template <std::size_t I, std::size_t N>
     static constexpr auto get(const std::array<std::size_t, N>& fixed_sizes) noexcept
     {
-        static constexpr auto INDEX = std::get<I>(FIXED_SIZE_INDICES);
+        constexpr auto INDEX = std::get<I>(FIXED_SIZE_INDICES);
         return std::get<INDEX>(fixed_sizes);
     }
 };

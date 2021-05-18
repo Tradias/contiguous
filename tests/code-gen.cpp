@@ -14,7 +14,7 @@ using CntgsFixedSizeVector = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<
 auto contiguous1(CntgsFixedSizeVector& vector, uint32_t& out, size_t i, uint32_t first, const std::vector<char>& second,
                  const std::vector<uint32_t>& third)
 {
-    vector.emplace_back(first, second.data(), third.data());
+    vector.emplace_back(first, second, third);
     auto&& [a, seconds, c] = vector[i];
     std::for_each(seconds.begin(), seconds.end(), [&](auto&& v) { out += v; });
 }

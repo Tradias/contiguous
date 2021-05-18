@@ -5,7 +5,8 @@ function(cntgs_add_test _name)
 
     target_sources(${_name} PRIVATE main.cpp test-contiguous.cpp)
 
-    target_compile_options(${_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4 /GR- /EHs->)
+    target_compile_options(${_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4 /GR- /EHs->
+                                            $<$<CXX_COMPILER_ID:GNU>:-fno-exceptions -fno-rtti>)
 
     target_link_libraries(${_name} PRIVATE cntgs doctest::doctest)
 
@@ -25,6 +26,21 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         COMMAND ${CMAKE_CXX_COMPILER} /FA -I${CMAKE_SOURCE_DIR}/src /std:c++17 /O2 /GR- /EHs-
                 -I${CMAKE_CURRENT_SOURCE_DIR}/utils -c ${CMAKE_CURRENT_SOURCE_DIR}/code-gen.cpp
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/code-gen.cpp)
+
+    add_custom_target(cntgs-code-gen DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/code-gen.asm)
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    add_library(cntgs-code-gen-objects OBJECT)
+
+    target_sources(cntgs-code-gen-objects PRIVATE code-gen.cpp)
+
+    target_compile_options(cntgs-code-gen-objects PRIVATE -fno-exceptions -fno-rtti -O3 -g)
+
+    target_link_libraries(cntgs-code-gen-objects PRIVATE cntgs)
+
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/code-gen.asm
+        COMMAND objdump -drwC -M intel -S $<TARGET_OBJECTS:cntgs-code-gen-objects>
+        DEPENDS cntgs-code-gen-objects ${CMAKE_CURRENT_SOURCE_DIR}/code-gen.cpp)
 
     add_custom_target(cntgs-code-gen DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/code-gen.asm)
 endif()

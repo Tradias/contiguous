@@ -87,7 +87,7 @@ class AllFixedSizeElementLocator
     static constexpr auto calculate_stride(const std::array<SizeType, N>& fixed_sizes,
                                            std::index_sequence<I...>) noexcept
     {
-        return ((Traits::template FixedSizeGetter<Types>::get<I>(fixed_sizes) *
+        return ((Traits::template FixedSizeGetter<Types>::template get<I>(fixed_sizes) *
                      detail::ParameterTraits<Types>::VALUE_BYTES +
                  detail::ParameterTraits<Types>::SIZE_IN_MEMORY) +
                 ...);

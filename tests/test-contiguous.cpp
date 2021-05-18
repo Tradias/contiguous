@@ -177,9 +177,10 @@ TEST_CASE("ContiguousTest: two fixed size: emplace_back with lists and subscript
 
 TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscript operator")
 {
-    std::list expected_elements{1.f, 2.f};
+    std::vector expected_elements{1.f, 2.f};
     OneFixed vector{1, {expected_elements.size()}};
-    vector.emplace_back(10u, expected_elements.begin());
+    SUBCASE("begin() iterator") { vector.emplace_back(10u, expected_elements.begin()); }
+    SUBCASE("data() iterator") { vector.emplace_back(10u, expected_elements.data()); }
     auto&& [id, elements] = vector[0];
     CHECK_EQ(10u, id);
     CHECK(std::equal(elements.begin(), elements.end(), expected_elements.begin(), expected_elements.end()));
@@ -201,7 +202,7 @@ void check_iterator(T&& vector)
 {
     auto begin = vector.begin();
     using IterTraits = std::iterator_traits<decltype(begin)>;
-    CHECK(std::is_same_v<std::random_access_iterator_tag, IterTraits::iterator_category>);
+    CHECK(std::is_same_v<std::random_access_iterator_tag, typename IterTraits::iterator_category>);
     std::for_each(vector.begin()++, ++vector.begin(), [&](auto&& elem) {
         auto&& [uinteger, floats] = vector[0];
         CHECK_EQ(uinteger, std::get<0>(elem));
