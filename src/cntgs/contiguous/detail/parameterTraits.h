@@ -10,7 +10,7 @@
 namespace cntgs::detail
 {
 template <class T>
-struct ContiguousTraits
+struct ParameterTraits
 {
     using Type = T;
     using ReturnType = std::add_pointer_t<T>;
@@ -39,7 +39,7 @@ struct ContiguousTraits
 };
 
 template <class T>
-struct ContiguousTraits<cntgs::VaryingSize<T>>
+struct ParameterTraits<cntgs::VaryingSize<T>>
 {
     using Type = cntgs::VaryingSize<T>;
     using ReturnType = cntgs::Span<T>;
@@ -73,7 +73,7 @@ struct ContiguousTraits<cntgs::VaryingSize<T>>
 };
 
 template <class T>
-struct ContiguousTraits<cntgs::FixedSize<T>>
+struct ParameterTraits<cntgs::FixedSize<T>>
 {
     using Type = cntgs::FixedSize<T>;
     using ReturnType = cntgs::Span<T>;
@@ -102,5 +102,5 @@ struct ContiguousTraits<cntgs::FixedSize<T>>
 };
 
 template <class T>
-static constexpr auto IS_CONTIGUOUS = detail::ContiguousTraits<T>::IS_CONTIGUOUS;
+static constexpr auto IS_CONTIGUOUS = detail::ParameterTraits<T>::IS_CONTIGUOUS;
 }  // namespace cntgs::detail

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cntgs/contiguous/detail/traits.h"
-#include "cntgs/contiguous/detail/tuple.h"
+#include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/vector.h"
+#include "cntgs/contiguous/detail/vectorTraits.h"
 #include "cntgs/contiguous/iterator.h"
 #include "cntgs/contiguous/parameter.h"
 #include "cntgs/contiguous/span.h"
@@ -21,37 +21,29 @@ class ContiguousVector
 {
   public:
     using Self = cntgs::ContiguousVector<Types...>;
-    using Tuple = std::tuple<Types...>;
-    using TupleProperties = detail::ContiguousTuplePropertiesT<Tuple>;
-    using value_type = detail::ToContiguousTupleOfValueReturnTypes<Tuple>;
-    using reference = detail::ToContiguousTupleOfReferenceReturnTypes<Tuple>;
-    using const_reference = detail::ToContiguousTupleOfConstReferenceReturnTypes<Tuple>;
+    using Traits = detail::ContiguousVectorTraits<Self>;
+    using value_type = typename Traits::ValueReturnType;
+    using reference = typename Traits::ReferenceReturnType;
+    using const_reference = typename Traits::ConstReferenceReturnType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
     using const_iterator = cntgs::ContiguousVectorIterator<std::add_const_t<Self>>;
     using difference_type = std::ptrdiff_t;
     using size_type = std::size_t;
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
-    static constexpr auto SIZE_IN_MEMORY = TupleProperties::SIZE_IN_MEMORY;
-    static constexpr auto CONTIGUOUS_COUNT = TupleProperties::CONTIGUOUS_COUNT;
-    static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT = TupleProperties::CONTIGUOUS_FIXED_SIZE_COUNT;
 
     size_type memory_size{};
     size_type element_count{};
     std::unique_ptr<std::byte[]> memory{};
     std::byte* last_element{};
     std::byte** last_element_address{};
-    std::array<size_type, CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes{};
+    std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes{};
 
     ContiguousVector() = default;
 
     ContiguousVector(size_type element_count, size_type varying_size_bytes,
-                     std::array<size_type, CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes = {})
-        : memory_size(SIZE_IN_MEMORY * element_count + varying_size_bytes +
-                      detail::calculate_fixed_size_memory_consumption(fixed_sizes, detail::TypeList<Types...>{},
-                                                                      std::make_index_sequence<TYPE_COUNT>{}) *
-                          element_count +
-                      detail::calculate_element_addresses_size(element_count)),
+                     std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes = {})
+        : memory_size(this->calculate_needed_memory_size(element_count, varying_size_bytes, fixed_sizes)),
           element_count(element_count),
           memory(detail::make_unique_for_overwrite<std::byte[]>(memory_size)),
           last_element(memory.get() + detail::calculate_element_addresses_size(element_count)),
@@ -110,20 +102,35 @@ class ContiguousVector
 
     constexpr const_iterator end() const noexcept { return {*this, this->size()}; }
 
-    constexpr bool operator==(const ContiguousVector& other) const noexcept { return false; }
-
-    constexpr bool operator!=(const ContiguousVector& other) const noexcept { return !(*this == other); }
-
     // private API
   private:
+    template <size_t... I>
+    static constexpr auto calculate_fixed_size_memory_consumption(
+        const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+        std::index_sequence<I...>) noexcept
+    {
+        return ((detail::ParameterTraits<Types>::VALUE_BYTES * Traits::FixedSizeGetter<Types>::get<I>(fixed_sizes)) +
+                ...);
+    }
+
+    static constexpr auto calculate_needed_memory_size(
+        size_type element_count, size_type varying_size_bytes,
+        const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
+    {
+        return Traits::SIZE_IN_MEMORY * element_count + varying_size_bytes +
+               calculate_fixed_size_memory_consumption(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}) *
+                   element_count +
+               detail::calculate_element_addresses_size(element_count);
+    }
+
     template <std::size_t... I, class... Args>
     auto emplace_back_impl(std::index_sequence<I...>, Args&&... args)
     {
         *this->last_element_address = this->last_element;
         ++this->last_element_address;
-        ((last_element = detail::ContiguousTraits<std::tuple_element_t<I, Tuple>>::store_contiguously(
+        ((last_element = detail::ParameterTraits<Traits::TypeAt<I>>::store_contiguously(
               std::forward<Args>(args), this->last_element,
-              detail::FixedSizeGetter<std::tuple_element_t<I, Tuple>, Types...>::get<I>(fixed_sizes))),
+              Traits::FixedSizeGetter<Traits::TypeAt<I>>::get<I>(fixed_sizes))),
          ...);
     }
 
@@ -142,9 +149,8 @@ class ContiguousVector
     template <class... T, class Function, std::size_t... I>
     constexpr auto for_each_impl(std::tuple<T...>& tuple, Function&& function, std::index_sequence<I...>) const noexcept
     {
-        return (function(std::get<I>(tuple),
-                         detail::FixedSizeGetter<std::tuple_element_t<I, Tuple>, Types...>::get<I>(fixed_sizes),
-                         detail::ContiguousTraits<std::tuple_element_t<I, Tuple>>{}),
+        return (function(std::get<I>(tuple), Traits::FixedSizeGetter<Traits::TypeAt<I>>::get<I>(fixed_sizes),
+                         detail::ParameterTraits<Traits::TypeAt<I>>{}),
                 ...);
     }
 
@@ -157,7 +163,7 @@ class ContiguousVector
 
     auto get_tuple_pointers_at(size_type i) const noexcept
     {
-        detail::ToContiguousTupleOfPointerReturnTypes<Tuple> result;
+        typename Traits::PointerReturnType result;
         auto* start = this->element_addresses()[i];
         this->for_each(result, [&](auto& element, size_type size, auto traits) {
             std::tie(element, start) = decltype(traits)::from_address(start, size);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/iterator.h"
-#include "cntgs/contiguous/detail/tuple.h"
 
 #include <iterator>
 
@@ -18,7 +17,7 @@ class ContiguousVectorIterator
   public:
     using value_type = typename Vector::value_type;
     using reference = std::conditional_t<IS_CONST, typename Vector::const_reference, typename Vector::reference>;
-    using pointer = detail::ToContiguousTupleOfPointerReturnTypes<typename Vector::Tuple>;
+    using pointer = typename Vector::Traits::PointerReturnType;
     using difference_type = typename Vector::difference_type;
     using iterator_category = std::random_access_iterator_tag;
 

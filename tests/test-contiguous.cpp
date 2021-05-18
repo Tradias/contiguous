@@ -4,6 +4,7 @@
 
 #include <array>
 #include <list>
+#include <string>
 #include <vector>
 
 namespace test_contiguous
@@ -16,22 +17,9 @@ using OneFixedOneVarying = cntgs::ContiguousVector<cntgs::FixedSize<uint16_t>, u
 
 TEST_CASE("ContiguousTest: traits")
 {
-    CHECK_EQ(sizeof(uint32_t) + 2 * sizeof(float*), TwoVarying::SIZE_IN_MEMORY);
-    CHECK_EQ(2, TwoVarying::CONTIGUOUS_COUNT);
-    CHECK_EQ(2, TwoFixed::CONTIGUOUS_FIXED_SIZE_COUNT);
-}
-
-TEST_CASE("ContiguousTest: one varying size: equality")
-{
-    // std::array firsts{1.f, 2.f};
-    // OneVarying first{1, firsts.size() * sizeof(float)};
-    // first.emplace_back(10u, firsts);
-    // std::array seconds{1.f, 2.f};
-    // OneVarying second{1, seconds.size() * sizeof(float)};
-    // second.emplace_back(10u, seconds);
-    // CHECK_EQ(first, second);
-    // second.emplace_back(20u, seconds);
-    // CHECK_NE(first, second);
+    CHECK_EQ(sizeof(uint32_t) + 2 * sizeof(float*), cntgs::detail::ContiguousVectorTraits<TwoVarying>::SIZE_IN_MEMORY);
+    CHECK_EQ(2, cntgs::detail::ContiguousVectorTraits<TwoVarying>::CONTIGUOUS_COUNT);
+    CHECK_EQ(2, cntgs::detail::ContiguousVectorTraits<TwoFixed>::CONTIGUOUS_FIXED_SIZE_COUNT);
 }
 
 TEST_CASE("ContiguousTest: two varying size: size() and capacity()")
@@ -49,7 +37,7 @@ TEST_CASE("ContiguousTest: two varying size: empty()")
     CHECK(vector.empty());
 }
 
-TEST_CASE("ContiguousTest: two varying size: get_fixed_size<I>()")
+TEST_CASE("ContiguousTest: two fixed size: get_fixed_size<I>()")
 {
     TwoFixed vector{2, {}, {10, 20}};
     CHECK_EQ(10, vector.get_fixed_size<0>());
@@ -64,7 +52,7 @@ TEST_CASE("ContiguousTest: one varying size: reference can be converted to value
     OneVarying::value_type value = vector[0];
 }
 
-TEST_CASE("ContiguousTest: one varying size: correct memory_consumption()")
+TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumption()")
 {
     const auto varying_byte_count = 6 * sizeof(float);
     OneFixedOneVarying vector{2, varying_byte_count, {1}};
@@ -87,7 +75,7 @@ TEST_CASE("ContiguousTest: two varying size: emplace_back with arrays and subscr
     CHECK(std::equal(seconds.begin(), seconds.end(), expected_seconds.begin(), expected_seconds.end()));
 }
 
-TEST_CASE("ContiguousTest: two varying size: emplace_back with lists and subscript operator")
+TEST_CASE("ContiguousTest: one varying size: emplace_back with lists and subscript operator")
 {
     std::list expected_firsts{1.f, 2.f};
     OneVarying vector{1, expected_firsts.size() * sizeof(float)};
@@ -146,6 +134,17 @@ TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscr
     auto&& [id, elements] = vector[0];
     CHECK_EQ(10u, id);
     CHECK(std::equal(elements.begin(), elements.end(), expected_elements.begin(), expected_elements.end()));
+}
+
+TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript operator")
+{
+    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string> vector{1, {}, {1}};
+    vector.emplace_back(std::vector{std::string("a very long test string")},
+                        std::string("another very long test string"));
+    auto&& [fixed, string] = vector[0];
+    REQUIRE_EQ(1, fixed.size());
+    CHECK_EQ("a very long test string", fixed[0]);
+    CHECK_EQ("another very long test string", string);
 }
 
 template <class T>
