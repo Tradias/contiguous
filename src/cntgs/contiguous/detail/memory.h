@@ -43,7 +43,7 @@ auto copy_range_ignore_aliasing(const Range& range, std::byte* address)
     else
     {
         const auto prev_address = reinterpret_cast<RangeValueType*>(address);
-        return reinterpret_cast<std::byte*>(std::copy(std::begin(range), std::end(range), prev_address));
+        return reinterpret_cast<std::byte*>(std::uninitialized_copy(std::begin(range), std::end(range), prev_address));
     }
 }
 
@@ -60,7 +60,7 @@ auto copy_ignore_aliasing(const Iterator& iterator, std::byte* address, std::siz
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
     const auto prev_address = reinterpret_cast<IteratorValueType*>(address);
-    return reinterpret_cast<std::byte*>(std::copy_n(iterator, size, prev_address));
+    return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, prev_address));
 }
 
 template <class T>
