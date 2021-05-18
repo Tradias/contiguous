@@ -55,7 +55,7 @@ class ContiguousVector
     auto element_addresses() const noexcept
     {
         const auto start = reinterpret_cast<std::byte**>(this->memory.get());
-        return cntgs::Span{start, start + this->size()};
+        return cntgs::Span<std::byte*>{start, start + this->size()};
     }
 
     auto element_memory() const noexcept
@@ -109,7 +109,8 @@ class ContiguousVector
         const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
         std::index_sequence<I...>) noexcept
     {
-        return ((detail::ParameterTraits<Types>::VALUE_BYTES * Traits::FixedSizeGetter<Types>::get<I>(fixed_sizes)) +
+        return ((detail::ParameterTraits<Types>::VALUE_BYTES *
+                 Traits::template FixedSizeGetter<Types>::get<I>(fixed_sizes)) +
                 ...);
     }
 
@@ -149,8 +150,9 @@ class ContiguousVector
     template <class... T, class Function, std::size_t... I>
     constexpr auto for_each_impl(std::tuple<T...>& tuple, Function&& function, std::index_sequence<I...>) const noexcept
     {
-        return (function(std::get<I>(tuple), Traits::FixedSizeGetter<Traits::TypeAt<I>>::get<I>(fixed_sizes),
-                         detail::ParameterTraits<Traits::TypeAt<I>>{}),
+        return (function(std::get<I>(tuple),
+                         Traits::template FixedSizeGetter<Traits::template TypeAt<I>>::get<I>(fixed_sizes),
+                         detail::ParameterTraits<Traits::template TypeAt<I>>{}),
                 ...);
     }
 
@@ -161,7 +163,7 @@ class ContiguousVector
                                    std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<T>>>{});
     }
 
-    auto get_tuple_pointers_at(size_type i) const noexcept
+    auto tuple_of_pointers_at(size_type i) const noexcept
     {
         typename Traits::PointerReturnType result;
         auto* start = this->element_addresses()[i];
@@ -173,13 +175,13 @@ class ContiguousVector
 
     auto subscript_operator(size_type i) noexcept
     {
-        const auto tuple = get_tuple_pointers_at(i);
+        const auto tuple = tuple_of_pointers_at(i);
         return this->convert_tuple_to<reference>(tuple);
     }
 
     auto subscript_operator(size_type i) const noexcept
     {
-        const auto tuple = get_tuple_pointers_at(i);
+        const auto tuple = tuple_of_pointers_at(i);
         return this->convert_tuple_to<const_reference>(tuple);
     }
 };

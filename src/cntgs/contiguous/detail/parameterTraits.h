@@ -54,11 +54,10 @@ struct ParameterTraits<cntgs::VaryingSize<T>>
 
     static auto from_address(std::byte* address, std::size_t) noexcept
     {
-        ReturnType result;
-        result.last = *reinterpret_cast<iterator_type*>(address);
+        const auto last = *reinterpret_cast<iterator_type*>(address);
         address += SIZE_IN_MEMORY;
-        result.first = reinterpret_cast<iterator_type>(address);
-        return std::pair{result, reinterpret_cast<std::byte*>(result.last)};
+        const auto first = reinterpret_cast<iterator_type>(address);
+        return std::pair{ReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
     template <class Range>
@@ -88,10 +87,9 @@ struct ParameterTraits<cntgs::FixedSize<T>>
 
     static auto from_address(std::byte* address, std::size_t size) noexcept
     {
-        ReturnType result;
-        result.first = reinterpret_cast<iterator_type>(address);
-        result.last = result.first + size;
-        return std::pair{result, address + size * VALUE_BYTES};
+        const auto first = reinterpret_cast<iterator_type>(address);
+        const auto last = first + size;
+        return std::pair{ReturnType{first, last}, address + size * VALUE_BYTES};
     }
 
     template <class RangeOrIterator>

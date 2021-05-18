@@ -1,15 +1,21 @@
 find_package(doctest REQUIRED)
 
-add_executable(cntgs-test)
+function(cntgs_add_test _name)
+    add_executable(${_name})
 
-target_sources(cntgs-test PRIVATE main.cpp test-contiguous.cpp)
+    target_sources(${_name} PRIVATE main.cpp test-contiguous.cpp)
 
-target_compile_options(cntgs-test PRIVATE $<$<PLATFORM_ID:Windows>:/W4>)
+    target_compile_options(${_name} PRIVATE $<$<PLATFORM_ID:Windows>:/W4>)
 
-target_link_libraries(cntgs-test PRIVATE cntgs doctest::doctest)
+    target_link_libraries(${_name} PRIVATE cntgs doctest::doctest)
 
-target_include_directories(cntgs-test PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/utils>
-                                             $<INSTALL_INTERFACE:include>)
+    target_include_directories(${_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/utils>
+                                               $<INSTALL_INTERFACE:include>)
+endfunction()
 
-# include(${CMAKE_PREFIX_PATH}/lib/cmake/doctest/doctest.cmake)
-# doctest_discover_tests(cntgs-test ADD_LABELS 0)
+cntgs_add_test(cntgs-test-cpp17)
+cntgs_add_test(cntgs-test-cpp20)
+
+target_compile_features(cntgs-test-cpp20 PRIVATE cxx_std_20)
+
+# include(${CMAKE_PREFIX_PATH}/lib/cmake/doctest/doctest.cmake) doctest_discover_tests(cntgs-test ADD_LABELS 0)

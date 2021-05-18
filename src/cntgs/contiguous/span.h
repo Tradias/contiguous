@@ -2,8 +2,16 @@
 
 #include <cstddef>
 
+#ifdef __cpp_lib_span
+#include <span>
+#endif
+
 namespace cntgs
 {
+#ifdef __cpp_lib_span
+template <class T>
+using Span = std::span<T>;
+#else
 template <class T>
 struct Span
 {
@@ -36,4 +44,5 @@ struct Span
 
     constexpr auto operator[](size_type i) const noexcept { return first[i]; }
 };
+#endif
 }  // namespace cntgs
