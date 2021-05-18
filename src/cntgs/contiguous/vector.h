@@ -24,6 +24,12 @@ class ContiguousVector
     using Traits = detail::ContiguousVectorTraits<Self>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
 
+    template <std::size_t I>
+    using TypeAt = typename Traits::template TypeAt<I>;
+
+    template <class T>
+    using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
+
     static constexpr auto TYPE_COUNT = sizeof...(Types);
 
   public:
@@ -44,14 +50,34 @@ class ContiguousVector
 
     ContiguousVector() = default;
 
+    template <bool IsMixed = (Traits::CONTIGUOUS_FIXED_SIZE_COUNT != 0 &&
+                              Traits::CONTIGUOUS_FIXED_SIZE_COUNT != Traits::CONTIGUOUS_COUNT)>
     ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
-                     std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes = {})
-        : memory_size(this->calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes)),
-          max_element_count(max_element_count),
-          memory(detail::make_unique_for_overwrite<std::byte[]>(memory_size)),
-          last_element(memory.get() + ElementLocator::reserved_bytes(max_element_count)),
-          fixed_sizes(fixed_sizes),
-          locator(memory.get(), fixed_sizes)
+                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+                     std::enable_if_t<IsMixed>* = nullptr)
+        : ContiguousVector(max_element_count, varying_size_bytes, fixed_sizes, true)
+    {
+    }
+
+    template <bool IsAllFixedSize = (Traits::CONTIGUOUS_FIXED_SIZE_COUNT != 0 &&
+                                     Traits::CONTIGUOUS_FIXED_SIZE_COUNT == Traits::CONTIGUOUS_COUNT)>
+    ContiguousVector(size_type max_element_count,
+                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+                     std::enable_if_t<IsAllFixedSize>* = nullptr)
+        : ContiguousVector(max_element_count, {}, fixed_sizes, true)
+    {
+    }
+
+    template <bool IsAllVaryingSize = (Traits::CONTIGUOUS_FIXED_SIZE_COUNT == 0 && Traits::CONTIGUOUS_COUNT != 0)>
+    ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
+                     std::enable_if_t<IsAllVaryingSize>* = nullptr)
+        : ContiguousVector(max_element_count, varying_size_bytes, {}, true)
+    {
+    }
+
+    template <bool IsNoneSpecial = (Traits::CONTIGUOUS_COUNT == 0)>
+    ContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : ContiguousVector(max_element_count, {}, {}, true)
     {
     }
 
@@ -89,14 +115,23 @@ class ContiguousVector
 
     // private API
   private:
+    ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
+                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes, bool)
+        : memory_size(this->calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes)),
+          max_element_count(max_element_count),
+          memory(detail::make_unique_for_overwrite<std::byte[]>(memory_size)),
+          last_element(memory.get() + ElementLocator::reserved_bytes(max_element_count)),
+          fixed_sizes(fixed_sizes),
+          locator(memory.get(), fixed_sizes)
+    {
+    }
+
     template <size_t... I>
     static constexpr auto calculate_fixed_size_memory_consumption(
         const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
         std::index_sequence<I...>) noexcept
     {
-        return ((detail::ParameterTraits<Types>::VALUE_BYTES *
-                 Traits::template FixedSizeGetter<Types>::get<I>(fixed_sizes)) +
-                ...);
+        return ((detail::ParameterTraits<Types>::VALUE_BYTES * FixedSizeGetter<Types>::get<I>(fixed_sizes)) + ...);
     }
 
     static constexpr auto calculate_needed_memory_size(
@@ -113,9 +148,8 @@ class ContiguousVector
     auto emplace_back_impl(std::index_sequence<I...>, Args&&... args)
     {
         this->locator.add_element(this->last_element);
-        ((this->last_element = detail::ParameterTraits<Traits::TypeAt<I>>::store_contiguously(
-              std::forward<Args>(args), this->last_element,
-              Traits::FixedSizeGetter<Traits::TypeAt<I>>::get<I>(fixed_sizes))),
+        ((this->last_element = detail::ParameterTraits<TypeAt<I>>::store_contiguously(
+              std::forward<Args>(args), this->last_element, FixedSizeGetter<TypeAt<I>>::get<I>(fixed_sizes))),
          ...);
     }
 
@@ -134,9 +168,8 @@ class ContiguousVector
     template <class... T, class Function, std::size_t... I>
     constexpr auto for_each_impl(std::tuple<T...>& tuple, Function&& function, std::index_sequence<I...>) const noexcept
     {
-        return (function(std::get<I>(tuple),
-                         Traits::template FixedSizeGetter<Traits::template TypeAt<I>>::get<I>(fixed_sizes),
-                         detail::ParameterTraits<Traits::template TypeAt<I>>{}),
+        return (function(std::get<I>(tuple), FixedSizeGetter<TypeAt<I>>::get<I>(fixed_sizes),
+                         detail::ParameterTraits<TypeAt<I>>{}),
                 ...);
     }
 

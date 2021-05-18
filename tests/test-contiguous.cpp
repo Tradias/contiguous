@@ -4,31 +4,70 @@
 
 #include <array>
 #include <list>
+#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace test_contiguous
 {
+using NoSpecialParameter = cntgs::ContiguousVector<uint32_t, float>;
 using OneVarying = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<float>>;
 using TwoVarying = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<float>, cntgs::VaryingSize<float>>;
 using OneFixed = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<float>>;
 using TwoFixed = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint32_t, cntgs::FixedSize<float>>;
-using OneFixedOneVarying = cntgs::ContiguousVector<cntgs::FixedSize<uint16_t>, uint32_t, cntgs::VaryingSize<float>>;
+using OneFixedOneVarying = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint32_t, cntgs::VaryingSize<float>>;
 
-TEST_CASE("ContiguousTest: traits")
+TEST_CASE("ContiguousTest: size() and capacity()")
 {
-    CHECK_EQ(sizeof(uint32_t) + 2 * sizeof(float*), cntgs::detail::ContiguousVectorTraits<TwoVarying>::SIZE_IN_MEMORY);
-    CHECK_EQ(2, cntgs::detail::ContiguousVectorTraits<TwoVarying>::CONTIGUOUS_COUNT);
-    CHECK_EQ(2, cntgs::detail::ContiguousVectorTraits<TwoFixed>::CONTIGUOUS_FIXED_SIZE_COUNT);
-}
-
-TEST_CASE("ContiguousTest: two varying size: size() and capacity()")
-{
-    std::array elements{1.f, 2.f};
-    OneVarying vector{2, elements.size() * sizeof(float)};
-    vector.emplace_back(10u, elements);
-    CHECK_EQ(1, vector.size());
-    CHECK_EQ(2, vector.capacity());
+    std::array firsts{1.f, 2.f};
+    std::array seconds{1.f, 2.f};
+    std::optional<std::variant<NoSpecialParameter, OneVarying, TwoVarying, OneFixed, TwoFixed, OneFixedOneVarying>>
+        vector;
+    SUBCASE("no special parameter")
+    {
+        NoSpecialParameter v{2};
+        v.emplace_back(10u, 1.5f);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("one varying")
+    {
+        OneVarying v{2, firsts.size() * sizeof(float)};
+        v.emplace_back(10u, firsts);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("two varying")
+    {
+        TwoVarying v{2, firsts.size() * sizeof(float) + seconds.size() * sizeof(float)};
+        v.emplace_back(10u, firsts, seconds);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("one fixed")
+    {
+        OneFixed v{2, {firsts.size()}};
+        v.emplace_back(10u, firsts);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("two fixed")
+    {
+        TwoFixed v{2, {firsts.size(), seconds.size()}};
+        v.emplace_back(firsts, 10u, seconds);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("one fixed one varying")
+    {
+        OneFixedOneVarying v{2, seconds.size() * sizeof(float), {firsts.size()}};
+        v.emplace_back(firsts, 10u, seconds);
+        vector.emplace(std::move(v));
+    }
+    REQUIRE(vector);
+    std::visit(
+        [&](auto&& v) {
+            CHECK_EQ(1, v.size());
+            CHECK_EQ(2, v.capacity());
+            CHECK_FALSE(v.empty());
+        },
+        *vector);
 }
 
 TEST_CASE("ContiguousTest: two varying size: empty()")
@@ -39,7 +78,7 @@ TEST_CASE("ContiguousTest: two varying size: empty()")
 
 TEST_CASE("ContiguousTest: two fixed size: get_fixed_size<I>()")
 {
-    TwoFixed vector{2, {}, {10, 20}};
+    TwoFixed vector{2, {10, 20}};
     CHECK_EQ(10, vector.get_fixed_size<0>());
     CHECK_EQ(20, vector.get_fixed_size<1>());
 }
@@ -54,8 +93,9 @@ TEST_CASE("ContiguousTest: one varying size: reference can be converted to value
 
 TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumption()")
 {
+    using Vector = cntgs::ContiguousVector<cntgs::FixedSize<uint16_t>, uint32_t, cntgs::VaryingSize<float>>;
     const auto varying_byte_count = 6 * sizeof(float);
-    OneFixedOneVarying vector{2, varying_byte_count, {1}};
+    Vector vector{2, varying_byte_count, {1}};
     const auto expected =
         2 * (1 * sizeof(uint16_t) + sizeof(float*) + sizeof(std::byte*) + sizeof(uint32_t)) + varying_byte_count;
     CHECK_EQ(expected, vector.memory_consumption());
@@ -63,7 +103,7 @@ TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumptio
 
 TEST_CASE("ContiguousTest: two fixed size: correct memory_consumption()")
 {
-    TwoFixed vector{2, {}, {1, 2}};
+    TwoFixed vector{2, {1, 2}};
     const auto expected = 2 * (1 * sizeof(float) + sizeof(uint32_t) + 2 * sizeof(float));
     CHECK_EQ(expected, vector.memory_consumption());
 }
@@ -123,7 +163,7 @@ TEST_CASE("ContiguousTest: two fixed size: emplace_back with lists and subscript
 {
     std::list expected_firsts{1.f, 2.f};
     std::vector expected_seconds{-1.f, -2.f};
-    TwoFixed vector{2, {}, {expected_firsts.size(), expected_seconds.size()}};
+    TwoFixed vector{2, {expected_firsts.size(), expected_seconds.size()}};
     vector.emplace_back(expected_firsts, 10u, expected_seconds);
     vector.emplace_back(expected_firsts, 10u, expected_seconds);
     for (size_t i = 0; i < vector.size(); ++i)
@@ -138,7 +178,7 @@ TEST_CASE("ContiguousTest: two fixed size: emplace_back with lists and subscript
 TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscript operator")
 {
     std::list expected_elements{1.f, 2.f};
-    OneFixed vector{1, {}, {expected_elements.size()}};
+    OneFixed vector{1, {expected_elements.size()}};
     vector.emplace_back(10u, expected_elements.begin());
     auto&& [id, elements] = vector[0];
     CHECK_EQ(10u, id);
@@ -147,7 +187,7 @@ TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscr
 
 TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript operator")
 {
-    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string> vector{1, {}, {1}};
+    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string> vector{1, {1}};
     vector.emplace_back(std::vector{std::string("a very long test string")},
                         std::string("another very long test string"));
     auto&& [fixed, string] = vector[0];
@@ -176,7 +216,7 @@ void check_iterator(T&& vector)
 
 TEST_CASE("ContiguousTest: one fixed size: begin() end()")
 {
-    OneFixed vector{2, {}, {2}};
+    OneFixed vector{2, {2}};
     vector.emplace_back(10u, std::array{1.f, 2.f});
     vector.emplace_back(20u, std::array{-1.f, -2.f});
     SUBCASE("mutable")

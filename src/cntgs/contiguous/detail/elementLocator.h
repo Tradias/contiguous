@@ -65,7 +65,7 @@ class AllFixedSizeElementLocator
   public:
     template <std::size_t N>
     AllFixedSizeElementLocator(std::byte*, const std::array<SizeType, N>& fixed_sizes) noexcept
-        : stride(calculate_fixed_size_stride(fixed_sizes, std::make_index_sequence<sizeof...(Types)>{}))
+        : stride(calculate_stride(fixed_sizes, std::make_index_sequence<sizeof...(Types)>{}))
     {
     }
 
@@ -77,12 +77,15 @@ class AllFixedSizeElementLocator
 
     constexpr void add_element(std::byte*) noexcept { ++element_count; }
 
-    constexpr auto at(std::byte* memory_begin, SizeType index) const noexcept { return memory_begin + stride * index; }
+    constexpr auto at(std::byte* memory_begin, SizeType index) const noexcept
+    {
+        return memory_begin + this->stride * index;
+    }
 
   private:
     template <std::size_t N, std::size_t... I>
-    static constexpr auto calculate_fixed_size_stride(const std::array<SizeType, N>& fixed_sizes,
-                                                      std::index_sequence<I...>) noexcept
+    static constexpr auto calculate_stride(const std::array<SizeType, N>& fixed_sizes,
+                                           std::index_sequence<I...>) noexcept
     {
         return ((Traits::template FixedSizeGetter<Types>::get<I>(fixed_sizes) *
                      detail::ParameterTraits<Types>::VALUE_BYTES +
