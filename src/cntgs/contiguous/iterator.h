@@ -1,14 +1,13 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/iterator.h"
+#include "cntgs/contiguous/detail/vectorTraits.h"
 
 #include <iterator>
 
 namespace cntgs
 {
-template <class... Types>
-class ContiguousVector;
-
 template <class Vector>
 class ContiguousVectorIterator
 {
@@ -17,7 +16,7 @@ class ContiguousVectorIterator
   public:
     using value_type = typename Vector::value_type;
     using reference = std::conditional_t<IS_CONST, typename Vector::const_reference, typename Vector::reference>;
-    using pointer = typename Vector::Traits::PointerReturnType;
+    using pointer = typename detail::ContiguousVectorTraits<std::remove_const_t<Vector>>::PointerReturnType;
     using difference_type = typename Vector::difference_type;
     using iterator_category = std::random_access_iterator_tag;
 

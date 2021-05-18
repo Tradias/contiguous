@@ -21,15 +21,10 @@ constexpr decltype(auto) dereference(T&& memory) noexcept
     return *memory;
 }
 
-constexpr auto calculate_element_addresses_size(std::size_t element_count) noexcept
-{
-    return element_count * sizeof(std::byte*);
-}
-
-template <class... T, size_t... I>
+template <class... T, std::size_t... I>
 constexpr auto calculate_fixed_size_indices(detail::TypeList<T...>, std::index_sequence<I...>)
 {
-    std::array<size_t, sizeof...(T)> fixed_size_indices{};
+    std::array<std::size_t, sizeof...(T)> fixed_size_indices{};
     std::size_t index = 0;
     (
         [&] {

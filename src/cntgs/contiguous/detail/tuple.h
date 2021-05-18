@@ -1,16 +1,12 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 
 #include <tuple>
 #include <utility>
 
-namespace cntgs
-{
-template <class... Types>
-class ContiguousVector;
-
-namespace detail
+namespace cntgs::detail
 {
 template <template <class> class U, class T>
 struct TransformTuple
@@ -52,5 +48,4 @@ using ToContiguousPointer = std::conditional_t<detail::IS_CONTIGUOUS<T>,
 
 template <class T>
 using ToContiguousTupleOfPointerReturnType = typename TransformTuple<ToContiguousPointer, T>::Type;
-}  // namespace detail
-}  // namespace cntgs
+}  // namespace cntgs::detail

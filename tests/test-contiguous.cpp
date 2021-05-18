@@ -58,8 +58,13 @@ TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumptio
     OneFixedOneVarying vector{2, varying_byte_count, {1}};
     const auto expected =
         2 * (1 * sizeof(uint16_t) + sizeof(float*) + sizeof(std::byte*) + sizeof(uint32_t)) + varying_byte_count;
-    vector.emplace_back(std::array{uint16_t{1}}, 10u, std::array{1.f, 2.f, 3.f});
-    vector.emplace_back(std::array{uint16_t{1}}, 10u, std::array{1.f, 2.f, 3.f});
+    CHECK_EQ(expected, vector.memory_consumption());
+}
+
+TEST_CASE("ContiguousTest: two fixed size: correct memory_consumption()")
+{
+    TwoFixed vector{2, {}, {1, 2}};
+    const auto expected = 2 * (1 * sizeof(float) + sizeof(uint32_t) + 2 * sizeof(float));
     CHECK_EQ(expected, vector.memory_consumption());
 }
 
@@ -118,12 +123,16 @@ TEST_CASE("ContiguousTest: two fixed size: emplace_back with lists and subscript
 {
     std::list expected_firsts{1.f, 2.f};
     std::vector expected_seconds{-1.f, -2.f};
-    TwoFixed vector{1, {}, {expected_firsts.size(), expected_seconds.size()}};
+    TwoFixed vector{2, {}, {expected_firsts.size(), expected_seconds.size()}};
     vector.emplace_back(expected_firsts, 10u, expected_seconds);
-    auto&& [firsts, id, seconds] = vector[0];
-    CHECK_EQ(10u, id);
-    CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
-    CHECK(std::equal(seconds.begin(), seconds.end(), expected_seconds.begin(), expected_seconds.end()));
+    vector.emplace_back(expected_firsts, 10u, expected_seconds);
+    for (size_t i = 0; i < vector.size(); ++i)
+    {
+        auto&& [firsts, id, seconds] = vector[i];
+        CHECK_EQ(10u, id);
+        CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
+        CHECK(std::equal(seconds.begin(), seconds.end(), expected_seconds.begin(), expected_seconds.end()));
+    }
 }
 
 TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscript operator")
@@ -153,7 +162,7 @@ void check_iterator(T&& vector)
     auto begin = vector.begin();
     using IterTraits = std::iterator_traits<decltype(begin)>;
     CHECK(std::is_same_v<std::random_access_iterator_tag, IterTraits::iterator_category>);
-    std::for_each(vector.begin(), ++vector.begin(), [&](auto&& elem) {
+    std::for_each(vector.begin()++, ++vector.begin(), [&](auto&& elem) {
         auto&& [uinteger, floats] = vector[0];
         CHECK_EQ(uinteger, std::get<0>(elem));
         CHECK(std::equal(floats.begin(), floats.end(), std::get<1>(elem).begin(), std::get<1>(elem).end()));

@@ -1,17 +1,13 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/vector.h"
 
 #include <tuple>
 #include <utility>
 
-namespace cntgs
-{
-template <class... Types>
-class ContiguousVector;
-
-namespace detail
+namespace cntgs::detail
 {
 template <class T, class U>
 struct FixedSizeGetterImplementation
@@ -50,6 +46,8 @@ struct ContiguousVectorTraits<cntgs::ContiguousVector<Types...>>
     using ReferenceReturnType = detail::ToContiguousTupleOfReferenceReturnType<Tuple>;
     using ConstReferenceReturnType = detail::ToContiguousTupleOfConstReferenceReturnType<Tuple>;
     using PointerReturnType = detail::ToContiguousTupleOfPointerReturnType<Tuple>;
+    using DifferenceType = std::ptrdiff_t;
+    using SizeType = std::size_t;
 
     template <class T>
     using FixedSizeGetter = detail::FixedSizeGetterImplementation<T, detail::TypeList<Types...>>;
@@ -62,5 +60,7 @@ struct ContiguousVectorTraits<cntgs::ContiguousVector<Types...>>
     static constexpr auto CONTIGUOUS_COUNT = (detail::ParameterTraits<Types>::IS_CONTIGUOUS + ...);
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT = (detail::ParameterTraits<Types>::IS_FIXED_SIZE + ...);
 };
-}  // namespace detail
-}  // namespace cntgs
+
+template <class... Types>
+using ContiguousVectorTraitsT = ContiguousVectorTraits<cntgs::ContiguousVector<Types...>>;
+}  // namespace cntgs::detail

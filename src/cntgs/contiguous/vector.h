@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/vector.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
@@ -8,7 +9,6 @@
 #include "cntgs/contiguous/span.h"
 
 #include <array>
-#include <cstring>
 #include <memory>
 #include <tuple>
 #include <type_traits>
@@ -19,49 +19,40 @@ namespace cntgs
 template <class... Types>
 class ContiguousVector
 {
-  public:
+  private:
     using Self = cntgs::ContiguousVector<Types...>;
     using Traits = detail::ContiguousVectorTraits<Self>;
+    using ElementLocator = detail::ElementLocatorT<Types...>;
+
+    static constexpr auto TYPE_COUNT = sizeof...(Types);
+
+  public:
     using value_type = typename Traits::ValueReturnType;
     using reference = typename Traits::ReferenceReturnType;
     using const_reference = typename Traits::ConstReferenceReturnType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
     using const_iterator = cntgs::ContiguousVectorIterator<std::add_const_t<Self>>;
-    using difference_type = std::ptrdiff_t;
-    using size_type = std::size_t;
-
-    static constexpr auto TYPE_COUNT = sizeof...(Types);
+    using difference_type = typename Traits::DifferenceType;
+    using size_type = typename Traits::SizeType;
 
     size_type memory_size{};
-    size_type element_count{};
+    size_type max_element_count{};
     std::unique_ptr<std::byte[]> memory{};
     std::byte* last_element{};
-    std::byte** last_element_address{};
     std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes{};
+    ElementLocator locator{};
 
     ContiguousVector() = default;
 
-    ContiguousVector(size_type element_count, size_type varying_size_bytes,
+    ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
                      std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes = {})
-        : memory_size(this->calculate_needed_memory_size(element_count, varying_size_bytes, fixed_sizes)),
-          element_count(element_count),
+        : memory_size(this->calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes)),
+          max_element_count(max_element_count),
           memory(detail::make_unique_for_overwrite<std::byte[]>(memory_size)),
-          last_element(memory.get() + detail::calculate_element_addresses_size(element_count)),
-          last_element_address(reinterpret_cast<std::byte**>(memory.get())),
-          fixed_sizes(fixed_sizes)
+          last_element(memory.get() + ElementLocator::reserved_bytes(max_element_count)),
+          fixed_sizes(fixed_sizes),
+          locator(memory.get(), fixed_sizes)
     {
-    }
-
-    auto element_addresses() const noexcept
-    {
-        const auto start = reinterpret_cast<std::byte**>(this->memory.get());
-        return cntgs::Span<std::byte*>{start, start + this->size()};
-    }
-
-    auto element_memory() const noexcept
-    {
-        return cntgs::Span{this->memory.get() + this->element_count * sizeof(std::byte*),
-                           this->memory.get() + this->memory_size};
     }
 
     template <class... Args>
@@ -80,17 +71,11 @@ class ContiguousVector
         return std::get<I>(this->fixed_sizes);
     }
 
-    bool empty() const noexcept
-    {
-        return this->last_element_address == reinterpret_cast<std::byte**>(this->memory.get());
-    }
+    bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
 
-    size_type size() const noexcept
-    {
-        return this->last_element_address - reinterpret_cast<std::byte**>(this->memory.get());
-    }
+    size_type size() const noexcept { return this->locator.size(this->memory.get()); }
 
-    constexpr size_type capacity() const noexcept { return this->element_count; }
+    constexpr size_type capacity() const noexcept { return this->max_element_count; }
 
     constexpr size_type memory_consumption() const noexcept { return this->memory_size; }
 
@@ -115,21 +100,20 @@ class ContiguousVector
     }
 
     static constexpr auto calculate_needed_memory_size(
-        size_type element_count, size_type varying_size_bytes,
+        size_type max_element_count, size_type varying_size_bytes,
         const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
     {
-        return Traits::SIZE_IN_MEMORY * element_count + varying_size_bytes +
+        return Traits::SIZE_IN_MEMORY * max_element_count + varying_size_bytes +
                calculate_fixed_size_memory_consumption(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}) *
-                   element_count +
-               detail::calculate_element_addresses_size(element_count);
+                   max_element_count +
+               ElementLocator::reserved_bytes(max_element_count);
     }
 
     template <std::size_t... I, class... Args>
     auto emplace_back_impl(std::index_sequence<I...>, Args&&... args)
     {
-        *this->last_element_address = this->last_element;
-        ++this->last_element_address;
-        ((last_element = detail::ParameterTraits<Traits::TypeAt<I>>::store_contiguously(
+        this->locator.add_element(this->last_element);
+        ((this->last_element = detail::ParameterTraits<Traits::TypeAt<I>>::store_contiguously(
               std::forward<Args>(args), this->last_element,
               Traits::FixedSizeGetter<Traits::TypeAt<I>>::get<I>(fixed_sizes))),
          ...);
@@ -166,7 +150,7 @@ class ContiguousVector
     auto tuple_of_pointers_at(size_type i) const noexcept
     {
         typename Traits::PointerReturnType result;
-        auto* start = this->element_addresses()[i];
+        auto* start = this->locator.at(this->memory.get(), i);
         this->for_each(result, [&](auto& element, size_type size, auto traits) {
             std::tie(element, start) = decltype(traits)::from_address(start, size);
         });
