@@ -8,7 +8,7 @@ namespace cntgs
 class TypeErasedVector
 {
   private:
-    using Traits = detail::ContiguousVectorTraitsT<>;
+    using Traits = detail::ContiguousVectorTraits<>;
     using SizeType = Traits::SizeType;
 
   public:

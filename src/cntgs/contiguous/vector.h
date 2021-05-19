@@ -24,7 +24,7 @@ class ContiguousVector
 {
   private:
     using Self = cntgs::ContiguousVector<Types...>;
-    using Traits = detail::ContiguousVectorTraits<Self>;
+    using Traits = detail::VectorTraits<Self>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
     using StorageType = typename Traits::StorageType;
 
@@ -178,7 +178,7 @@ class ContiguousVector
 
     template <size_t... I>
     static constexpr auto calculate_fixed_size_memory_consumption(
-        const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+        const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
         std::index_sequence<I...>) noexcept
     {
         return ((detail::ParameterTraits<Types>::VALUE_BYTES * FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
@@ -187,7 +187,7 @@ class ContiguousVector
 
     static constexpr auto calculate_needed_memory_size(
         size_type max_element_count, size_type varying_size_bytes,
-        const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
+        const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
     {
         return Traits::SIZE_IN_MEMORY * max_element_count + varying_size_bytes +
                calculate_fixed_size_memory_consumption(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}) *
@@ -262,7 +262,7 @@ auto type_erase(cntgs::ContiguousVector<Types...>&& vector)
         vector.max_element_count,
         std::move(vector.memory),
         vector.last_element,
-        detail::convert_array_to_size<detail::ContiguousVectorTraitsT<>::MAX_FIXED_SIZE_VECTOR_PARAMETER>(
+        detail::convert_array_to_size<detail::ContiguousVectorTraits<>::MAX_FIXED_SIZE_VECTOR_PARAMETER>(
             vector.fixed_sizes),
         detail::type_erase_element_locator(std::move(vector.locator))};
 }

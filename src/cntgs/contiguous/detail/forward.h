@@ -10,4 +10,9 @@ struct FixedSize;
 
 template <class... Types>
 class ContiguousVector;
+
+template <class Vector>
+class ContiguousVectorIterator;
+
+class TypeErasedVector;
 }  // namespace cntgs

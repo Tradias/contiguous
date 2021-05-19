@@ -83,7 +83,7 @@ struct ParameterTraits<cntgs::FixedSize<T>>
 
     static constexpr bool IS_CONTIGUOUS = true;
     static constexpr bool IS_FIXED_SIZE = true;
-    static constexpr auto SIZE_IN_MEMORY = std::size_t(0);
+    static constexpr auto SIZE_IN_MEMORY = std::size_t{0};
     static constexpr auto VALUE_BYTES = sizeof(value_type);
 
     static auto from_address(std::byte* address, std::size_t size) noexcept

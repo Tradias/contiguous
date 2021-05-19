@@ -14,22 +14,19 @@ template <class... Types>
 class ElementLocator
 {
   private:
-    using Traits = detail::ContiguousVectorTraitsT<Types...>;
+    using Traits = detail::ContiguousVectorTraits<Types...>;
     using SizeType = typename Traits::SizeType;
 
     std::byte** last_element_address{};
 
   public:
     template <std::size_t N>
-    ElementLocator(std::byte* memory_begin, const std::array<std::size_t, N>&) noexcept
+    ElementLocator(std::byte* memory_begin, const std::array<SizeType, N>&) noexcept
         : last_element_address(reinterpret_cast<std::byte**>(memory_begin))
     {
     }
 
-    static constexpr auto reserved_bytes(typename Traits::SizeType element_count) noexcept
-    {
-        return element_count * sizeof(std::byte*);
-    }
+    static constexpr auto reserved_bytes(SizeType element_count) noexcept { return element_count * sizeof(std::byte*); }
 
     bool empty(std::byte* memory_begin) const noexcept
     {
@@ -58,7 +55,7 @@ template <class... Types>
 class AllFixedSizeElementLocator
 {
   private:
-    using Traits = detail::ContiguousVectorTraitsT<Types...>;
+    using Traits = detail::ContiguousVectorTraits<Types...>;
     using SizeType = typename Traits::SizeType;
 
     SizeType element_count{};
@@ -98,8 +95,8 @@ class AllFixedSizeElementLocator
 
 template <class... Types>
 using ElementLocatorT =
-    std::conditional_t<detail::ContiguousVectorTraitsT<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
-                           detail::ContiguousVectorTraitsT<Types...>::CONTIGUOUS_COUNT,
+    std::conditional_t<detail::ContiguousVectorTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
+                           detail::ContiguousVectorTraits<Types...>::CONTIGUOUS_COUNT,
                        detail::AllFixedSizeElementLocator<Types...>, detail::ElementLocator<Types...>>;
 
 static constexpr auto MAX_ELEMENT_LOCATOR_SIZE =
