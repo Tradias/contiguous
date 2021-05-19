@@ -59,12 +59,12 @@ class ContiguousVector
     ContiguousVector() = default;
 
     explicit ContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : memory_size(vector.memory_size),
-          max_element_count(vector.max_element_count),
-          memory(std::move(vector.memory)),
-          last_element(vector.last_element),
-          fixed_sizes(detail::convert_array_to_size<Traits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
-          locator(*reinterpret_cast<ElementLocator*>(vector.locator.data()))
+        : ContiguousVector(vector, {std::move(vector.memory)})
+    {
+    }
+
+    explicit ContiguousVector(cntgs::TypeErasedVector& vector) noexcept
+        : ContiguousVector(vector, cntgs::Span{vector.memory.get(), vector.memory_size})
     {
     }
 
@@ -173,6 +173,16 @@ class ContiguousVector
           last_element(this->memory.get() + ElementLocator::reserved_bytes(max_element_count)),
           fixed_sizes(fixed_sizes),
           locator(this->memory.get(), fixed_sizes)
+    {
+    }
+
+    ContiguousVector(const cntgs::TypeErasedVector& vector, StorageType&& storage) noexcept
+        : memory_size(vector.memory_size),
+          max_element_count(vector.max_element_count),
+          memory(std::move(storage)),
+          last_element(vector.last_element),
+          fixed_sizes(detail::convert_array_to_size<Traits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
+          locator(*reinterpret_cast<const ElementLocator*>(vector.locator.data()))
     {
     }
 

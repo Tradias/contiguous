@@ -20,6 +20,8 @@ class ElementLocator
     std::byte** last_element_address{};
 
   public:
+    ElementLocator() = default;
+
     template <std::size_t N>
     ElementLocator(std::byte* memory_begin, const std::array<SizeType, N>&) noexcept
         : last_element_address(reinterpret_cast<std::byte**>(memory_begin))
@@ -62,6 +64,8 @@ class AllFixedSizeElementLocator
     SizeType stride{};
 
   public:
+    AllFixedSizeElementLocator() = default;
+
     template <std::size_t N>
     AllFixedSizeElementLocator(std::byte*, const std::array<SizeType, N>& fixed_sizes) noexcept
         : stride(calculate_stride(fixed_sizes, std::make_index_sequence<sizeof...(Types)>{}))
