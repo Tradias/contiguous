@@ -114,8 +114,8 @@ TEST_CASE("ContiguousTest: two varying size: emplace_back with arrays and subscr
     std::array expected_seconds{-1.f, -2.f, -3.f, -4.f, -5.f};
     TwoVarying vector{1, expected_firsts.size() * sizeof(float) + expected_seconds.size() * sizeof(float)};
     vector.emplace_back(10u, expected_firsts, expected_seconds);
-    auto&& [id, firsts, seconds] = vector[0];
-    CHECK_EQ(10u, id);
+    auto&& [i, firsts, seconds] = vector[0];
+    CHECK_EQ(10u, i);
     CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
     CHECK(std::equal(seconds.begin(), seconds.end(), expected_seconds.begin(), expected_seconds.end()));
 }
@@ -125,8 +125,8 @@ TEST_CASE("ContiguousTest: one varying size: emplace_back with lists and subscri
     std::list expected_firsts{1.f, 2.f};
     OneVarying vector{1, expected_firsts.size() * sizeof(float)};
     vector.emplace_back(10u, expected_firsts);
-    auto&& [id, firsts] = vector[0];
-    CHECK_EQ(10u, id);
+    auto&& [i, firsts] = vector[0];
+    CHECK_EQ(10u, i);
     CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
 }
 
@@ -136,15 +136,15 @@ TEST_CASE("ContiguousTest: one varying size: subscript operator returns a refere
     vector.emplace_back(10, std::initializer_list<float>{});
     SUBCASE("mutable")
     {
-        auto&& [id1, e1] = vector[0];
-        id1 = 20u;
-        auto&& [id2, e2] = vector[0];
-        CHECK_EQ(20u, id2);
+        auto&& [i1, e1] = vector[0];
+        i1 = 20u;
+        auto&& [i2, e2] = vector[0];
+        CHECK_EQ(20u, i2);
     }
     SUBCASE("const")
     {
-        auto&& [id, span] = std::as_const(vector)[0];
-        CHECK(std::is_same_v<const uint32_t&, decltype(id)>);
+        auto&& [i, span] = std::as_const(vector)[0];
+        CHECK(std::is_same_v<const uint32_t&, decltype(i)>);
         CHECK(std::is_same_v<cntgs::Span<const float>, decltype(span)>);
     }
 }
@@ -154,8 +154,8 @@ TEST_CASE("ContiguousTest: one varying size: emplace_back c-style array")
     float carray[]{0.1f, 0.2f};
     OneVarying vector{1, std::size(carray) * sizeof(float)};
     vector.emplace_back(10, carray);
-    auto&& [id, array] = vector[0];
-    CHECK_EQ(10u, id);
+    auto&& [i, array] = vector[0];
+    CHECK_EQ(10u, i);
     CHECK(std::equal(std::begin(array), std::end(array), std::begin(carray), std::end(carray)));
 }
 
@@ -168,8 +168,8 @@ TEST_CASE("ContiguousTest: two fixed size: emplace_back with lists and subscript
     vector.emplace_back(expected_firsts, 10u, expected_seconds);
     for (size_t i = 0; i < vector.size(); ++i)
     {
-        auto&& [firsts, id, seconds] = vector[i];
-        CHECK_EQ(10u, id);
+        auto&& [firsts, j, seconds] = vector[i];
+        CHECK_EQ(10u, j);
         CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
         CHECK(std::equal(seconds.begin(), seconds.end(), expected_seconds.begin(), expected_seconds.end()));
     }
@@ -181,8 +181,8 @@ TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscr
     OneFixed vector{1, {expected_elements.size()}};
     SUBCASE("begin() iterator") { vector.emplace_back(10u, expected_elements.begin()); }
     SUBCASE("data() iterator") { vector.emplace_back(10u, expected_elements.data()); }
-    auto&& [id, elements] = vector[0];
-    CHECK_EQ(10u, id);
+    auto&& [i, elements] = vector[0];
+    CHECK_EQ(10u, i);
     CHECK(std::equal(elements.begin(), elements.end(), expected_elements.begin(), expected_elements.end()));
 }
 
@@ -235,5 +235,34 @@ TEST_CASE("ContiguousTest: one fixed size: begin() end()")
         CHECK(std::is_same_v<OneFixed::const_iterator, decltype(begin)>);
         check_iterator(std::as_const(vector));
     }
+}
+
+TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
+{
+    std::array elements{1.f, 2.f};
+    std::optional<OneFixed> vector;
+    const auto memory_size = 2 * (sizeof(uint32_t) * 2 * sizeof(float));
+    auto ptr = std::make_unique<std::byte[]>(memory_size);
+    SUBCASE("unique_ptr") { vector.emplace(memory_size, std::move(ptr), 2, std::array{elements.size()}); }
+    SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.get(), memory_size}, 2, std::array{elements.size()}); }
+    CHECK(vector);
+    vector->emplace_back(10u, elements);
+    auto&& [i, e] = (*vector)[0];
+    CHECK_EQ(10u, i);
+    CHECK(std::equal(elements.begin(), elements.end(), e.begin(), e.end()));
+}
+
+TEST_CASE("ContiguousTest: NoSpecialParameter construct with unique_ptr and span")
+{
+    std::optional<NoSpecialParameter> vector;
+    const auto memory_size = 2 * (sizeof(uint32_t) * sizeof(float));
+    auto ptr = std::make_unique<std::byte[]>(memory_size);
+    SUBCASE("unique_ptr") { vector.emplace(memory_size, std::move(ptr), 2); }
+    SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.get(), memory_size}, 2); }
+    CHECK(vector);
+    vector->emplace_back(10u, 5.f);
+    auto&& [i, f] = (*vector)[0];
+    CHECK_EQ(10u, i);
+    CHECK_EQ(5.f, f);
 }
 }  // namespace test_contiguous

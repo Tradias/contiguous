@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/iterator.h"
+#include "cntgs/contiguous/span.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -91,5 +92,44 @@ auto make_unique_for_overwrite(std::size_t size)
 #else
     return std::unique_ptr<T>(new std::remove_extent_t<T>[size]);
 #endif
+}
+
+template <class T>
+struct MaybeOwnedPtr
+{
+    std::unique_ptr<T> ptr;
+    bool is_owned{};
+
+    constexpr MaybeOwnedPtr() = default;
+
+    MaybeOwnedPtr(std::unique_ptr<T>&& ptr) noexcept : ptr(std::move(ptr)), is_owned(true) {}
+
+    MaybeOwnedPtr(const cntgs::Span<std::remove_extent_t<T>>& span) noexcept : ptr(span.data()) {}
+
+    MaybeOwnedPtr(MaybeOwnedPtr&& other) = default;
+
+    MaybeOwnedPtr& operator=(MaybeOwnedPtr&& other) = default;
+
+    ~MaybeOwnedPtr() noexcept
+    {
+        if (!this->is_owned)
+        {
+            this->ptr.release();
+        }
+    }
+
+    decltype(auto) get() const noexcept { return this->ptr.get(); }
+
+    explicit operator bool() const noexcept { return bool(this->ptr); }
+};
+
+template <class T>
+auto acquire_or_create_new(detail::MaybeOwnedPtr<T>&& ptr, std::size_t memory_size)
+{
+    if (ptr)
+    {
+        return std::move(ptr);
+    }
+    return detail::MaybeOwnedPtr<T>{detail::make_unique_for_overwrite<std::byte[]>(memory_size)};
 }
 }  // namespace cntgs::detail

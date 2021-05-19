@@ -40,7 +40,7 @@ struct Span
 
     constexpr size_type size() const noexcept { return last - first; }
 
-    constexpr auto data() const noexcept { return last; }
+    constexpr auto data() const noexcept { return first; }
 
     constexpr auto operator[](size_type i) const noexcept { return first[i]; }
 };

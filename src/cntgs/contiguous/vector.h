@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/elementLocator.h"
+#include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/vector.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
@@ -23,6 +24,7 @@ class ContiguousVector
     using Self = cntgs::ContiguousVector<Types...>;
     using Traits = detail::ContiguousVectorTraits<Self>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
+    using StorageType = detail::MaybeOwnedPtr<std::byte[]>;
 
     template <std::size_t I>
     using TypeAt = typename Traits::template TypeAt<I>;
@@ -31,6 +33,13 @@ class ContiguousVector
     using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
+    static constexpr bool IS_MIXED =
+        Traits::CONTIGUOUS_FIXED_SIZE_COUNT != 0 && Traits::CONTIGUOUS_FIXED_SIZE_COUNT != Traits::CONTIGUOUS_COUNT;
+    static constexpr bool IS_ALL_FIXED_SIZE =
+        Traits::CONTIGUOUS_FIXED_SIZE_COUNT != 0 && Traits::CONTIGUOUS_FIXED_SIZE_COUNT == Traits::CONTIGUOUS_COUNT;
+    static constexpr bool IS_ALL_VARYING_SIZE =
+        Traits::CONTIGUOUS_FIXED_SIZE_COUNT == 0 && Traits::CONTIGUOUS_COUNT != 0;
+    static constexpr bool IS_NONE_SPECIAL = Traits::CONTIGUOUS_COUNT == 0;
 
   public:
     using value_type = typename Traits::ValueReturnType;
@@ -43,41 +52,70 @@ class ContiguousVector
 
     size_type memory_size{};
     size_type max_element_count{};
-    std::unique_ptr<std::byte[]> memory{};
+    StorageType memory{};
     std::byte* last_element{};
     std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes{};
     ElementLocator locator;
 
     ContiguousVector() = default;
 
-    template <bool IsMixed = (Traits::CONTIGUOUS_FIXED_SIZE_COUNT != 0 &&
-                              Traits::CONTIGUOUS_FIXED_SIZE_COUNT != Traits::CONTIGUOUS_COUNT)>
+    template <bool IsMixed = IS_MIXED>
     ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
                      const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
                      std::enable_if_t<IsMixed>* = nullptr)
-        : ContiguousVector(max_element_count, varying_size_bytes, fixed_sizes, true)
+        : ContiguousVector({}, {}, max_element_count, varying_size_bytes, fixed_sizes)
     {
     }
 
-    template <bool IsAllFixedSize = (Traits::CONTIGUOUS_FIXED_SIZE_COUNT != 0 &&
-                                     Traits::CONTIGUOUS_FIXED_SIZE_COUNT == Traits::CONTIGUOUS_COUNT)>
+    template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
     ContiguousVector(size_type max_element_count,
                      const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
                      std::enable_if_t<IsAllFixedSize>* = nullptr)
-        : ContiguousVector(max_element_count, {}, fixed_sizes, true)
+        : ContiguousVector({}, {}, max_element_count, {}, fixed_sizes)
     {
     }
 
-    template <bool IsAllVaryingSize = (Traits::CONTIGUOUS_FIXED_SIZE_COUNT == 0 && Traits::CONTIGUOUS_COUNT != 0)>
+    template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
+    ContiguousVector(size_type memory_size, std::unique_ptr<std::byte[]>&& transferred_ownership,
+                     size_type max_element_count,
+                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+                     std::enable_if_t<IsAllFixedSize>* = nullptr)
+        : ContiguousVector(memory_size, {std::move(transferred_ownership)}, max_element_count, {}, fixed_sizes)
+    {
+    }
+
+    template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
+    ContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
+                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+                     std::enable_if_t<IsAllFixedSize>* = nullptr)
+        : ContiguousVector(mutable_view.size(), {mutable_view}, max_element_count, {}, fixed_sizes)
+    {
+    }
+
+    template <bool IsAllVaryingSize = IS_ALL_VARYING_SIZE>
     ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
                      std::enable_if_t<IsAllVaryingSize>* = nullptr)
-        : ContiguousVector(max_element_count, varying_size_bytes, {}, true)
+        : ContiguousVector({}, {}, max_element_count, varying_size_bytes, {})
     {
     }
 
-    template <bool IsNoneSpecial = (Traits::CONTIGUOUS_COUNT == 0)>
+    template <bool IsNoneSpecial = IS_NONE_SPECIAL>
     ContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
-        : ContiguousVector(max_element_count, {}, {}, true)
+        : ContiguousVector({}, {}, max_element_count, {}, {})
+    {
+    }
+
+    template <bool IsNoneSpecial = IS_NONE_SPECIAL>
+    ContiguousVector(size_type memory_size, std::unique_ptr<std::byte[]>&& transferred_ownership,
+                     size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : ContiguousVector(memory_size, {std::move(transferred_ownership)}, max_element_count, {}, {})
+    {
+    }
+
+    template <bool IsNoneSpecial = IS_NONE_SPECIAL>
+    ContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
+                     std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : ContiguousVector(mutable_view.size(), {mutable_view}, max_element_count, {}, {})
     {
     }
 
@@ -115,14 +153,17 @@ class ContiguousVector
 
     // private API
   private:
-    ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
-                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes, bool)
-        : memory_size(this->calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes)),
+    ContiguousVector(size_type memory_size, StorageType&& storage, size_type max_element_count,
+                     size_type varying_size_bytes,
+                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes)
+        : memory_size(memory_size > 0
+                          ? memory_size
+                          : this->calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes)),
           max_element_count(max_element_count),
-          memory(detail::make_unique_for_overwrite<std::byte[]>(memory_size)),
-          last_element(memory.get() + ElementLocator::reserved_bytes(max_element_count)),
+          memory(detail::acquire_or_create_new(std::move(storage), this->memory_size)),
+          last_element(this->memory.get() + ElementLocator::reserved_bytes(max_element_count)),
           fixed_sizes(fixed_sizes),
-          locator(memory.get(), fixed_sizes)
+          locator(this->memory.get(), fixed_sizes)
     {
     }
 
