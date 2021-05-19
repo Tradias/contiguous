@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/iterator.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -30,6 +32,13 @@ struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype
 {
 };
 
+template <class T>
+auto copy_using_memcpy(const T* source, std::byte* target, std::size_t size)
+{
+    std::memcpy(target, source, size * sizeof(T));
+    return target + size * sizeof(T);
+}
+
 template <class Range>
 auto copy_range_ignore_aliasing(const Range& range, std::byte* address)
 {
@@ -59,8 +68,19 @@ auto copy_ignore_aliasing(const Iterator& iterator, std::byte* address, std::siz
     -> std::enable_if_t<!IsRange<Iterator>::value, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
-    const auto prev_address = reinterpret_cast<IteratorValueType*>(address);
-    return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, prev_address));
+    if constexpr (std::is_pointer_v<Iterator> && std::is_trivially_copyable_v<IteratorValueType>)
+    {
+        return detail::copy_using_memcpy(iterator, address, size);
+    }
+    else if constexpr (detail::ContiguousIterator<Iterator> && std::is_trivially_copyable_v<IteratorValueType>)
+    {
+        return detail::copy_using_memcpy(iterator.operator->(), address, size);
+    }
+    else
+    {
+        const auto prev_address = reinterpret_cast<IteratorValueType*>(address);
+        return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, prev_address));
+    }
 }
 
 template <class T>

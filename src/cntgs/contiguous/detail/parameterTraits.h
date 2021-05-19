@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/memory.h"
+#include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/parameter.h"
 #include "cntgs/contiguous/span.h"
 
@@ -32,7 +33,7 @@ struct ParameterTraits
     template <class Arg>
     static constexpr auto store_contiguously(Arg&& arg, std::byte* address, std::size_t)
     {
-        using RawArg = std::remove_const_t<std::remove_reference_t<Arg>>;
+        using RawArg = detail::RemoveCvrefT<Arg>;
         new (address) RawArg(std::forward<Arg>(arg));
         return address + sizeof(RawArg);
     }
