@@ -1,10 +1,11 @@
 # contiguous
 
-A C++ library for storing structs in contiguous memory.
+A C++ library for storing structs in contiguous memory. Header-only, zero dependencies, no exceptions, no rtti, C++17
 
 # Installation
 
 ```cmake
+find_package(cntgs)
 target_link_libraries(your_library PUBLIC cntgs::cntgs)
 
 OR 
@@ -56,7 +57,7 @@ const auto element_count = 2;
 const auto first_fixed_size_element_count = 10;
 const auto second_fixed_size_element_count = 12;
 
-Vector vector{element_count, {}, {first_fixed_size_element_count, second_fixed_size_element_count}};
+Vector vector{element_count, {first_fixed_size_element_count, second_fixed_size_element_count}};
 assert(2 == vector.capacity());
 
 vector.emplace_back(<container or iterator to floats>, <container or iterator to uint32_t>, <uint32_t>);
@@ -71,4 +72,19 @@ auto&& [first_fixed_size, second_fixed_size, uinteger] = vector[index];
 
 assert(first_fixed_size_element_count == vector.get_fixed_size<0>());
 assert(second_fixed_size_element_count == vector.get_fixed_size<1>());
+```
+
+Type erase a ContiguousVector
+
+```c++
+#include <cntgs/contiguous.h>
+
+using Vector = cntgs::ContiguousVector<...>;
+
+Vector vector;
+
+auto type_erased_vector = cntgs::type_erase(std::move(vector));
+// Type is cntgs::TypeErasedVector
+
+Vector restored{std::move(type_erased_vector)};
 ```
