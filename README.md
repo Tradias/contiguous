@@ -86,5 +86,7 @@ Vector vector;
 auto type_erased_vector = cntgs::type_erase(std::move(vector));
 // Type is cntgs::TypeErasedVector
 
+Vector restored{type_erased_vector};
+// optionally transfer ownership
 Vector restored{std::move(type_erased_vector)};
 ```
