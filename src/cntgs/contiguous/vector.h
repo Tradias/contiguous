@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/array.h"
 #include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
@@ -8,6 +9,7 @@
 #include "cntgs/contiguous/iterator.h"
 #include "cntgs/contiguous/parameter.h"
 #include "cntgs/contiguous/span.h"
+#include "cntgs/contiguous/typeErasedVector.h"
 
 #include <array>
 #include <memory>
@@ -24,7 +26,7 @@ class ContiguousVector
     using Self = cntgs::ContiguousVector<Types...>;
     using Traits = detail::ContiguousVectorTraits<Self>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
-    using StorageType = detail::MaybeOwnedPtr<std::byte[]>;
+    using StorageType = typename Traits::StorageType;
 
     template <std::size_t I>
     using TypeAt = typename Traits::template TypeAt<I>;
@@ -33,13 +35,10 @@ class ContiguousVector
     using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
-    static constexpr bool IS_MIXED =
-        Traits::CONTIGUOUS_FIXED_SIZE_COUNT != 0 && Traits::CONTIGUOUS_FIXED_SIZE_COUNT != Traits::CONTIGUOUS_COUNT;
-    static constexpr bool IS_ALL_FIXED_SIZE =
-        Traits::CONTIGUOUS_FIXED_SIZE_COUNT != 0 && Traits::CONTIGUOUS_FIXED_SIZE_COUNT == Traits::CONTIGUOUS_COUNT;
-    static constexpr bool IS_ALL_VARYING_SIZE =
-        Traits::CONTIGUOUS_FIXED_SIZE_COUNT == 0 && Traits::CONTIGUOUS_COUNT != 0;
-    static constexpr bool IS_NONE_SPECIAL = Traits::CONTIGUOUS_COUNT == 0;
+    static constexpr bool IS_MIXED = Traits::IS_MIXED;
+    static constexpr bool IS_ALL_FIXED_SIZE = Traits::IS_ALL_FIXED_SIZE;
+    static constexpr bool IS_ALL_VARYING_SIZE = Traits::IS_ALL_VARYING_SIZE;
+    static constexpr bool IS_NONE_SPECIAL = Traits::IS_NONE_SPECIAL;
 
   public:
     using value_type = typename Traits::ValueReturnType;
@@ -58,6 +57,16 @@ class ContiguousVector
     ElementLocator locator;
 
     ContiguousVector() = default;
+
+    explicit ContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
+        : memory_size(vector.memory_size),
+          max_element_count(vector.max_element_count),
+          memory(std::move(vector.memory)),
+          last_element(vector.last_element),
+          fixed_sizes(detail::convert_array_to_size<Traits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
+          locator(*reinterpret_cast<ElementLocator*>(vector.locator.data()))
+    {
+    }
 
     template <bool IsMixed = IS_MIXED>
     ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
@@ -244,4 +253,17 @@ class ContiguousVector
         return this->convert_tuple_to<const_reference>(tuple);
     }
 };
+
+template <class... Types>
+auto type_erase(cntgs::ContiguousVector<Types...>&& vector)
+{
+    return cntgs::TypeErasedVector{
+        vector.memory_size,
+        vector.max_element_count,
+        std::move(vector.memory),
+        vector.last_element,
+        detail::convert_array_to_size<detail::ContiguousVectorTraitsT<>::MAX_FIXED_SIZE_VECTOR_PARAMETER>(
+            vector.fixed_sizes),
+        detail::type_erase_element_locator(std::move(vector.locator))};
+}
 }  // namespace cntgs

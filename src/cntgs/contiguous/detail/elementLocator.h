@@ -1,9 +1,11 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/forward.h"
+#include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
+#include <array>
 #include <type_traits>
 
 namespace cntgs::detail
@@ -99,4 +101,15 @@ using ElementLocatorT =
     std::conditional_t<detail::ContiguousVectorTraitsT<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
                            detail::ContiguousVectorTraitsT<Types...>::CONTIGUOUS_COUNT,
                        detail::AllFixedSizeElementLocator<Types...>, detail::ElementLocator<Types...>>;
+
+static constexpr auto MAX_ELEMENT_LOCATOR_SIZE =
+    detail::max_size_t_of<sizeof(detail::ElementLocator<>), sizeof(detail::AllFixedSizeElementLocator<>)>();
+
+template <class T>
+auto type_erase_element_locator(T&& locator)
+{
+    std::array<std::byte, detail::MAX_ELEMENT_LOCATOR_SIZE> result;
+    new (result.data()) T(std::forward<T>(locator));
+    return result;
+}
 }  // namespace cntgs::detail

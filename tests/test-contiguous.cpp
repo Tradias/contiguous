@@ -265,4 +265,16 @@ TEST_CASE("ContiguousTest: NoSpecialParameter construct with unique_ptr and span
     CHECK_EQ(10u, i);
     CHECK_EQ(5.f, f);
 }
+
+TEST_CASE("ContiguousTest: type_erase OneFixed and restore")
+{
+    std::array elements{1.f, 2.f};
+    OneFixed vector{2, {elements.size()}};
+    vector.emplace_back(10u, elements);
+    auto erased = cntgs::type_erase(std::move(vector));
+    OneFixed restored{std::move(erased)};
+    auto&& [i, e] = restored[0];
+    CHECK_EQ(10u, i);
+    CHECK(std::equal(elements.begin(), elements.end(), e.begin(), e.end()));
+}
 }  // namespace test_contiguous

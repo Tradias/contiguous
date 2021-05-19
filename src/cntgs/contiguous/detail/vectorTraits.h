@@ -33,21 +33,32 @@ struct FixedSizeGetterImplementation<cntgs::FixedSize<T>, detail::TypeList<Types
     }
 };
 
+struct BaseContiguousVectorTraits
+{
+    using DifferenceType = std::ptrdiff_t;
+    using SizeType = std::size_t;
+    using StorageType = detail::MaybeOwnedPtr<std::byte[]>;
+
+#ifdef CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER
+    static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER;
+#else
+    static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 32;
+#endif
+};
+
 template <class T>
-struct ContiguousVectorTraits
+struct ContiguousVectorTraits : BaseContiguousVectorTraits
 {
 };
 
 template <class... Types>
-struct ContiguousVectorTraits<cntgs::ContiguousVector<Types...>>
+struct ContiguousVectorTraits<cntgs::ContiguousVector<Types...>> : BaseContiguousVectorTraits
 {
     using Tuple = std::tuple<Types...>;
     using ValueReturnType = detail::ToContiguousTupleOfValueReturnType<Tuple>;
     using ReferenceReturnType = detail::ToContiguousTupleOfReferenceReturnType<Tuple>;
     using ConstReferenceReturnType = detail::ToContiguousTupleOfConstReferenceReturnType<Tuple>;
     using PointerReturnType = detail::ToContiguousTupleOfPointerReturnType<Tuple>;
-    using DifferenceType = std::ptrdiff_t;
-    using SizeType = std::size_t;
 
     template <class T>
     using FixedSizeGetter = detail::FixedSizeGetterImplementation<T, detail::TypeList<Types...>>;
@@ -56,9 +67,20 @@ struct ContiguousVectorTraits<cntgs::ContiguousVector<Types...>>
     using TypeAt = std::tuple_element_t<I, Tuple>;
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
-    static constexpr auto SIZE_IN_MEMORY = (detail::ParameterTraits<Types>::SIZE_IN_MEMORY + ...);
-    static constexpr auto CONTIGUOUS_COUNT = (detail::ParameterTraits<Types>::IS_CONTIGUOUS + ...);
-    static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT = (detail::ParameterTraits<Types>::IS_FIXED_SIZE + ...);
+    static constexpr auto SIZE_IN_MEMORY = (SizeType{} + ... + detail::ParameterTraits<Types>::SIZE_IN_MEMORY);
+    static constexpr auto CONTIGUOUS_COUNT = (SizeType{} + ... + detail::ParameterTraits<Types>::IS_CONTIGUOUS);
+    static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
+        (SizeType{} + ... + detail::ParameterTraits<Types>::IS_FIXED_SIZE);
+    static constexpr bool IS_MIXED =
+        CONTIGUOUS_FIXED_SIZE_COUNT != 0 && CONTIGUOUS_FIXED_SIZE_COUNT != CONTIGUOUS_COUNT;
+    static constexpr bool IS_ALL_FIXED_SIZE =
+        CONTIGUOUS_FIXED_SIZE_COUNT != 0 && CONTIGUOUS_FIXED_SIZE_COUNT == CONTIGUOUS_COUNT;
+    static constexpr bool IS_ALL_VARYING_SIZE = CONTIGUOUS_FIXED_SIZE_COUNT == 0 && CONTIGUOUS_COUNT != 0;
+    static constexpr bool IS_NONE_SPECIAL = CONTIGUOUS_COUNT == 0;
+
+    static_assert(MAX_FIXED_SIZE_VECTOR_PARAMETER > CONTIGUOUS_FIXED_SIZE_COUNT,
+                  "Maximum number of FixedSize vector parameter exceeded. Define CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER "
+                  "to a higher limit.");
 };
 
 template <class... Types>
