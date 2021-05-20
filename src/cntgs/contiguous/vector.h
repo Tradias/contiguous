@@ -28,9 +28,6 @@ class ContiguousVector
     using ElementLocator = detail::ElementLocatorT<Types...>;
     using StorageType = typename Traits::StorageType;
 
-    template <std::size_t I>
-    using TypeAt = typename Traits::template TypeAt<I>;
-
     template <class T>
     using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
 
@@ -128,6 +125,19 @@ class ContiguousVector
     {
     }
 
+    ContiguousVector(const ContiguousVector&) = default;
+    ContiguousVector(ContiguousVector&&) = default;
+    ContiguousVector& operator=(const ContiguousVector&) = default;
+    ContiguousVector& operator=(ContiguousVector&&) = default;
+
+    ~ContiguousVector()
+    {
+        if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
+        {
+            destruct();
+        }
+    }
+
     template <class... Args>
     void emplace_back(Args&&... args)
     {
@@ -209,28 +219,28 @@ class ContiguousVector
     auto emplace_back_impl(std::index_sequence<I...>, Args&&... args)
     {
         this->locator.add_element(this->last_element);
-        ((this->last_element = detail::ParameterTraits<TypeAt<I>>::store_contiguously(
-              std::forward<Args>(args), this->last_element, FixedSizeGetter<TypeAt<I>>::template get<I>(fixed_sizes))),
+        ((this->last_element = detail::ParameterTraits<Types>::store_contiguously(
+              std::forward<Args>(args), this->last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
     }
 
     template <class Result, class... T, std::size_t... I>
-    constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer, std::index_sequence<I...>) const noexcept
+    static constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer, std::index_sequence<I...>) noexcept
     {
         return Result{detail::dereference(std::get<I>(tuple_of_pointer))...};
     }
 
     template <class Result, class... T>
-    constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) const noexcept
+    static constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexcept
     {
-        return this->convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
+        return convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
     }
 
     template <class... T, class Function, std::size_t... I>
     constexpr auto for_each_impl(std::tuple<T...>& tuple, Function&& function, std::index_sequence<I...>) const noexcept
     {
-        return (function(std::get<I>(tuple), FixedSizeGetter<TypeAt<I>>::template get<I>(fixed_sizes),
-                         detail::ParameterTraits<TypeAt<I>>{}),
+        return (function(std::get<I>(tuple), FixedSizeGetter<Types>::template get<I>(fixed_sizes),
+                         detail::ParameterTraits<Types>{}),
                 ...);
     }
 
@@ -261,6 +271,38 @@ class ContiguousVector
     {
         const auto tuple = tuple_of_pointers_at(i);
         return this->convert_tuple_to<const_reference>(tuple);
+    }
+
+    template <std::size_t... I>
+    void destruct(std::index_sequence<I...>)
+    {
+        for ([[maybe_unused]] auto&& element : *this)
+        {
+            (
+                [&] {
+                    using ValueType = typename detail::ParameterTraits<Types>::value_type;
+                    if constexpr (!std::is_trivially_destructible_v<ValueType>)
+                    {
+                        if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
+                        {
+                            std::destroy(std::get<I>(element).begin(), std::get<I>(element).end());
+                        }
+                        else
+                        {
+                            std::get<I>(element).~ValueType();
+                        }
+                    }
+                }(),
+                ...);
+        }
+    }
+
+    void destruct()
+    {
+        if (memory)
+        {
+            destruct(std::make_index_sequence<TYPE_COUNT>{});
+        }
     }
 };
 

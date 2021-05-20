@@ -188,14 +188,16 @@ TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscr
 
 TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript operator")
 {
-    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string> vector{1, {1}};
+    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string, std::string*> vector{1, {1}};
     std::vector v{std::string("a very long test string")};
-    SUBCASE("emplace_back range") { vector.emplace_back(v, std::string("another very long test string")); }
-    SUBCASE("emplace_back iterator") { vector.emplace_back(v.begin(), std::string("another very long test string")); }
-    auto&& [fixed, string] = vector[0];
+    std::string test{"another very long test string"};
+    SUBCASE("emplace_back range") { vector.emplace_back(v, test, &test); }
+    SUBCASE("emplace_back iterator") { vector.emplace_back(v.begin(), test, &test); }
+    auto&& [fixed, string, string_ptr] = vector[0];
     CHECK_EQ(1, fixed.size());
     CHECK_EQ("a very long test string", fixed[0]);
     CHECK_EQ("another very long test string", string);
+    CHECK_EQ("another very long test string", *string_ptr);
 }
 
 template <class T>

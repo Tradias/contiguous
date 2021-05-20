@@ -57,14 +57,13 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
     template <class T>
     using FixedSizeGetter = detail::FixedSizeGetterImplementation<T, detail::TypeList<Types...>>;
 
-    template <std::size_t I>
-    using TypeAt = std::tuple_element_t<I, Tuple>;
-
     static constexpr auto TYPE_COUNT = sizeof...(Types);
     static constexpr auto SIZE_IN_MEMORY = (SizeType{} + ... + detail::ParameterTraits<Types>::SIZE_IN_MEMORY);
     static constexpr auto CONTIGUOUS_COUNT = (SizeType{} + ... + detail::ParameterTraits<Types>::IS_CONTIGUOUS);
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
         (SizeType{} + ... + detail::ParameterTraits<Types>::IS_FIXED_SIZE);
+    static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE =
+        (std::is_trivially_destructible_v<typename detail::ParameterTraits<Types>::value_type> && ...);
     static constexpr bool IS_MIXED =
         CONTIGUOUS_FIXED_SIZE_COUNT != 0 && CONTIGUOUS_FIXED_SIZE_COUNT != CONTIGUOUS_COUNT;
     static constexpr bool IS_ALL_FIXED_SIZE =

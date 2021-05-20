@@ -5,8 +5,15 @@ function(cntgs_add_test _name)
 
     target_sources(${_name} PRIVATE main.cpp test-contiguous.cpp)
 
-    target_compile_options(${_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4 /GR- /EHs->
-                                            $<$<CXX_COMPILER_ID:GNU>:-fno-exceptions -fno-rtti>)
+    target_compile_options(
+        ${_name}
+        PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4
+                /GR-
+                /EHs->
+                $<$<CXX_COMPILER_ID:GNU>:-Wall
+                -Wextra
+                -fno-exceptions
+                -fno-rtti>)
 
     target_link_libraries(${_name} PRIVATE cntgs doctest::doctest)
 
