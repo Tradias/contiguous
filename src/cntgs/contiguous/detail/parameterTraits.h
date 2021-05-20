@@ -26,7 +26,7 @@ struct ParameterTraits
 
     static auto from_address(std::byte* address, std::size_t) noexcept
     {
-        auto result = reinterpret_cast<ReturnType>(address);
+        auto result = std::launder(reinterpret_cast<ReturnType>(address));
         return std::pair{result, address + SIZE_IN_MEMORY};
     }
 
@@ -64,10 +64,10 @@ struct ParameterTraits<cntgs::VaryingSize<T>>
     template <class Range>
     static auto store_contiguously(const Range& range, std::byte* address, std::size_t)
     {
-        const auto start = reinterpret_cast<iterator_type*>(address);
+        const auto start = std::launder(reinterpret_cast<iterator_type*>(address));
         address += SIZE_IN_MEMORY;
         auto new_address = detail::copy_range_ignore_aliasing(range, address);
-        *start = reinterpret_cast<iterator_type>(new_address);
+        *start = std::launder(reinterpret_cast<iterator_type>(new_address));
         return new_address;
     }
 };
@@ -88,7 +88,7 @@ struct ParameterTraits<cntgs::FixedSize<T>>
 
     static auto from_address(std::byte* address, std::size_t size) noexcept
     {
-        const auto first = reinterpret_cast<iterator_type>(address);
+        const auto first = std::launder(reinterpret_cast<iterator_type>(address));
         const auto last = first + size;
         return std::pair{ReturnType{first, last}, address + size * VALUE_BYTES};
     }
