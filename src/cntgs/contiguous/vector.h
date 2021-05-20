@@ -63,8 +63,8 @@ class ContiguousVector
     {
     }
 
-    explicit ContiguousVector(cntgs::TypeErasedVector& vector) noexcept
-        : ContiguousVector(vector, cntgs::Span{vector.memory.get(), vector.memory_size})
+    explicit ContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
+        : ContiguousVector(vector, cntgs::Span<std::byte>{vector.memory.get(), vector.memory_size})
     {
     }
 
