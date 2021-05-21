@@ -27,4 +27,9 @@ TEST_CASE("CodeGenTest: two FixedSize lookup and accumulate")
 {
     check_code_gen_sizes("reference_two_fixed_lookup_and_accumulate", "contiguous_two_fixed_lookup_and_accumulate");
 }
+
+TEST_CASE("CodeGenTest: two FixedSize emplace")
+{
+    check_code_gen_sizes("reference_two_fixed_emplace", "contiguous_two_fixed_emplace");
+}
 }  // namespace test_contiguous

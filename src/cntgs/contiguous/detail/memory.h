@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/iterator.h"
+#include "cntgs/contiguous/detail/range.h"
 #include "cntgs/contiguous/span.h"
 
 #include <algorithm>
@@ -12,28 +13,6 @@
 
 namespace cntgs::detail
 {
-template <class, class = std::void_t<>>
-struct HasDataAndSize : std::false_type
-{
-};
-
-template <class T>
-struct HasDataAndSize<T, std::void_t<decltype(std::data(std::declval<T&>())), decltype(std::size(std::declval<T&>()))>>
-    : std::true_type
-{
-};
-
-template <class, class = std::void_t<>>
-struct IsRange : std::false_type
-{
-};
-
-template <class T>
-struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype(std::end(std::declval<T&>()))>>
-    : std::true_type
-{
-};
-
 template <class T>
 auto copy_using_memcpy(const T* source, std::byte* target, std::size_t size)
 {
@@ -58,16 +37,8 @@ auto copy_range_ignore_aliasing(const Range& range, std::byte* address)
     }
 }
 
-template <class Range>
-auto copy_ignore_aliasing(const Range& range, std::byte* address, std::size_t)
-    -> std::enable_if_t<IsRange<Range>::value, std::byte*>
-{
-    return copy_range_ignore_aliasing(range, address);
-}
-
 template <class Iterator>
-auto copy_ignore_aliasing(const Iterator& iterator, std::byte* address, std::size_t size)
-    -> std::enable_if_t<!IsRange<Iterator>::value, std::byte*>
+auto copy_iterator_ignore_aliasing(const Iterator& iterator, std::byte* address, std::size_t size)
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
     if constexpr (std::is_pointer_v<Iterator> && std::is_trivially_copyable_v<IteratorValueType>)
