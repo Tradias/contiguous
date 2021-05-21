@@ -186,18 +186,41 @@ TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscr
     CHECK(std::equal(elements.begin(), elements.end(), expected_elements.begin(), expected_elements.end()));
 }
 
+const std::string test_string_one{"a very long test string"};
+const std::string test_string_two{"another very long test string"};
+
 TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript operator")
 {
     cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string, std::string*> vector{1, {1}};
-    std::vector v{std::string("a very long test string")};
-    std::string test{"another very long test string"};
-    SUBCASE("emplace_back range") { vector.emplace_back(v, test, &test); }
-    SUBCASE("emplace_back iterator") { vector.emplace_back(v.begin(), test, &test); }
+    std::vector v{test_string_one};
+    SUBCASE("emplace_back range") { vector.emplace_back(v, test_string_two, &test_string_two); }
+    SUBCASE("emplace_back iterator") { vector.emplace_back(v.begin(), test_string_two, &test_string_two); }
     auto&& [fixed, string, string_ptr] = vector[0];
     CHECK_EQ(1, fixed.size());
-    CHECK_EQ("a very long test string", fixed[0]);
-    CHECK_EQ("another very long test string", string);
-    CHECK_EQ("another very long test string", *string_ptr);
+    CHECK_EQ(test_string_one, fixed[0]);
+    CHECK_EQ(test_string_two, string);
+    CHECK_EQ(test_string_two, *string_ptr);
+}
+
+TEST_CASE("ContiguousTest: std::string TypeErasedVector")
+{
+    cntgs::ContiguousVector<std::string> vector{2};
+    vector.emplace_back(test_string_one);
+    vector.emplace_back(test_string_two);
+    auto erased = cntgs::type_erase(std::move(vector));
+    cntgs::ContiguousVector<std::string> restored;
+    SUBCASE("by move") { restored = cntgs::ContiguousVector<std::string>{std::move(erased)}; }
+    SUBCASE("by lvalue reference")
+    {
+        for (size_t i = 0; i < 2; i++)
+        {
+            restored = cntgs::ContiguousVector<std::string>{erased};
+        }
+    }
+    auto&& [string_one] = restored[0];
+    CHECK_EQ(test_string_one, string_one);
+    auto&& [string_two] = restored[1];
+    CHECK_EQ(test_string_two, string_two);
 }
 
 template <class T>

@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstring>
 #include <iterator>
+#include <limits>
 #include <memory>
 
 namespace cntgs::detail
@@ -100,27 +101,38 @@ struct MaybeOwnedPtr
     std::unique_ptr<T> ptr;
     bool is_owned{};
 
-    constexpr MaybeOwnedPtr() = default;
+    MaybeOwnedPtr() = default;
 
     MaybeOwnedPtr(std::unique_ptr<T>&& ptr) noexcept : ptr(std::move(ptr)), is_owned(true) {}
 
-    MaybeOwnedPtr(const cntgs::Span<std::remove_extent_t<T>>& span) noexcept : ptr(span.data()) {}
+    MaybeOwnedPtr(cntgs::Span<std::remove_extent_t<T>> span) noexcept : ptr(span.data()) {}
 
     MaybeOwnedPtr(MaybeOwnedPtr&& other) = default;
 
-    MaybeOwnedPtr& operator=(MaybeOwnedPtr&& other) = default;
+    MaybeOwnedPtr& operator=(MaybeOwnedPtr&& other) noexcept
+    {
+        if (this != &other)
+        {
+            release_if_not_owned();
+            ptr = std::move(other.ptr);
+            is_owned = std::move(other.is_owned);
+        }
+        return *this;
+    }
 
-    ~MaybeOwnedPtr() noexcept
+    ~MaybeOwnedPtr() noexcept { release_if_not_owned(); }
+
+    decltype(auto) get() const noexcept { return this->ptr.get(); }
+
+    explicit operator bool() const noexcept { return bool(this->ptr); }
+
+    void release_if_not_owned() noexcept
     {
         if (!this->is_owned)
         {
             this->ptr.release();
         }
     }
-
-    decltype(auto) get() const noexcept { return this->ptr.get(); }
-
-    explicit operator bool() const noexcept { return bool(this->ptr); }
 };
 
 template <class T>
@@ -131,5 +143,12 @@ auto acquire_or_create_new(detail::MaybeOwnedPtr<T>&& ptr, std::size_t memory_si
         return std::move(ptr);
     }
     return detail::MaybeOwnedPtr<T>{detail::make_unique_for_overwrite<std::byte[]>(memory_size)};
+}
+
+inline void* align(std::size_t alignment, void* ptr) noexcept
+{
+    const auto intptr = reinterpret_cast<std::uintptr_t>(ptr);
+    const auto aligned = (intptr - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
+    return ptr = reinterpret_cast<void*>(aligned);
 }
 }  // namespace cntgs::detail

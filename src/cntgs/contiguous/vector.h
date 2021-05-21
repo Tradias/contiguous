@@ -299,7 +299,7 @@ class ContiguousVector
 
     void destruct()
     {
-        if (memory)
+        if (memory && memory.is_owned)
         {
             destruct(std::make_index_sequence<TYPE_COUNT>{});
         }
