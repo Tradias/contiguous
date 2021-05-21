@@ -89,6 +89,7 @@ TEST_CASE("ContiguousTest: one varying size: reference can be converted to value
     OneVarying vector{2, elements.size() * sizeof(float)};
     vector.emplace_back(10u, elements);
     OneVarying::value_type value = vector[0];
+    CHECK_EQ(10u, std::get<0>(value));
 }
 
 TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumption()")

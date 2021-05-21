@@ -14,9 +14,8 @@ void check_code_gen_sizes(std::string_view reference, std::string_view contiguou
 {
     std::array functions{reference, contiguous};
     auto disassemblies = cntgs::test::get_disassembly_of_functions({functions.data(), functions.size()});
-    INFO(reference, contiguous);
-    CAPTURE(disassemblies[0]);
-    CAPTURE(disassemblies[1]);
+    CAPTURE(reference << disassemblies[0]);
+    CAPTURE(contiguous << disassemblies[1]);
     CHECK_GE(cntgs::test::count_lines(disassemblies[0]) + size_deviation, cntgs::test::count_lines(disassemblies[1]));
 }
 
