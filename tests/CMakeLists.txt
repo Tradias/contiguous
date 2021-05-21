@@ -6,12 +6,14 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/code-gen.asm
         COMMAND dumpbin $<TARGET_OBJECTS:cntgs-code-gen-objects> /disasm:nobytes
                 /out:${CMAKE_CURRENT_BINARY_DIR}/code-gen.asm
-        DEPENDS cntgs-code-gen-objects)
+        DEPENDS cntgs-code-gen-objects $<TARGET_PROPERTY:cntgs-code-gen-objects,SOURCES> cntgs
+                $<TARGET_PROPERTY:cntgs,CNTGS_SOURCE_FILES>)
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/code-gen.asm
         COMMAND objdump -drwC -M intel -S $<TARGET_OBJECTS:cntgs-code-gen-objects>
-        DEPENDS cntgs-code-gen-objects)
+        DEPENDS cntgs-code-gen-objects $<TARGET_PROPERTY:cntgs-code-gen-objects,SOURCES> cntgs
+                $<TARGET_PROPERTY:cntgs,CNTGS_SOURCE_FILES>)
 endif()
 
 # test utils

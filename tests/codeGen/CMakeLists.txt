@@ -4,7 +4,7 @@ strip_cmake_cxx_flags_debug(cntgs_previous_cmake_cxx_flags_debug)
 # code-gen
 add_library(cntgs-code-gen-objects OBJECT)
 
-target_sources(cntgs-code-gen-objects PRIVATE codeGen.cpp)
+target_sources(cntgs-code-gen-objects PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/codeGen.cpp)
 
 target_compile_options(
     cntgs-code-gen-objects
