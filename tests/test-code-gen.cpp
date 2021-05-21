@@ -1,22 +1,27 @@
 #include "cntgs/contiguous.h"
 #include "utils/codeGenParser.h"
+#include "utils/string.h"
 
 #include <doctest/doctest.h>
 
 #include <array>
-#include <fstream>
-#include <iostream>
-#include <string>
+#include <ostream>
 #include <string_view>
-#include <vector>
 
 namespace test_contiguous
 {
-TEST_CASE("ContiguousTest: two varsize: empty()")
+void check_code_gen_sizes(std::string_view reference, std::string_view contiguous, size_t size_deviation = 0)
 {
-    using namespace std::literals;
-    std::array functions{"reference1"sv, "contiguous1"sv};
-    auto assemblies = cntgs::test::read({functions.data(), functions.size()});
-    CHECK(assemblies[0].size() == assemblies[1].size());
+    std::array functions{reference, contiguous};
+    auto disassemblies = cntgs::test::get_disassembly_of_functions({functions.data(), functions.size()});
+    INFO(reference, contiguous);
+    CAPTURE(disassemblies[0]);
+    CAPTURE(disassemblies[1]);
+    CHECK_GE(cntgs::test::count_lines(disassemblies[0]) + size_deviation, cntgs::test::count_lines(disassemblies[1]));
+}
+
+TEST_CASE("CodeGenTest: two FixedSize emplace and accumulate")
+{
+    check_code_gen_sizes("reference_two_fixed_emplace_and_accumulate", "contiguous_two_fixed_emplace_and_accumulate");
 }
 }  // namespace test_contiguous

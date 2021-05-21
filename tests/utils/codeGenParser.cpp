@@ -9,7 +9,7 @@
 
 namespace cntgs::test
 {
-std::vector<std::string> read(cntgs::Span<std::string_view> function_names)
+std::vector<std::string> get_disassembly_of_functions(cntgs::Span<std::string_view> function_names)
 {
     static constexpr size_t MAX_LINE_SIZE{1500};
     std::vector<std::string> result{function_names.size()};
