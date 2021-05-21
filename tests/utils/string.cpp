@@ -1,5 +1,6 @@
 #include "utils/string.h"
 
+#include <algorithm>
 #include <sstream>
 #include <string>
 

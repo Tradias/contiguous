@@ -11,7 +11,8 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/code-gen.asm
-        COMMAND objdump -drwC -M intel -S $<TARGET_OBJECTS:cntgs-code-gen-objects>
+        COMMAND objdump --disassemble=.text -drwC -M intel -S $<TARGET_OBJECTS:cntgs-code-gen-objects> >
+                ${CMAKE_CURRENT_BINARY_DIR}/code-gen.asm
         DEPENDS cntgs-code-gen-objects $<TARGET_PROPERTY:cntgs-code-gen-objects,SOURCES> cntgs
                 $<TARGET_PROPERTY:cntgs,CNTGS_SOURCE_FILES>)
 endif()
