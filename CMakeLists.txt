@@ -9,6 +9,8 @@ project(
 option(CNTGS_NO_INSTALL on)
 option(CNTGS_BUILD_TESTS off)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+
 add_subdirectory(src)
 
 if(CNTGS_BUILD_TESTS)
