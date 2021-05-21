@@ -37,8 +37,16 @@ auto copy_range_ignore_aliasing(const Range& range, std::byte* address)
     }
 }
 
+template <class Range>
+auto copy_ignore_aliasing(const Range& range, std::byte* address, std::size_t)
+    -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
+{
+    return copy_range_ignore_aliasing(range, address);
+}
+
 template <class Iterator>
-auto copy_iterator_ignore_aliasing(const Iterator& iterator, std::byte* address, std::size_t size)
+auto copy_ignore_aliasing(const Iterator& iterator, std::byte* address, std::size_t size)
+    -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
     if constexpr (std::is_pointer_v<Iterator> && std::is_trivially_copyable_v<IteratorValueType>)

@@ -96,15 +96,7 @@ struct ParameterTraits<cntgs::FixedSize<T>>
     template <class RangeOrIterator>
     static auto store_contiguously(RangeOrIterator&& range_or_iterator, std::byte* address, std::size_t size)
     {
-        if constexpr (detail::IsRange<RangeOrIterator>{})
-        {
-            return detail::copy_range_ignore_aliasing(range, address);
-        }
-        else
-        {
-            detail::copy_iterator_ignore_aliasing(range_or_iterator, address, size);
-            return address + size;
-        }
+        return detail::copy_ignore_aliasing(range_or_iterator, address, size);
     }
 };
 
