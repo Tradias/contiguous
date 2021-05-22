@@ -59,7 +59,6 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
     using FixedSizeGetter = detail::FixedSizeGetterImplementation<T, detail::TypeList<Types...>>;
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
-    static constexpr auto SIZE_IN_MEMORY = (SizeType{} + ... + detail::ParameterTraits<Types>::SIZE_IN_MEMORY);
     static constexpr auto CONTIGUOUS_COUNT = (SizeType{} + ... + detail::ParameterTraits<Types>::IS_CONTIGUOUS);
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
         (SizeType{} + ... + detail::ParameterTraits<Types>::IS_FIXED_SIZE);

@@ -1,4 +1,5 @@
 #include "cntgs/contiguous.h"
+#include "utils/range.h"
 
 #include <doctest/doctest.h>
 
@@ -11,6 +12,8 @@
 
 namespace test_contiguous
 {
+using namespace cntgs;
+
 using NoSpecialParameter = cntgs::ContiguousVector<uint32_t, float>;
 using OneVarying = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<float>>;
 using TwoVarying = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<float>, cntgs::VaryingSize<float>>;
@@ -18,7 +21,7 @@ using OneFixed = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<float>>;
 using TwoFixed = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint32_t, cntgs::FixedSize<float>>;
 using OneFixedOneVarying = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint32_t, cntgs::VaryingSize<float>>;
 
-TEST_CASE("ContiguousTest: size() and capacity()")
+TEST_CASE("ContiguousTest: no alignment: size() and capacity()")
 {
     std::array firsts{1.f, 2.f};
     std::array seconds{1.f, 2.f};
@@ -117,8 +120,8 @@ TEST_CASE("ContiguousTest: two varying size: emplace_back with arrays and subscr
     vector.emplace_back(10u, expected_firsts, expected_seconds);
     auto&& [i, firsts, seconds] = vector[0];
     CHECK_EQ(10u, i);
-    CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
-    CHECK(std::equal(seconds.begin(), seconds.end(), expected_seconds.begin(), expected_seconds.end()));
+    CHECK(test::range_equal(expected_firsts, firsts));
+    CHECK(test::range_equal(expected_seconds, seconds));
 }
 
 TEST_CASE("ContiguousTest: one varying size: emplace_back with lists and subscript operator")
@@ -128,7 +131,7 @@ TEST_CASE("ContiguousTest: one varying size: emplace_back with lists and subscri
     vector.emplace_back(10u, expected_firsts);
     auto&& [i, firsts] = vector[0];
     CHECK_EQ(10u, i);
-    CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
+    CHECK(test::range_equal(expected_firsts, firsts));
 }
 
 TEST_CASE("ContiguousTest: one varying size: subscript operator returns a reference")
@@ -157,7 +160,7 @@ TEST_CASE("ContiguousTest: one varying size: emplace_back c-style array")
     vector.emplace_back(10, carray);
     auto&& [i, array] = vector[0];
     CHECK_EQ(10u, i);
-    CHECK(std::equal(std::begin(array), std::end(array), std::begin(carray), std::end(carray)));
+    CHECK(test::range_equal(carray, array));
 }
 
 TEST_CASE("ContiguousTest: two fixed size: emplace_back with lists and subscript operator")
@@ -171,8 +174,8 @@ TEST_CASE("ContiguousTest: two fixed size: emplace_back with lists and subscript
     {
         auto&& [firsts, j, seconds] = vector[i];
         CHECK_EQ(10u, j);
-        CHECK(std::equal(firsts.begin(), firsts.end(), expected_firsts.begin(), expected_firsts.end()));
-        CHECK(std::equal(seconds.begin(), seconds.end(), expected_seconds.begin(), expected_seconds.end()));
+        CHECK(test::range_equal(expected_firsts, firsts));
+        CHECK(test::range_equal(expected_seconds, seconds));
     }
 }
 
@@ -184,7 +187,7 @@ TEST_CASE("ContiguousTest: one fixed size: emplace_back with iterator and subscr
     SUBCASE("data() iterator") { vector.emplace_back(10u, expected_elements.data()); }
     auto&& [i, elements] = vector[0];
     CHECK_EQ(10u, i);
-    CHECK(std::equal(elements.begin(), elements.end(), expected_elements.begin(), expected_elements.end()));
+    CHECK(test::range_equal(expected_elements, elements));
 }
 
 const std::string test_string_one{"a very long test string"};
@@ -233,12 +236,12 @@ void check_iterator(T&& vector)
     std::for_each(vector.begin()++, ++vector.begin(), [&](auto&& elem) {
         auto&& [uinteger, floats] = vector[0];
         CHECK_EQ(uinteger, std::get<0>(elem));
-        CHECK(std::equal(floats.begin(), floats.end(), std::get<1>(elem).begin(), std::get<1>(elem).end()));
+        CHECK(test::range_equal(std::get<1>(elem), floats));
     });
     std::for_each(vector.begin() + 1, vector.end(), [&](auto&& elem) {
         auto&& [uinteger, floats] = vector[1];
         CHECK_EQ(uinteger, std::get<0>(elem));
-        CHECK(std::equal(floats.begin(), floats.end(), std::get<1>(elem).begin(), std::get<1>(elem).end()));
+        CHECK(test::range_equal(std::get<1>(elem), floats));
     });
 }
 
@@ -275,7 +278,7 @@ TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
     vector->emplace_back(10u, elements);
     auto&& [i, e] = (*vector)[0];
     CHECK_EQ(10u, i);
-    CHECK(std::equal(elements.begin(), elements.end(), e.begin(), e.end()));
+    CHECK(test::range_equal(elements, e));
 }
 
 TEST_CASE("ContiguousTest: NoSpecialParameter construct with unique_ptr and span")
@@ -303,24 +306,168 @@ TEST_CASE("ContiguousTest: type_erase OneFixed and restore")
     SUBCASE("by lvalue reference") { restored = OneFixed{erased}; }
     auto&& [i, e] = restored[0];
     CHECK_EQ(10u, i);
-    CHECK(std::equal(elements.begin(), elements.end(), e.begin(), e.end()));
+    CHECK(test::range_equal(elements, e));
 }
 
 using TwoNonSpecialAligned = cntgs::ContiguousVector<char, cntgs::AlignAs<uint32_t, 8>>;
+using OneVaryingAligned = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<cntgs::AlignAs<float, 16>>>;
+using TwoVaryingAligned = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<cntgs::AlignAs<float, 8>>,
+                                                  cntgs::VaryingSize<cntgs::AlignAs<float, 8>>>;
+using OneFixedAligned = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<cntgs::AlignAs<float, 32>>>;
+using TwoFixedAligned = cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 8>>,
+                                                cntgs::AlignAs<uint32_t, 16>, cntgs::FixedSize<float>>;
+using OneFixedOneVaryingAligned = cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 16>>, uint32_t,
+                                                          cntgs::VaryingSize<cntgs::AlignAs<float, 8>>>;
 
-TEST_CASE("ContiguousTest: two non special aligned")
+TEST_CASE("ContiguousTest: with alignment: size() and capacity()")
 {
-    TwoNonSpecialAligned vector{5};
-    for (uint32_t i = 0; i < 5; ++i)
+    std::array firsts{1.f, 2.f};
+    std::array seconds{1.f, 2.f};
+    std::optional<std::variant<TwoNonSpecialAligned, OneVaryingAligned, TwoVaryingAligned, OneFixedAligned,
+                               TwoFixedAligned, OneFixedOneVaryingAligned>>
+        vector;
+    SUBCASE("no special parameter")
     {
-        vector.emplace_back('a', i);
-        auto&& [a, b] = vector[i];
-        CHECK_EQ('a', a);
-        CHECK_EQ(i, b);
-        void* ptr = std::addressof(b);
-        size_t size = 100000;
-        std::align(8, sizeof(uint32_t), ptr, size);
-        CHECK_EQ(std::addressof(b), ptr);
+        TwoNonSpecialAligned v{2};
+        v.emplace_back('a', 10u);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("one varying")
+    {
+        OneVaryingAligned v{2, firsts.size() * sizeof(float)};
+        v.emplace_back(10u, firsts);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("two varying")
+    {
+        TwoVaryingAligned v{2, firsts.size() * sizeof(float) + seconds.size() * sizeof(float)};
+        v.emplace_back(10u, firsts, seconds);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("one fixed")
+    {
+        OneFixedAligned v{2, {firsts.size()}};
+        v.emplace_back(10u, firsts);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("two fixed")
+    {
+        TwoFixedAligned v{2, {firsts.size(), seconds.size()}};
+        v.emplace_back(firsts, 10u, seconds);
+        vector.emplace(std::move(v));
+    }
+    SUBCASE("one fixed one varying")
+    {
+        OneFixedOneVaryingAligned v{2, seconds.size() * sizeof(float), {firsts.size()}};
+        v.emplace_back(firsts, 10u, seconds);
+        vector.emplace(std::move(v));
+    }
+    CHECK(vector);
+    std::visit(
+        [&](auto&& v) {
+            CHECK_EQ(1, v.size());
+            CHECK_EQ(2, v.capacity());
+            CHECK_FALSE(v.empty());
+        },
+        *vector);
+}
+
+template <std::size_t Alignment, class T>
+void check_alignment(T* t)
+{
+    void* ptr = reinterpret_cast<void*>(t);
+    auto size = std::numeric_limits<size_t>::max();
+    std::align(Alignment, sizeof(uint32_t), ptr, size);
+    CHECK_EQ(t, ptr);
+}
+
+template <std::size_t Alignment, class T>
+void check_alignment(T&& t)
+{
+    check_alignment<Alignment>(std::data(t));
+}
+
+TEST_CASE("ContiguousTest: with alignment: emplace_back() and subscript operator")
+{
+    std::array firsts{1.f, 2.f};
+    std::array seconds{1.f, 2.f};
+    SUBCASE("no special parameter")
+    {
+        TwoNonSpecialAligned vector{5};
+        for (uint32_t i = 0; i < 5; ++i)
+        {
+            vector.emplace_back('a', i);
+            auto&& [a, b] = vector[i];
+            CHECK_EQ('a', a);
+            CHECK_EQ(i, b);
+            check_alignment<8>(&b);
+        }
+    }
+    SUBCASE("one varying")
+    {
+        OneVaryingAligned vector{5, firsts.size() * sizeof(float)};
+        for (uint32_t i = 0; i < 5; ++i)
+        {
+            vector.emplace_back(10u, firsts);
+            auto&& [a, b] = vector[i];
+            CHECK_EQ(10u, a);
+            CHECK(test::range_equal(firsts, b));
+            check_alignment<16>(b);
+        }
+    }
+    SUBCASE("two varying")
+    {
+        TwoVaryingAligned vector{5, firsts.size() * sizeof(float) + seconds.size() * sizeof(float)};
+        for (uint32_t i = 0; i < 5; ++i)
+        {
+            vector.emplace_back(10u, firsts, seconds);
+            auto&& [a, b, c] = vector[i];
+            CHECK_EQ(10u, a);
+            CHECK(test::range_equal(firsts, b));
+            CHECK(test::range_equal(seconds, c));
+            check_alignment<8>(b);
+            check_alignment<8>(c);
+        }
+    }
+    SUBCASE("one fixed")
+    {
+        OneFixedAligned vector{5, {firsts.size()}};
+        for (uint32_t i = 0; i < 5; ++i)
+        {
+            vector.emplace_back(10u, firsts);
+            auto&& [a, b] = vector[i];
+            CHECK_EQ(10u, a);
+            CHECK(test::range_equal(firsts, b));
+            check_alignment<32>(b);
+        }
+    }
+    SUBCASE("two fixed")
+    {
+        TwoFixedAligned vector{5, {firsts.size(), seconds.size()}};
+        for (uint32_t i = 0; i < 5; ++i)
+        {
+            vector.emplace_back(firsts, 10u, seconds);
+            auto&& [a, b, c] = vector[i];
+            CHECK(test::range_equal(firsts, a));
+            CHECK_EQ(10u, b);
+            CHECK(test::range_equal(seconds, c));
+            check_alignment<8>(a);
+            check_alignment<16>(&b);
+        }
+    }
+    SUBCASE("one fixed one varying")
+    {
+        OneFixedOneVaryingAligned vector{5, seconds.size() * sizeof(float), {firsts.size()}};
+        for (uint32_t i = 0; i < 5; ++i)
+        {
+            vector.emplace_back(firsts, 10u, seconds);
+            auto&& [a, b, c] = vector[i];
+            CHECK(test::range_equal(firsts, a));
+            CHECK_EQ(10u, b);
+            CHECK(test::range_equal(seconds, c));
+            check_alignment<16>(a);
+            check_alignment<8>(c);
+        }
     }
 }
 }  // namespace test_contiguous

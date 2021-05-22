@@ -31,6 +31,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto SIZE_IN_MEMORY = sizeof(value_type);
     static constexpr auto VALUE_BYTES = SIZE_IN_MEMORY;
     static constexpr auto ALIGNMENT = Alignment;
+    static constexpr auto MEMORY_OVERHEAD = std::size_t{};
 
     static auto from_address(std::byte* address, std::size_t) noexcept
     {
@@ -49,12 +50,12 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 };
 
 template <class T>
-struct ParameterTraits<cntgs::VaryingSize<T>> : ParameterTraits<cntgs::AlignAs<cntgs::VaryingSize<T>, 0>>
+struct ParameterTraits<cntgs::VaryingSize<T>> : ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, 0>>>
 {
 };
 
 template <class T, std::size_t Alignment>
-struct ParameterTraits<cntgs::AlignAs<cntgs::VaryingSize<T>, Alignment>>
+struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
 {
     using Type = cntgs::VaryingSize<T>;
     using ValueReturnType = cntgs::Span<T>;
@@ -66,15 +67,16 @@ struct ParameterTraits<cntgs::AlignAs<cntgs::VaryingSize<T>, Alignment>>
 
     static constexpr bool IS_CONTIGUOUS = true;
     static constexpr bool IS_FIXED_SIZE = false;
-    static constexpr auto SIZE_IN_MEMORY = sizeof(iterator_type);
+    static constexpr auto SIZE_IN_MEMORY = std::size_t{};
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
+    static constexpr auto MEMORY_OVERHEAD = sizeof(iterator_type);
 
     static auto from_address(std::byte* address, std::size_t) noexcept
     {
         const auto last = *reinterpret_cast<iterator_type*>(address);
-        address += SIZE_IN_MEMORY;
-        const auto first = reinterpret_cast<iterator_type>(address);
+        address += MEMORY_OVERHEAD;
+        const auto first = reinterpret_cast<iterator_type>(detail::align<ALIGNMENT>(address));
         return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
@@ -82,7 +84,8 @@ struct ParameterTraits<cntgs::AlignAs<cntgs::VaryingSize<T>, Alignment>>
     static auto store_contiguously(const Range& range, std::byte* address, std::size_t)
     {
         const auto start = std::launder(reinterpret_cast<iterator_type*>(address));
-        address += SIZE_IN_MEMORY;
+        address += MEMORY_OVERHEAD;
+        address = reinterpret_cast<std::byte*>(detail::align<ALIGNMENT>(address));
         auto new_address = detail::copy_range_ignore_aliasing(range, address);
         *start = std::launder(reinterpret_cast<iterator_type>(new_address));
         return new_address;
@@ -90,12 +93,12 @@ struct ParameterTraits<cntgs::AlignAs<cntgs::VaryingSize<T>, Alignment>>
 };
 
 template <class T>
-struct ParameterTraits<cntgs::FixedSize<T>> : ParameterTraits<cntgs::AlignAs<cntgs::FixedSize<T>, 0>>
+struct ParameterTraits<cntgs::FixedSize<T>> : ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, 0>>>
 {
 };
 
 template <class T, std::size_t Alignment>
-struct ParameterTraits<cntgs::AlignAs<cntgs::FixedSize<T>, Alignment>>
+struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
 {
     using Type = cntgs::FixedSize<T>;
     using ValueReturnType = cntgs::Span<T>;
@@ -107,20 +110,22 @@ struct ParameterTraits<cntgs::AlignAs<cntgs::FixedSize<T>, Alignment>>
 
     static constexpr bool IS_CONTIGUOUS = true;
     static constexpr bool IS_FIXED_SIZE = true;
-    static constexpr auto SIZE_IN_MEMORY = std::size_t{0};
+    static constexpr auto SIZE_IN_MEMORY = std::size_t{};
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
+    static constexpr auto MEMORY_OVERHEAD = std::size_t{};
 
     static auto from_address(std::byte* address, std::size_t size) noexcept
     {
-        const auto first = std::launder(reinterpret_cast<iterator_type>(address));
+        const auto first = std::launder(reinterpret_cast<iterator_type>(detail::align<ALIGNMENT>(address)));
         const auto last = first + size;
-        return std::pair{PointerReturnType{first, last}, address + size * VALUE_BYTES};
+        return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
     template <class RangeOrIterator>
     static auto store_contiguously(RangeOrIterator&& range_or_iterator, std::byte* address, std::size_t size)
     {
+        address = reinterpret_cast<std::byte*>(detail::align<ALIGNMENT>(address));
         return detail::copy_ignore_aliasing(range_or_iterator, address, size);
     }
 };

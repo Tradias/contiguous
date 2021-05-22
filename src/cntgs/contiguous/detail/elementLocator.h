@@ -66,7 +66,7 @@ class ElementLocator
                                            std::index_sequence<I...>) noexcept
     {
         SizeType result{};
-        ((result +=
+        ((result += detail::ParameterTraits<Types>::MEMORY_OVERHEAD + 
           alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result) +
           aligned_size_in_memory<Types>(Traits::template FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
