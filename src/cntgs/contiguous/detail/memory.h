@@ -124,10 +124,36 @@ auto acquire_or_create_new(detail::MaybeOwnedPtr<T>&& ptr, std::size_t memory_si
     return detail::MaybeOwnedPtr<T>{detail::make_unique_for_overwrite<std::byte[]>(memory_size)};
 }
 
+inline auto align(std::size_t alignment, std::uintptr_t position) noexcept
+{
+    return (position - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
+}
+
+template <std::size_t Alignment>
+auto align(std::uintptr_t position) noexcept
+{
+    if constexpr (Alignment == 0)
+    {
+        return position;
+    }
+    else
+    {
+        return detail::align(Alignment, position);
+    }
+}
+
 inline void* align(std::size_t alignment, void* ptr) noexcept
 {
-    const auto intptr = reinterpret_cast<std::uintptr_t>(ptr);
-    const auto aligned = (intptr - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
+    const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
+    const auto aligned = detail::align(alignment, uintptr);
+    return ptr = reinterpret_cast<void*>(aligned);
+}
+
+template <std::size_t Alignment>
+void* align(void* ptr) noexcept
+{
+    const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
+    const auto aligned = detail::align<Alignment>(uintptr);
     return ptr = reinterpret_cast<void*>(aligned);
 }
 }  // namespace cntgs::detail

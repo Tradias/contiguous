@@ -70,7 +70,7 @@ TEST_CASE("ContiguousTest: size() and capacity()")
         *vector);
 }
 
-TEST_CASE("ContiguousTest: two varying size: empty()")
+TEST_CASE("ContiguousTest: one varying size: empty()")
 {
     OneVarying vector{0, {}};
     CHECK(vector.empty());
@@ -192,7 +192,7 @@ const std::string test_string_two{"another very long test string"};
 
 TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript operator")
 {
-    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string, std::string*> vector{1, {1}};
+    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string, const std::string*> vector{1, {1}};
     std::vector v{test_string_one};
     SUBCASE("emplace_back range") { vector.emplace_back(v, test_string_two, &test_string_two); }
     SUBCASE("emplace_back iterator") { vector.emplace_back(v.begin(), test_string_two, &test_string_two); }
@@ -304,5 +304,23 @@ TEST_CASE("ContiguousTest: type_erase OneFixed and restore")
     auto&& [i, e] = restored[0];
     CHECK_EQ(10u, i);
     CHECK(std::equal(elements.begin(), elements.end(), e.begin(), e.end()));
+}
+
+using TwoNonSpecialAligned = cntgs::ContiguousVector<char, cntgs::AlignAs<uint32_t, 8>>;
+
+TEST_CASE("ContiguousTest: two non special aligned")
+{
+    TwoNonSpecialAligned vector{5};
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        vector.emplace_back('a', i);
+        auto&& [a, b] = vector[i];
+        CHECK_EQ('a', a);
+        CHECK_EQ(i, b);
+        void* ptr = std::addressof(b);
+        size_t size = 100000;
+        std::align(8, sizeof(uint32_t), ptr, size);
+        CHECK_EQ(std::addressof(b), ptr);
+    }
 }
 }  // namespace test_contiguous

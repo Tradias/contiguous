@@ -19,6 +19,7 @@ list(
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/math.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/memory.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterTraits.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/range.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/tuple.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/typeUtils.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/vector.h

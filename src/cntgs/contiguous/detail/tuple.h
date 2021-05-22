@@ -20,31 +20,25 @@ struct TransformTuple<Transformer, std::tuple<T...>>
 };
 
 template <class T>
-using ToContiguousValue =
-    std::conditional_t<detail::IS_CONTIGUOUS<T>, typename detail::ParameterTraits<T>::ReturnType, T>;
+using ToContiguousValue = typename detail::ParameterTraits<T>::ValueReturnType;
 
 template <class T>
 using ToContiguousTupleOfValueReturnType = typename TransformTuple<ToContiguousValue, T>::Type;
 
 template <class T>
-using ToContiguousReference =
-    std::conditional_t<detail::IS_CONTIGUOUS<T>, typename detail::ParameterTraits<T>::ReturnType,
-                       std::add_lvalue_reference_t<T>>;
-
-template <class T>
-using ToContiguousConstReference =
-    std::conditional_t<detail::IS_CONTIGUOUS<T>, typename detail::ParameterTraits<T>::ConstReturnType,
-                       std::add_lvalue_reference_t<std::add_const_t<T>>>;
+using ToContiguousReference = typename detail::ParameterTraits<T>::ReferenceReturnType;
 
 template <class T>
 using ToContiguousTupleOfReferenceReturnType = typename TransformTuple<ToContiguousReference, T>::Type;
 
 template <class T>
+using ToContiguousConstReference = typename detail::ParameterTraits<T>::ConstReferenceReturnType;
+
+template <class T>
 using ToContiguousTupleOfConstReferenceReturnType = typename TransformTuple<ToContiguousConstReference, T>::Type;
 
 template <class T>
-using ToContiguousPointer = std::conditional_t<detail::IS_CONTIGUOUS<T>,
-                                               typename detail::ParameterTraits<T>::ReturnType, std::add_pointer_t<T>>;
+using ToContiguousPointer = typename detail::ParameterTraits<T>::PointerReturnType;
 
 template <class T>
 using ToContiguousTupleOfPointerReturnType = typename TransformTuple<ToContiguousPointer, T>::Type;

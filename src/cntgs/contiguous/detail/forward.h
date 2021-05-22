@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 namespace cntgs
 {
 template <class T>
@@ -15,4 +17,7 @@ template <class Vector>
 class ContiguousVectorIterator;
 
 class TypeErasedVector;
+
+template <class T, std::size_t Alignment = 0>
+struct AlignAs;
 }  // namespace cntgs

@@ -49,7 +49,6 @@ class ContiguousVector
     size_type memory_size{};
     size_type max_element_count{};
     StorageType memory{};
-    std::byte* last_element{};
     std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes{};
     ElementLocator locator;
 
@@ -180,9 +179,8 @@ class ContiguousVector
                           : this->calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes)),
           max_element_count(max_element_count),
           memory(detail::acquire_or_create_new(std::move(storage), this->memory_size)),
-          last_element(this->memory.get() + ElementLocator::reserved_bytes(max_element_count)),
           fixed_sizes(fixed_sizes),
-          locator(this->memory.get(), fixed_sizes)
+          locator(max_element_count, this->memory.get(), fixed_sizes)
     {
     }
 
@@ -190,38 +188,30 @@ class ContiguousVector
         : memory_size(vector.memory_size),
           max_element_count(vector.max_element_count),
           memory(std::move(storage)),
-          last_element(vector.last_element),
           fixed_sizes(detail::convert_array_to_size<Traits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
           locator(*reinterpret_cast<const ElementLocator*>(vector.locator.data()))
     {
-    }
-
-    template <size_t... I>
-    static constexpr auto calculate_fixed_size_memory_consumption(
-        const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
-        std::index_sequence<I...>) noexcept
-    {
-        return ((detail::ParameterTraits<Types>::VALUE_BYTES * FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
-                ...);
     }
 
     static constexpr auto calculate_needed_memory_size(
         size_type max_element_count, size_type varying_size_bytes,
         const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
     {
-        return Traits::SIZE_IN_MEMORY * max_element_count + varying_size_bytes +
-               calculate_fixed_size_memory_consumption(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}) *
+        constexpr auto ALIGNMENT_OVERHEAD = Traits::MAX_ALIGNMENT > 0 ? Traits::MAX_ALIGNMENT - 1 : size_type{};
+        return varying_size_bytes +
+               ElementLocator::calculate_stride(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}) *
                    max_element_count +
-               ElementLocator::reserved_bytes(max_element_count);
+               ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
     template <std::size_t... I, class... Args>
     auto emplace_back_impl(std::index_sequence<I...>, Args&&... args)
     {
-        this->locator.add_element(this->last_element);
-        ((this->last_element = detail::ParameterTraits<Types>::store_contiguously(
-              std::forward<Args>(args), this->last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+        auto free_address = this->locator.next_free_address();
+        ((free_address = detail::ParameterTraits<Types>::store_contiguously(
+              std::forward<Args>(args), free_address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
+        this->locator.append(free_address);
     }
 
     template <class Result, class... T, std::size_t... I>
@@ -310,10 +300,7 @@ template <class... Types>
 auto type_erase(cntgs::ContiguousVector<Types...>&& vector)
 {
     return cntgs::TypeErasedVector{
-        vector.memory_size,
-        vector.max_element_count,
-        std::move(vector.memory),
-        vector.last_element,
+        vector.memory_size, vector.max_element_count, std::move(vector.memory),
         detail::convert_array_to_size<detail::ContiguousVectorTraits<>::MAX_FIXED_SIZE_VECTOR_PARAMETER>(
             vector.fixed_sizes),
         detail::type_erase_element_locator(std::move(vector.locator))};

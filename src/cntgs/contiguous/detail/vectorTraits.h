@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/forward.h"
+#include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/vector.h"
 
@@ -15,7 +16,7 @@ struct FixedSizeGetterImplementation
     template <std::size_t I, std::size_t N>
     static constexpr auto get(const std::array<std::size_t, N>&) noexcept
     {
-        return std::size_t{0};
+        return std::size_t{};
     }
 };
 
@@ -62,6 +63,8 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
     static constexpr auto CONTIGUOUS_COUNT = (SizeType{} + ... + detail::ParameterTraits<Types>::IS_CONTIGUOUS);
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
         (SizeType{} + ... + detail::ParameterTraits<Types>::IS_FIXED_SIZE);
+    static constexpr auto MAX_ALIGNMENT = detail::max_size_t_of<detail::ParameterTraits<Types>::ALIGNMENT...>();
+
     static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE =
         (std::is_trivially_destructible_v<typename detail::ParameterTraits<Types>::value_type> && ...);
     static constexpr bool IS_MIXED =
