@@ -28,8 +28,19 @@ TEST_CASE("CodeGenTest: two FixedSize lookup and accumulate")
     check_code_gen_sizes("reference_two_fixed_lookup_and_accumulate", "contiguous_two_fixed_lookup_and_accumulate");
 }
 
+TEST_CASE("CodeGenTest: two FixedSize aligned lookup and accumulate")
+{
+    check_code_gen_sizes("reference_two_fixed_aligned_lookup_and_accumulate",
+                         "contiguous_two_fixed_aligned_lookup_and_accumulate", 1);
+}
+
 TEST_CASE("CodeGenTest: two FixedSize emplace")
 {
     check_code_gen_sizes("reference_two_fixed_emplace", "contiguous_two_fixed_emplace", 3);
+}
+
+TEST_CASE("CodeGenTest: two FixedSize random lookup")
+{
+    check_code_gen_sizes("reference_two_fixed_random_lookup", "contiguous_two_fixed_random_lookup");
 }
 }  // namespace test_contiguous

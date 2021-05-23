@@ -189,7 +189,7 @@ class ContiguousVector
           max_element_count(vector.max_element_count),
           memory(std::move(storage)),
           fixed_sizes(detail::convert_array_to_size<Traits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
-          locator(*reinterpret_cast<const ElementLocator*>(vector.locator.data()))
+          locator(*reinterpret_cast<const ElementLocator*>(std::launder(vector.locator.data())))
     {
     }
 

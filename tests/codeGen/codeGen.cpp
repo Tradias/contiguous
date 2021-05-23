@@ -45,3 +45,37 @@ auto reference_two_fixed_random_lookup(ReferenceFixedSizeVector& vector, size_t 
     auto&& c = vector.get_third(k);
     third = c;
 }
+
+auto contiguous_two_fixed_random_lookup(CntgsFixedSizeVector& vector, size_t i, size_t j, size_t k, char& first,
+                                        uint32_t& second, uint32_t& third)
+{
+    auto&& [a1, b1, c1] = vector[i];
+    second = *b1.data();
+    auto&& [a2, b2, c2] = vector[i];
+    first = *a2.data();
+    auto&& [a3, b3, c3] = vector[i];
+    third = c3;
+}
+
+auto reference_two_fixed_aligned_lookup_and_accumulate(ReferenceFixedSizeVector& vector, uint32_t& out, size_t i,
+                                                       const std::vector<char>& first,
+                                                       const std::vector<uint32_t>& second, uint32_t third)
+{
+    auto&& node = vector.get_node(i);
+    auto&& seconds = vector.get_second(node);
+    std::for_each_n(seconds, vector.second_count, [&](auto&& v) { out += v; });
+    auto&& firsts = vector.get_first(node);
+    std::for_each_n(firsts, vector.first_count, [&](auto&& v) { out += v; });
+}
+
+using CntgsFixedSizeAlignedVector =
+    cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<char, 32>>, cntgs::FixedSize<uint32_t>, uint32_t>;
+
+auto contiguous_two_fixed_aligned_lookup_and_accumulate(CntgsFixedSizeAlignedVector& vector, uint32_t& out, size_t i,
+                                                        const std::vector<char>& first,
+                                                        const std::vector<uint32_t>& second, uint32_t third)
+{
+    auto&& [firsts, seconds, c] = vector[i];
+    std::for_each(seconds.begin(), seconds.end(), [&](auto&& v) { out += v; });
+    std::for_each(firsts.begin(), firsts.end(), [&](auto&& v) { out += v; });
+}
