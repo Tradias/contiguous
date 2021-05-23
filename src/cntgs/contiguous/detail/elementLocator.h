@@ -164,8 +164,8 @@ class ElementLocator : public detail::BaseElementLocator<Types...>
     auto tuple_of_pointers_at(SizeType i, std::byte* memory_begin,
                               const std::array<SizeType, N>& fixed_sizes) const noexcept
     {
-        return Base::template tuple_of_pointers_at_impl<detail::DefaultAlignmentSelector>(this->at(memory_begin, i),
-                                                                                          fixed_sizes);
+        return this->tuple_of_pointers_at_impl<detail::DefaultAlignmentSelector>(this->at(memory_begin, i),
+                                                                                 fixed_sizes);
     }
 
     auto at(std::byte* memory_begin, SizeType index) const noexcept
@@ -231,10 +231,10 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocator<Types...>
     }
 
     template <std::size_t N>
-    auto tuple_of_pointers_at(SizeType i, std::byte*, const std::array<SizeType, N>& fixed_sizes) const noexcept
+    constexpr auto tuple_of_pointers_at(SizeType i, std::byte*,
+                                        const std::array<SizeType, N>& fixed_sizes) const noexcept
     {
-        return Base::template tuple_of_pointers_at_impl<detail::AllFixedSizeAlignmentSelector>(this->at(i),
-                                                                                               fixed_sizes);
+        return this->tuple_of_pointers_at_impl<detail::AllFixedSizeAlignmentSelector>(this->at(i), fixed_sizes);
     }
 
     constexpr auto at(std::byte*, SizeType index) const noexcept { return start + this->stride * index; }

@@ -310,7 +310,7 @@ TEST_CASE("ContiguousTest: type_erase OneFixed and restore")
 }
 
 using TwoNonSpecialAligned = cntgs::ContiguousVector<char, cntgs::AlignAs<uint32_t, 8>>;
-using OneVaryingAligned = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<cntgs::AlignAs<float, 16>>>;
+using OneVaryingAligned = cntgs::ContiguousVector<cntgs::VaryingSize<cntgs::AlignAs<float, 16>>, uint32_t>;
 using TwoVaryingAligned = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<cntgs::AlignAs<float, 8>>,
                                                   cntgs::VaryingSize<cntgs::AlignAs<float, 8>>>;
 using OneFixedAligned = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<cntgs::AlignAs<float, 32>>>;
@@ -335,7 +335,7 @@ TEST_CASE("ContiguousTest: with alignment: size() and capacity()")
     SUBCASE("one varying")
     {
         OneVaryingAligned v{2, firsts.size() * sizeof(float)};
-        v.emplace_back(10u, firsts);
+        v.emplace_back(firsts, 10u);
         vector.emplace(std::move(v));
     }
     SUBCASE("two varying")
@@ -405,19 +405,19 @@ TEST_CASE("ContiguousTest: with alignment: emplace_back() and subscript operator
     }
     SUBCASE("one varying")
     {
-        OneVaryingAligned vector{5, firsts.size() * sizeof(float)};
+        OneVaryingAligned vector{5, 5 * firsts.size() * sizeof(float)};
         for (uint32_t i = 0; i < 5; ++i)
         {
-            vector.emplace_back(10u, firsts);
+            vector.emplace_back(firsts, 10u);
             auto&& [a, b] = vector[i];
-            CHECK_EQ(10u, a);
-            CHECK(test::range_equal(firsts, b));
-            check_alignment<16>(b);
+            CHECK(test::range_equal(firsts, a));
+            CHECK_EQ(10u, b);
+            check_alignment<16>(a);
         }
     }
     SUBCASE("two varying")
     {
-        TwoVaryingAligned vector{5, firsts.size() * sizeof(float) + seconds.size() * sizeof(float)};
+        TwoVaryingAligned vector{5, 5 * (firsts.size() * sizeof(float) + seconds.size() * sizeof(float))};
         for (uint32_t i = 0; i < 5; ++i)
         {
             vector.emplace_back(10u, firsts, seconds);
@@ -457,7 +457,7 @@ TEST_CASE("ContiguousTest: with alignment: emplace_back() and subscript operator
     }
     SUBCASE("one fixed one varying")
     {
-        OneFixedOneVaryingAligned vector{5, seconds.size() * sizeof(float), {firsts.size()}};
+        OneFixedOneVaryingAligned vector{5, 5 * seconds.size() * sizeof(float), {firsts.size()}};
         for (uint32_t i = 0; i < 5; ++i)
         {
             vector.emplace_back(firsts, 10u, seconds);
