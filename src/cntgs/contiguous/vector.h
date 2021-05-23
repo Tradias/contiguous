@@ -140,7 +140,7 @@ class ContiguousVector
     template <class... Args>
     void emplace_back(Args&&... args)
     {
-        this->emplace_back_impl(std::make_index_sequence<sizeof...(Args)>{}, std::forward<Args>(args)...);
+        this->locator.emplace_back(this->fixed_sizes, std::forward<Args>(args)...);
     }
 
     reference operator[](size_type i) noexcept { return this->subscript_operator(i); }
@@ -198,20 +198,8 @@ class ContiguousVector
         const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
     {
         constexpr auto ALIGNMENT_OVERHEAD = Traits::MAX_ALIGNMENT > 0 ? Traits::MAX_ALIGNMENT - 1 : size_type{};
-        return varying_size_bytes +
-               ElementLocator::calculate_stride(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}) *
-                   max_element_count +
+        return varying_size_bytes + ElementLocator::calculate_element_size(fixed_sizes) * max_element_count +
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
-    }
-
-    template <std::size_t... I, class... Args>
-    auto emplace_back_impl(std::index_sequence<I...>, Args&&... args)
-    {
-        auto free_address = this->locator.next_free_address();
-        ((free_address = detail::ParameterTraits<Types>::store_contiguously(
-              std::forward<Args>(args), free_address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
-         ...);
-        this->locator.append(free_address);
     }
 
     template <class Result, class... T, std::size_t... I>

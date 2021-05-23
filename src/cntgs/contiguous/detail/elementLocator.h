@@ -39,11 +39,49 @@ static constexpr auto alignment_offset([[maybe_unused]] std::size_t position) no
 }
 
 template <class... Types>
-class ElementLocator
+class BaseElementLocator
 {
-  private:
+  protected:
     using Traits = detail::ContiguousVectorTraits<Types...>;
     using SizeType = typename Traits::SizeType;
+
+    template <class T>
+    using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
+
+    static constexpr auto TYPE_COUNT = sizeof...(Types);
+
+    template <std::size_t N, std::size_t... I>
+    static constexpr auto calculate_element_size(const std::array<SizeType, N>& fixed_sizes,
+                                                 std::index_sequence<I...>) noexcept
+    {
+        SizeType result{};
+        ((result += detail::ParameterTraits<Types>::MEMORY_OVERHEAD +
+                    alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result) +
+                    aligned_size_in_memory<Types>(FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+         ...);
+        return result;
+    }
+
+  public:
+    template <std::size_t N>
+    static constexpr auto calculate_element_size(const std::array<SizeType, N>& fixed_sizes) noexcept
+    {
+        return calculate_element_size(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{});
+    }
+};
+
+template <class... Types>
+class ElementLocator : public detail::BaseElementLocator<Types...>
+{
+  private:
+    using Base = detail::BaseElementLocator<Types...>;
+    using Traits = typename Base::Traits;
+    using SizeType = typename Base::SizeType;
+
+    template <class T>
+    using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
+
+    static constexpr auto TYPE_COUNT = Base::TYPE_COUNT;
 
     std::byte** last_element_address{};
     std::byte* start{};
@@ -61,19 +99,6 @@ class ElementLocator
     {
     }
 
-    template <std::size_t N, std::size_t... I>
-    static constexpr auto calculate_stride(const std::array<SizeType, N>& fixed_sizes,
-                                           std::index_sequence<I...>) noexcept
-    {
-        SizeType result{};
-        ((result +=
-          detail::ParameterTraits<Types>::MEMORY_OVERHEAD +
-          alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result) +
-          aligned_size_in_memory<Types>(Traits::template FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
-         ...);
-        return result;
-    }
-
     static constexpr auto reserved_bytes(SizeType element_count) noexcept { return element_count * sizeof(std::byte*); }
 
     bool empty(std::byte* memory_begin) const noexcept
@@ -86,15 +111,21 @@ class ElementLocator
         return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
     }
 
-    constexpr auto next_free_address() noexcept
+    template <std::size_t N, std::size_t... I, class... Args>
+    auto emplace_back(const std::array<SizeType, N>& fixed_sizes, std::index_sequence<I...>, Args&&... args)
     {
-        auto previous_last_element = last_element;
         *this->last_element_address = last_element;
         ++this->last_element_address;
-        return previous_last_element;
+        ((last_element = detail::ParameterTraits<Types>::store_contiguously(
+              std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+         ...);
     }
 
-    constexpr void append(std::byte* address) noexcept { last_element = address; }
+    template <std::size_t N, class... Args>
+    auto emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
+    {
+        return emplace_back(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}, std::forward<Args>(args)...);
+    }
 
     auto at(std::byte* memory_begin, SizeType index) const noexcept
     {
@@ -104,11 +135,17 @@ class ElementLocator
 };
 
 template <class... Types>
-class AllFixedSizeElementLocator
+class AllFixedSizeElementLocator : public detail::BaseElementLocator<Types...>
 {
   private:
-    using Traits = detail::ContiguousVectorTraits<Types...>;
-    using SizeType = typename Traits::SizeType;
+    using Base = detail::BaseElementLocator<Types...>;
+    using Traits = typename Base::Traits;
+    using SizeType = typename Base::SizeType;
+
+    template <class T>
+    using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
+
+    static constexpr auto TYPE_COUNT = Base::TYPE_COUNT;
 
     SizeType element_count{};
     SizeType stride{};
@@ -119,21 +156,9 @@ class AllFixedSizeElementLocator
 
     template <std::size_t N>
     AllFixedSizeElementLocator(SizeType, std::byte* memory_begin, const std::array<SizeType, N>& fixed_sizes) noexcept
-        : stride(calculate_stride(fixed_sizes, std::make_index_sequence<sizeof...(Types)>{})),
+        : stride(Base::calculate_element_size(fixed_sizes)),
           start(reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(memory_begin)))
     {
-    }
-
-    template <std::size_t N, std::size_t... I>
-    static constexpr auto calculate_stride(const std::array<SizeType, N>& fixed_sizes,
-                                           std::index_sequence<I...>) noexcept
-    {
-        SizeType result{};
-        ((result +=
-          alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result) +
-          aligned_size_in_memory<Types>(Traits::template FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
-         ...);
-        return result;
     }
 
     static constexpr auto reserved_bytes(SizeType) noexcept { return SizeType{}; }
@@ -142,9 +167,21 @@ class AllFixedSizeElementLocator
 
     constexpr SizeType size(std::byte*) const noexcept { return this->element_count; }
 
-    constexpr auto next_free_address() noexcept { return this->at({}, element_count); }
+    template <std::size_t N, std::size_t... I, class... Args>
+    auto emplace_back(const std::array<SizeType, N>& fixed_sizes, std::index_sequence<I...>, Args&&... args)
+    {
+        auto last_element = this->at({}, element_count);
+        ((last_element = detail::ParameterTraits<Types>::store_contiguously(
+              std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+         ...);
+        ++this->element_count;
+    }
 
-    constexpr void append(std::byte*) noexcept { ++element_count; }
+    template <std::size_t N, class... Args>
+    auto emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
+    {
+        return emplace_back(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}, std::forward<Args>(args)...);
+    }
 
     constexpr auto at(std::byte*, SizeType index) const noexcept { return start + this->stride * index; }
 };
