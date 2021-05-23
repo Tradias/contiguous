@@ -2,6 +2,7 @@
 
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
+#include "cntgs/contiguous/tuple.h"
 
 #include <tuple>
 #include <utility>
@@ -14,9 +15,9 @@ struct TransformTuple
 };
 
 template <template <class> class Transformer, class... T>
-struct TransformTuple<Transformer, std::tuple<T...>>
+struct TransformTuple<Transformer, cntgs::ContiguousTuple<T...>>
 {
-    using Type = std::tuple<Transformer<T>...>;
+    using Type = cntgs::ContiguousTuple<Transformer<T>...>;
 };
 
 template <class T>

@@ -9,6 +9,7 @@
 #include "cntgs/contiguous/iterator.h"
 #include "cntgs/contiguous/parameter.h"
 #include "cntgs/contiguous/span.h"
+#include "cntgs/contiguous/tuple.h"
 #include "cntgs/contiguous/typeErasedVector.h"
 
 #include <array>
@@ -203,30 +204,16 @@ class ContiguousVector
     }
 
     template <class Result, class... T, std::size_t... I>
-    static constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer, std::index_sequence<I...>) noexcept
+    static constexpr auto convert_tuple_to(const cntgs::ContiguousTuple<T...>& tuple_of_pointer,
+                                           std::index_sequence<I...>) noexcept
     {
-        return Result{detail::dereference(std::get<I>(tuple_of_pointer))...};
+        return Result{detail::dereference(cntgs::get<I>(tuple_of_pointer))...};
     }
 
     template <class Result, class... T>
-    static constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexcept
+    static constexpr auto convert_tuple_to(const cntgs::ContiguousTuple<T...>& tuple_of_pointer) noexcept
     {
         return convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
-    }
-
-    template <class... T, class Function, std::size_t... I>
-    constexpr auto for_each_impl(std::tuple<T...>& tuple, Function&& function, std::index_sequence<I...>) const noexcept
-    {
-        return (function(std::get<I>(tuple), FixedSizeGetter<Types>::template get<I>(fixed_sizes),
-                         detail::ParameterTraits<Types>{}),
-                ...);
-    }
-
-    template <class T, class Function>
-    constexpr auto for_each(T&& tuple, Function&& function) const noexcept
-    {
-        return this->for_each_impl(std::forward<T>(tuple), std::forward<Function>(function),
-                                   std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<T>>>{});
     }
 
     auto load_element_at(size_type i) const noexcept
@@ -258,11 +245,11 @@ class ContiguousVector
                     {
                         if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
                         {
-                            std::destroy(std::get<I>(element).begin(), std::get<I>(element).end());
+                            std::destroy(cntgs::get<I>(element).begin(), cntgs::get<I>(element).end());
                         }
                         else
                         {
-                            std::get<I>(element).~ValueType();
+                            cntgs::get<I>(element).~ValueType();
                         }
                     }
                 }(),

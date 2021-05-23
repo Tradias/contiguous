@@ -20,4 +20,7 @@ class TypeErasedVector;
 
 template <class T, std::size_t Alignment = 0>
 struct AlignAs;
+
+template <class... Types>
+class ContiguousTuple;
 }  // namespace cntgs

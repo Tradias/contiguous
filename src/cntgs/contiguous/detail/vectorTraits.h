@@ -4,6 +4,7 @@
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/vector.h"
+#include "cntgs/contiguous/tuple.h"
 
 #include <tuple>
 #include <utility>
@@ -48,7 +49,7 @@ struct VectorTraits : BaseVectorTraits
 template <class... Types>
 struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
 {
-    using Tuple = std::tuple<Types...>;
+    using Tuple = cntgs::ContiguousTuple<Types...>;
     using ValueReturnType = detail::ToContiguousTupleOfValueReturnType<Tuple>;
     using ReferenceReturnType = detail::ToContiguousTupleOfReferenceReturnType<Tuple>;
     using ConstReferenceReturnType = detail::ToContiguousTupleOfConstReferenceReturnType<Tuple>;

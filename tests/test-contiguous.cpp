@@ -92,7 +92,7 @@ TEST_CASE("ContiguousTest: one varying size: reference can be converted to value
     OneVarying vector{2, elements.size() * sizeof(float)};
     vector.emplace_back(10u, elements);
     OneVarying::value_type value = vector[0];
-    CHECK_EQ(10u, std::get<0>(value));
+    CHECK_EQ(10u, cntgs::get<0>(value));
 }
 
 TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumption()")
@@ -235,13 +235,13 @@ void check_iterator(T&& vector)
     CHECK(std::is_same_v<std::random_access_iterator_tag, typename IterTraits::iterator_category>);
     std::for_each(vector.begin()++, ++vector.begin(), [&](auto&& elem) {
         auto&& [uinteger, floats] = vector[0];
-        CHECK_EQ(uinteger, std::get<0>(elem));
-        CHECK(test::range_equal(std::get<1>(elem), floats));
+        CHECK_EQ(uinteger, cntgs::get<0>(elem));
+        CHECK(test::range_equal(cntgs::get<1>(elem), floats));
     });
     std::for_each(vector.begin() + 1, vector.end(), [&](auto&& elem) {
         auto&& [uinteger, floats] = vector[1];
-        CHECK_EQ(uinteger, std::get<0>(elem));
-        CHECK(test::range_equal(std::get<1>(elem), floats));
+        CHECK_EQ(uinteger, cntgs::get<0>(elem));
+        CHECK(test::range_equal(cntgs::get<1>(elem), floats));
     });
 }
 

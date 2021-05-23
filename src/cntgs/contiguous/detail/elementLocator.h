@@ -68,7 +68,7 @@ class BaseElementLocator<std::index_sequence<I...>, Types...>
     static auto load_element_at_impl(std::byte* address, const std::array<SizeType, N>& fixed_sizes) noexcept
     {
         typename Traits::PointerReturnType result;
-        ((std::tie(std::get<I>(result), address) =
+        ((std::tie(cntgs::get<I>(result), address) =
               detail::ParameterTraits<Types>::template from_address<NeedsAlignmentSelector::template VALUE<I>>(
                   address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
