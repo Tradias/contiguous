@@ -90,3 +90,17 @@ Vector restored{type_erased_vector};
 // optionally transfer ownership
 Vector restored{std::move(type_erased_vector)};
 ```
+
+Specify alignment. Note that the default alignment of types stored by a ContiguousVector is 0. Unaligned memory access is not supported by all processors (e.g. RISC).
+On most processors however, unaligned access works correctly and comes with basically no performance penalty.
+
+Each element in the following ContiguousVector is comprised of a fixed number of 32-byte aligned floats, followed by a variable number of 8-byte aligned integers, followed by one 8-byte aligned integer.
+
+```c++
+#include <cntgs/contiguous.h>
+
+using Vector = cntgs::ContiguousVector<
+  cntgs::FixedSize<cntgs::AlignAs<float, 32>>, 
+  cntgs::VaryingSize<cntgs::AlignAs<int32_t, 8>>,
+  cntgs::AlignAs<int32_t, 8>>;
+```
