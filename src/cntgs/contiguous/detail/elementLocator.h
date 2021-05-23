@@ -55,8 +55,8 @@ class ElementLocator
     template <std::size_t N>
     ElementLocator(SizeType max_element_count, std::byte* memory_begin, const std::array<SizeType, N>&) noexcept
         : last_element_address(reinterpret_cast<std::byte**>(memory_begin)),
-          start(reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(memory_begin)) +
-                ElementLocator::reserved_bytes(max_element_count)),
+          start(reinterpret_cast<std::byte*>(
+              detail::align<Traits::MAX_ALIGNMENT>(memory_begin + ElementLocator::reserved_bytes(max_element_count)))),
           last_element(start)
     {
     }
@@ -66,7 +66,8 @@ class ElementLocator
                                            std::index_sequence<I...>) noexcept
     {
         SizeType result{};
-        ((result += detail::ParameterTraits<Types>::MEMORY_OVERHEAD + 
+        ((result +=
+          detail::ParameterTraits<Types>::MEMORY_OVERHEAD +
           alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result) +
           aligned_size_in_memory<Types>(Traits::template FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
