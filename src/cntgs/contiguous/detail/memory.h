@@ -148,13 +148,6 @@ auto align(std::uintptr_t position) noexcept
     }
 }
 
-inline void* align(std::size_t alignment, void* ptr) noexcept
-{
-    const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
-    const auto aligned = detail::align(alignment, uintptr);
-    return ptr = reinterpret_cast<void*>(aligned);
-}
-
 template <std::size_t Alignment>
 void* align(void* ptr) noexcept
 {
@@ -168,9 +161,7 @@ void* align_if(void* ptr) noexcept
 {
     if constexpr (NeedsAlignment)
     {
-        const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
-        const auto aligned = detail::align<Alignment>(uintptr);
-        return ptr = reinterpret_cast<void*>(aligned);
+        return detail::align<Alignment>(ptr);
     }
     else
     {

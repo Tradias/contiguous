@@ -51,6 +51,9 @@ class BaseElementLocator<std::index_sequence<I...>, Types...>
     template <class T>
     using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
 
+    template <std::size_t I>
+    using TypeAt = std::tuple_element_t<I, std::tuple<Types...>>;
+
     template <class NeedsAlignmentSelector, std::size_t N, class... Args>
     static auto emplace_back(std::byte* last_element, const std::array<SizeType, N>& fixed_sizes, Args&&... args)
     {
@@ -81,7 +84,7 @@ class BaseElementLocator<std::index_sequence<I...>, Types...>
                     alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result) +
                     aligned_size_in_memory<Types>(FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
-        return result;
+        return result + alignment_offset<detail::ParameterTraits<TypeAt<0>>::ALIGNMENT>(result);
     }
 };
 
