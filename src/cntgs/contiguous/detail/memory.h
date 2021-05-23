@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/iterator.h"
 #include "cntgs/contiguous/detail/range.h"
 #include "cntgs/contiguous/span.h"
