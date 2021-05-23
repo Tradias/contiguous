@@ -231,12 +231,7 @@ class ContiguousVector
 
     auto tuple_of_pointers_at(size_type i) const noexcept
     {
-        typename Traits::PointerReturnType result;
-        auto* start = this->locator.at(this->memory.get(), i);
-        this->for_each(result, [&](auto& element, size_type size, auto traits) {
-            std::tie(element, start) = decltype(traits)::from_address(start, size);
-        });
-        return result;
+        return this->locator.tuple_of_pointers_at(i, this->memory.get(), fixed_sizes);
     }
 
     auto subscript_operator(size_type i) noexcept

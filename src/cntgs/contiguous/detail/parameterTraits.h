@@ -33,9 +33,10 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
 
+    template <bool NeedsAlignment>
     static auto from_address(std::byte* address, std::size_t) noexcept
     {
-        address = reinterpret_cast<std::byte*>(detail::align<ALIGNMENT>(address));
+        address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         auto result = std::launder(reinterpret_cast<PointerReturnType>(address));
         return std::pair{result, address + detail::MAX_SIZE_T_OF<SIZE_IN_MEMORY, ALIGNMENT>};
     }
@@ -72,11 +73,12 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(iterator_type);
 
+    template <bool NeedsAlignment>
     static auto from_address(std::byte* address, std::size_t) noexcept
     {
         const auto last = *reinterpret_cast<iterator_type*>(address);
         address += MEMORY_OVERHEAD;
-        const auto first = reinterpret_cast<iterator_type>(detail::align<ALIGNMENT>(address));
+        const auto first = reinterpret_cast<iterator_type>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
@@ -115,9 +117,11 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
 
+    template <bool NeedsAlignment>
     static auto from_address(std::byte* address, std::size_t size) noexcept
     {
-        const auto first = std::launder(reinterpret_cast<iterator_type>(detail::align<ALIGNMENT>(address)));
+        const auto first =
+            std::launder(reinterpret_cast<iterator_type>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
         const auto last = first + size;
         return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }

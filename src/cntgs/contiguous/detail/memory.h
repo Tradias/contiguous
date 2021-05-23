@@ -156,4 +156,19 @@ void* align(void* ptr) noexcept
     const auto aligned = detail::align<Alignment>(uintptr);
     return ptr = reinterpret_cast<void*>(aligned);
 }
+
+template <bool NeedsAlignment, std::size_t Alignment>
+void* align_if(void* ptr) noexcept
+{
+    if constexpr (NeedsAlignment)
+    {
+        const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
+        const auto aligned = detail::align<Alignment>(uintptr);
+        return ptr = reinterpret_cast<void*>(aligned);
+    }
+    else
+    {
+        return ptr;
+    }
+}
 }  // namespace cntgs::detail

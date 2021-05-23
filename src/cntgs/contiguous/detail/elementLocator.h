@@ -62,12 +62,45 @@ class BaseElementLocator
         return result;
     }
 
+    template <std::size_t I, class Type, class NeedsAlignmentSelector, std::size_t N, class... T>
+    static constexpr auto load_element(std::byte* address, const std::array<SizeType, N>& fixed_sizes) noexcept
+    {
+        return detail::ParameterTraits<Type>::from_address<NeedsAlignmentSelector::VALUE<I>>(
+            address, FixedSizeGetter<Type>::template get<I>(fixed_sizes));
+    }
+
+    template <class NeedsAlignmentSelector, std::size_t N, class... T, std::size_t... I>
+    static constexpr auto tuple_of_pointers_at_impl(std::tuple<T...>& result, std::byte* address,
+                                                    const std::array<SizeType, N>& fixed_sizes,
+                                                    std::index_sequence<I...>) noexcept
+    {
+        ((std::tie(std::get<I>(result), address) =
+              load_element<I, Types, NeedsAlignmentSelector>(address, fixed_sizes)),
+         ...);
+        return result;
+    }
+
+    template <class NeedsAlignmentSelector, std::size_t N>
+    static constexpr auto tuple_of_pointers_at_impl(std::byte* address,
+                                                    const std::array<SizeType, N>& fixed_sizes) noexcept
+    {
+        typename Traits::PointerReturnType result;
+        return tuple_of_pointers_at_impl<NeedsAlignmentSelector>(result, address, fixed_sizes,
+                                                                 std::make_index_sequence<TYPE_COUNT>{});
+    }
+
   public:
     template <std::size_t N>
     static constexpr auto calculate_element_size(const std::array<SizeType, N>& fixed_sizes) noexcept
     {
         return calculate_element_size(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{});
     }
+};
+
+struct DefaultAlignmentSelector
+{
+    template <std::size_t>
+    static constexpr auto VALUE = true;
 };
 
 template <class... Types>
@@ -79,7 +112,7 @@ class ElementLocator : public detail::BaseElementLocator<Types...>
     using SizeType = typename Base::SizeType;
 
     template <class T>
-    using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
+    using FixedSizeGetter = typename Base::template FixedSizeGetter<T>;
 
     static constexpr auto TYPE_COUNT = Base::TYPE_COUNT;
 
@@ -127,11 +160,25 @@ class ElementLocator : public detail::BaseElementLocator<Types...>
         return emplace_back(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}, std::forward<Args>(args)...);
     }
 
+    template <std::size_t N>
+    auto tuple_of_pointers_at(SizeType i, std::byte* memory_begin,
+                              const std::array<SizeType, N>& fixed_sizes) const noexcept
+    {
+        return Base::template tuple_of_pointers_at_impl<detail::DefaultAlignmentSelector>(this->at(memory_begin, i),
+                                                                                          fixed_sizes);
+    }
+
     auto at(std::byte* memory_begin, SizeType index) const noexcept
     {
         const auto element_address = reinterpret_cast<std::byte**>(memory_begin);
         return element_address[index];
     }
+};
+
+struct AllFixedSizeAlignmentSelector
+{
+    template <std::size_t I>
+    static constexpr auto VALUE = I != 0;
 };
 
 template <class... Types>
@@ -143,7 +190,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocator<Types...>
     using SizeType = typename Base::SizeType;
 
     template <class T>
-    using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
+    using FixedSizeGetter = typename Base::template FixedSizeGetter<T>;
 
     static constexpr auto TYPE_COUNT = Base::TYPE_COUNT;
 
@@ -183,7 +230,16 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocator<Types...>
         return emplace_back(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}, std::forward<Args>(args)...);
     }
 
+    template <std::size_t N>
+    auto tuple_of_pointers_at(SizeType i, std::byte*, const std::array<SizeType, N>& fixed_sizes) const noexcept
+    {
+        return Base::template tuple_of_pointers_at_impl<detail::AllFixedSizeAlignmentSelector>(this->at(i),
+                                                                                               fixed_sizes);
+    }
+
     constexpr auto at(std::byte*, SizeType index) const noexcept { return start + this->stride * index; }
+
+    constexpr auto at(SizeType index) const noexcept { return start + this->stride * index; }
 };
 
 template <class... Types>
