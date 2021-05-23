@@ -46,6 +46,7 @@ function(cntgs_add_test _name)
                 /EHsc->
                 $<$<CXX_COMPILER_ID:GNU>:-Wall
                 -Wextra
+                -pedantic-errors
                 -fno-exceptions
                 -fno-rtti>)
 
@@ -66,4 +67,7 @@ cntgs_add_test(cntgs-test-cpp17 ${CNTGS_TEST_SOURCE_FILES})
 cntgs_add_test(cntgs-test-cpp20 ${CNTGS_TEST_SOURCE_FILES})
 target_compile_features(cntgs-test-cpp20 PRIVATE cxx_std_20)
 
-set_source_files_properties(test-code-gen.cpp PROPERTIES COMPILE_OPTIONS $<$<CXX_COMPILER_ID:MSVC>:/EHs>)
+set_source_files_properties(
+    test-code-gen.cpp
+    PROPERTIES COMPILE_OPTIONS
+               "$<$<CXX_COMPILER_ID:MSVC>:/EHs>;$<$<CXX_COMPILER_ID:MSVC>:/GR>;$<$<CXX_COMPILER_ID:GNU>:-fexceptions>")

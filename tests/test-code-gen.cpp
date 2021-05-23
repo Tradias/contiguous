@@ -20,6 +20,7 @@ void check_code_gen_sizes(std::string reference, std::string contiguous, size_t 
     const auto contiguous_line_count = cntgs::test::count_lines(disassemblies[1]);
     CAPTURE(reference_line_count);
     CAPTURE(contiguous_line_count);
+    REQUIRE((reference_line_count > 0 && contiguous_line_count > 0));
     CHECK_GE(reference_line_count + size_deviation, contiguous_line_count);
 }
 
@@ -31,7 +32,7 @@ TEST_CASE("CodeGenTest: two FixedSize lookup and accumulate")
 TEST_CASE("CodeGenTest: two FixedSize aligned lookup and accumulate")
 {
     check_code_gen_sizes("reference_two_fixed_aligned_lookup_and_accumulate",
-                         "contiguous_two_fixed_aligned_lookup_and_accumulate", 1);
+                         "contiguous_two_fixed_aligned_lookup_and_accumulate");
 }
 
 TEST_CASE("CodeGenTest: two FixedSize emplace")

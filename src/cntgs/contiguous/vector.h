@@ -229,20 +229,20 @@ class ContiguousVector
                                    std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<T>>>{});
     }
 
-    auto tuple_of_pointers_at(size_type i) const noexcept
+    auto load_element_at(size_type i) const noexcept
     {
-        return this->locator.tuple_of_pointers_at(i, this->memory.get(), fixed_sizes);
+        return this->locator.load_element_at(i, this->memory.get(), fixed_sizes);
     }
 
     auto subscript_operator(size_type i) noexcept
     {
-        const auto tuple = tuple_of_pointers_at(i);
+        const auto tuple = load_element_at(i);
         return this->convert_tuple_to<reference>(tuple);
     }
 
     auto subscript_operator(size_type i) const noexcept
     {
-        const auto tuple = tuple_of_pointers_at(i);
+        const auto tuple = load_element_at(i);
         return this->convert_tuple_to<const_reference>(tuple);
     }
 

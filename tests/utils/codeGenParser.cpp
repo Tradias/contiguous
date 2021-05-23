@@ -42,7 +42,7 @@ std::vector<std::string> get_disassembly_of_functions(const std::vector<std::str
         {
             if (std::string_view(line.data()).empty())
             {
-                result[current_index] = std::move(current_string);
+                std::swap(current_string, result[current_index]);
                 current_index = std::numeric_limits<int>::max();
             }
             else
@@ -51,6 +51,10 @@ std::vector<std::string> get_disassembly_of_functions(const std::vector<std::str
             }
         }
         line.assign(MAX_LINE_SIZE, '\0');
+    }
+    if (!current_string.empty())
+    {
+        result[current_index] = std::move(current_string);
     }
     return result;
 }
