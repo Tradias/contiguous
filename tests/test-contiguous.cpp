@@ -266,6 +266,38 @@ TEST_CASE("ContiguousTest: one fixed size: begin() end()")
     }
 }
 
+TEST_CASE("ContiguousTest: swap and iter_swap with ContiguousVectorIterator of std::unique_ptr")
+{
+    cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>> vector{2, {1}};
+    std::array v{std::make_unique<int>(20)};
+    vector.emplace_back(std::make_unique<int>(10), std::make_move_iterator(v.begin()));
+    vector.emplace_back(std::make_unique<int>(30), std::array{std::make_unique<int>(40)});
+    SUBCASE("std::iter_swap") { std::iter_swap(vector.begin(), ++vector.begin()); }
+    SUBCASE("cntgs::swap") { cntgs::swap(vector[0], vector[1]); }
+    {
+        auto&& [a, b] = vector[0];
+        CHECK_EQ(30, *a);
+        CHECK_EQ(40, *b.front());
+    }
+    {
+        auto&& [a, b] = vector[1];
+        CHECK_EQ(10, *a);
+        CHECK_EQ(20, *b.front());
+    }
+}
+
+TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of std::unique_ptr")
+{
+    cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>> vector{2, {1}};
+    std::array v{std::make_unique<int>(20)};
+    vector.emplace_back(std::make_unique<int>(10), std::make_move_iterator(v.begin()));
+    vector.emplace_back(std::make_unique<int>(30), std::array{std::make_unique<int>(40)});
+    std::rotate(vector.begin(), ++vector.begin(), vector.end());
+    auto&& [a, b] = vector[0];
+    CHECK_EQ(30, *a);
+    CHECK_EQ(40, *b.front());
+}
+
 TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
 {
     std::array elements{1.f, 2.f};

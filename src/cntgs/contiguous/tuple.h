@@ -1,17 +1,27 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/tuple.h"
+#include "cntgs/contiguous/detail/typeUtils.h"
+
 #include <cstddef>
 #include <tuple>
 
 namespace cntgs
 {
-template <class... Types>
+template <detail::ContiguousTupleQualifier Qualifier, class... Types>
 class ContiguousTuple
 {
   public:
-    using Tuple = std::tuple<Types...>;
+    using Tuple = std::conditional_t<
+        (Qualifier == detail::ContiguousTupleQualifier::NONE),
+        detail::ToContiguousTupleOfValueReturnType<std::tuple<Types...>>,
+        std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
+                           detail::ToContiguousTupleOfReferenceReturnType<std::tuple<Types...>>,
+                           std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::CONST_REFERENCE),
+                                              detail::ToContiguousTupleOfConstReferenceReturnType<std::tuple<Types...>>,
+                                              detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>>>>;
 
-    std::tuple<Types...> tuple;
+    Tuple tuple;
 
     ContiguousTuple() = default;
 
@@ -31,13 +41,13 @@ class ContiguousTuple
     {
     }
 
-    template <class... T>
-    constexpr ContiguousTuple(const ContiguousTuple<T...>& other) : tuple(other.tuple)
+    template <detail::ContiguousTupleQualifier Qualifier, class... T>
+    constexpr ContiguousTuple(const ContiguousTuple<Qualifier, T...>& other) : tuple(other.tuple)
     {
     }
 
-    template <class... T>
-    constexpr ContiguousTuple(ContiguousTuple<T...>&& other) : tuple(std::move(other.tuple))
+    template <detail::ContiguousTupleQualifier Qualifier, class... T>
+    constexpr ContiguousTuple(ContiguousTuple<Qualifier, T...>&& other) : tuple(std::move(other.tuple))
     {
     }
 
@@ -47,8 +57,8 @@ class ContiguousTuple
     ContiguousTuple& operator=(const ContiguousTuple&) = default;
     ContiguousTuple& operator=(ContiguousTuple&&) = default;
 
-    template <class... T>
-    constexpr ContiguousTuple& operator=(const ContiguousTuple<T...>& other)
+    template <detail::ContiguousTupleQualifier Qualifier, class... T>
+    constexpr ContiguousTuple& operator=(const ContiguousTuple<Qualifier, T...>& other)
     {
         if (this != &other)
         {
@@ -57,8 +67,8 @@ class ContiguousTuple
         return *this;
     }
 
-    template <class... T>
-    constexpr ContiguousTuple& operator=(ContiguousTuple<T...>&& other)
+    template <detail::ContiguousTupleQualifier Qualifier, class... T>
+    constexpr ContiguousTuple& operator=(ContiguousTuple<Qualifier, T...>&& other)
     {
         if (this != &other)
         {
@@ -67,64 +77,96 @@ class ContiguousTuple
         return *this;
     }
 
-  private:
-    template <class T>
-    constexpr void assign(const ContiguousTuple<T...>& other)
+    template <detail::ContiguousTupleQualifier Qualifier, class... T, std::size_t... I>
+    constexpr void swap(ContiguousTuple<Qualifier, T...>& other, std::index_sequence<I...>)
     {
         (
             [&]() mutable {
                 if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
                 {
-                    std::copy(std::begin(cntgs::get<I>(other)), std::end(cntgs::get<I>(other)),
-                              std::begin(cntgs::get<I>(this->tuple)));
+                    std::swap_ranges(std::begin(std::get<I>(other.tuple)), std::end(std::get<I>(other.tuple)),
+                                     std::begin(std::get<I>(this->tuple)));
                 }
                 else
                 {
-                    cntgs::get<I>(this->tuple) = cntgs::get<I>(other.tuple);
+                    std::swap(std::get<I>(this->tuple), std::get<I>(other.tuple));
                 }
             }(),
             ...);
     }
 
-    template <class T>
-    constexpr void assign(ContiguousTuple<T...>&& other)
+  private:
+    template <detail::ContiguousTupleQualifier Qualifier, class... T, std::size_t... I>
+    constexpr void assign(const ContiguousTuple<Qualifier, T...>& other, std::index_sequence<I...>)
     {
         (
             [&]() mutable {
                 if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
                 {
-                    std::move(std::begin(cntgs::get<I>(other)), std::end(cntgs::get<I>(other)),
-                              std::begin(cntgs::get<I>(this->tuple)));
+                    std::copy(std::begin(std::get<I>(other.tuple)), std::end(std::get<I>(other.tuple)),
+                              std::begin(std::get<I>(this->tuple)));
                 }
                 else
                 {
-                    cntgs::get<I>(this->tuple) = std::move(cntgs::get<I>(other.tuple));
+                    std::get<I>(this->tuple) = std::get<I>(other.tuple);
+                }
+            }(),
+            ...);
+    }
+
+    template <detail::ContiguousTupleQualifier Qualifier, class... T, std::size_t... I>
+    constexpr void assign(ContiguousTuple<Qualifier, T...>&& other, std::index_sequence<I...>)
+    {
+        (
+            [&]() mutable {
+                if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
+                {
+                    std::move(std::begin(std::get<I>(other.tuple)), std::end(std::get<I>(other.tuple)),
+                              std::begin(std::get<I>(this->tuple)));
+                }
+                else
+                {
+                    std::get<I>(this->tuple) = std::move(std::get<I>(other.tuple));
                 }
             }(),
             ...);
     }
 };
 
-template <std::size_t I, class... Types>
-constexpr decltype(auto) get(cntgs::ContiguousTuple<Types...>& tuple) noexcept
+template <detail::ContiguousTupleQualifier Qualifier, class... T, class... U>
+constexpr void swap(cntgs::ContiguousTuple<Qualifier, T...> lhs, cntgs::ContiguousTuple<Qualifier, U...> rhs,
+                    std::enable_if_t<(Qualifier != detail::ContiguousTupleQualifier::NONE)>* = nullptr)
+{
+    lhs.swap(rhs, std::make_index_sequence<sizeof...(T)>{});
+}
+
+template <class... T, class... U>
+constexpr void swap(cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::NONE, T...>& lhs,
+                    cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::NONE, U...>& rhs)
+{
+    lhs.swap(rhs, std::make_index_sequence<sizeof...(T)>{});
+}
+
+template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>
+constexpr decltype(auto) get(cntgs::ContiguousTuple<Qualifier, Types...>& tuple) noexcept
 {
     return std::get<I>(tuple.tuple);
 }
 
-template <std::size_t I, class... Types>
-constexpr decltype(auto) get(const cntgs::ContiguousTuple<Types...>& tuple) noexcept
+template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>
+constexpr decltype(auto) get(const cntgs::ContiguousTuple<Qualifier, Types...>& tuple) noexcept
 {
     return std::get<I>(tuple.tuple);
 }
 
-template <std::size_t I, class... Types>
-constexpr decltype(auto) get(cntgs::ContiguousTuple<Types...>&& tuple) noexcept
+template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>
+constexpr decltype(auto) get(cntgs::ContiguousTuple<Qualifier, Types...>&& tuple) noexcept
 {
     return std::get<I>(std::move(tuple.tuple));
 }
 
-template <std::size_t I, class... Types>
-constexpr decltype(auto) get(const cntgs::ContiguousTuple<Types...>&& tuple) noexcept
+template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>
+constexpr decltype(auto) get(const cntgs::ContiguousTuple<Qualifier, Types...>&& tuple) noexcept
 {
     return std::get<I>(std::move(tuple.tuple));
 }
@@ -132,14 +174,14 @@ constexpr decltype(auto) get(const cntgs::ContiguousTuple<Types...>&& tuple) noe
 
 namespace std
 {
-template <std::size_t I, class... Types>
-struct tuple_element<I, ::cntgs::ContiguousTuple<Types...>>
-    : std::tuple_element<I, typename ::cntgs::ContiguousTuple<Types...>::Tuple>
+template <std::size_t I, ::cntgs::detail::ContiguousTupleQualifier Qualifier, class... Types>
+struct tuple_element<I, ::cntgs::ContiguousTuple<Qualifier, Types...>>
+    : std::tuple_element<I, typename ::cntgs::ContiguousTuple<Qualifier, Types...>::Tuple>
 {
 };
 
-template <class... Types>
-struct tuple_size<::cntgs::ContiguousTuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)>
+template <::cntgs::detail::ContiguousTupleQualifier Qualifier, class... Types>
+struct tuple_size<::cntgs::ContiguousTuple<Qualifier, Types...>> : std::integral_constant<std::size_t, sizeof...(Types)>
 {
 };
 }  // namespace std

@@ -204,14 +204,16 @@ class ContiguousVector
     }
 
     template <class Result, class... T, std::size_t... I>
-    static constexpr auto convert_tuple_to(const cntgs::ContiguousTuple<T...>& tuple_of_pointer,
-                                           std::index_sequence<I...>) noexcept
+    static constexpr auto convert_tuple_to(
+        const cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::POINTER, T...>& tuple_of_pointer,
+        std::index_sequence<I...>) noexcept
     {
         return Result{detail::dereference(cntgs::get<I>(tuple_of_pointer))...};
     }
 
     template <class Result, class... T>
-    static constexpr auto convert_tuple_to(const cntgs::ContiguousTuple<T...>& tuple_of_pointer) noexcept
+    static constexpr auto convert_tuple_to(
+        const cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::POINTER, T...>& tuple_of_pointer) noexcept
     {
         return convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
     }

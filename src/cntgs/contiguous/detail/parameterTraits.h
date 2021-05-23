@@ -83,12 +83,12 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
     }
 
     template <bool NeedsAlignment, class Range>
-    static auto store_contiguously(const Range& range, std::byte* address, std::size_t)
+    static auto store_contiguously(Range&& range, std::byte* address, std::size_t)
     {
         const auto start = std::launder(reinterpret_cast<iterator_type*>(address));
         address += MEMORY_OVERHEAD;
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        auto new_address = detail::copy_range_ignore_aliasing<value_type>(range, address);
+        auto new_address = detail::copy_range_ignore_aliasing<value_type>(std::forward<Range>(range), address);
         *start = std::launder(reinterpret_cast<iterator_type>(new_address));
         return new_address;
     }
@@ -130,7 +130,8 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
     static auto store_contiguously(RangeOrIterator&& range_or_iterator, std::byte* address, std::size_t size)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        return detail::copy_ignore_aliasing<value_type>(range_or_iterator, address, size);
+        return detail::copy_ignore_aliasing<value_type>(std::forward<RangeOrIterator>(range_or_iterator), address,
+                                                        size);
     }
 };
 

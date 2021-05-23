@@ -2,7 +2,7 @@
 
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
-#include "cntgs/contiguous/tuple.h"
+#include "cntgs/contiguous/detail/tupleQualifier.h"
 
 #include <tuple>
 #include <utility>
@@ -15,32 +15,33 @@ struct TransformTuple
 };
 
 template <template <class> class Transformer, class... T>
-struct TransformTuple<Transformer, cntgs::ContiguousTuple<T...>>
+struct TransformTuple<Transformer, std::tuple<T...>>
 {
-    using Type = cntgs::ContiguousTuple<Transformer<T>...>;
+    using Type = std::tuple<Transformer<T>...>;
 };
 
 template <class T>
 using ToContiguousValue = typename detail::ParameterTraits<T>::ValueReturnType;
 
 template <class T>
-using ToContiguousTupleOfValueReturnType = typename TransformTuple<ToContiguousValue, T>::Type;
+using ToContiguousTupleOfValueReturnType = typename detail::TransformTuple<ToContiguousValue, T>::Type;
 
 template <class T>
 using ToContiguousReference = typename detail::ParameterTraits<T>::ReferenceReturnType;
 
 template <class T>
-using ToContiguousTupleOfReferenceReturnType = typename TransformTuple<ToContiguousReference, T>::Type;
+using ToContiguousTupleOfReferenceReturnType = typename detail::TransformTuple<ToContiguousReference, T>::Type;
 
 template <class T>
 using ToContiguousConstReference = typename detail::ParameterTraits<T>::ConstReferenceReturnType;
 
 template <class T>
-using ToContiguousTupleOfConstReferenceReturnType = typename TransformTuple<ToContiguousConstReference, T>::Type;
+using ToContiguousTupleOfConstReferenceReturnType =
+    typename detail::TransformTuple<ToContiguousConstReference, T>::Type;
 
 template <class T>
 using ToContiguousPointer = typename detail::ParameterTraits<T>::PointerReturnType;
 
 template <class T>
-using ToContiguousTupleOfPointerReturnType = typename TransformTuple<ToContiguousPointer, T>::Type;
+using ToContiguousTupleOfPointerReturnType = typename detail::TransformTuple<ToContiguousPointer, T>::Type;
 }  // namespace cntgs::detail

@@ -15,13 +15,19 @@ using Span = std::span<T>;
 template <class T>
 struct Span
 {
-    using value_type = T;
-    using iterator_type = T*;
-    using difference_type = std::ptrdiff_t;
+    using element_type = T;
+    using value_type = std::remove_cv_t<T>;
     using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using pointer = T*;
+    using const_pointer = const T*;
+    using reference = T&;
+    using const_reference = const T&;
+    using iterator = T*;
+    using reverse_iterator = std::reverse_iterator<iterator>;
 
-    iterator_type first;
-    iterator_type last;
+    iterator first;
+    iterator last;
 
     Span() = default;
 
@@ -30,19 +36,23 @@ struct Span
     {
     }
 
-    constexpr Span(iterator_type first, iterator_type last) noexcept : first(first), last(last) {}
+    constexpr Span(iterator first, iterator last) noexcept : first(first), last(last) {}
 
-    constexpr Span(iterator_type first, size_type size) noexcept : first(first), last(first + size) {}
+    constexpr Span(iterator first, size_type size) noexcept : first(first), last(first + size) {}
 
-    constexpr auto begin() const noexcept { return first; }
+    constexpr iterator begin() const noexcept { return first; }
 
-    constexpr auto end() const noexcept { return last; }
+    constexpr iterator end() const noexcept { return last; }
 
     constexpr size_type size() const noexcept { return last - first; }
 
-    constexpr auto data() const noexcept { return first; }
+    constexpr pointer data() const noexcept { return first; }
 
-    constexpr auto operator[](size_type i) const noexcept { return first[i]; }
+    constexpr reference operator[](size_type i) const { return first[i]; }
+
+    constexpr reference front() const { return *first; }
+
+    constexpr reference back() const { return *(last - 1); }
 };
 #endif
 }  // namespace cntgs

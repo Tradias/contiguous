@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/tupleQualifier.h"
+
 #include <cstddef>
 
 namespace cntgs
@@ -21,6 +23,6 @@ class TypeErasedVector;
 template <class T, std::size_t Alignment = 0>
 struct AlignAs;
 
-template <class... Types>
+template <detail::ContiguousTupleQualifier Qualifier, class... Types>
 class ContiguousTuple;
 }  // namespace cntgs

@@ -27,10 +27,11 @@ auto copy_using_memcpy(const T* source, std::byte* target, std::size_t size)
 }
 
 template <class TargetType, class Range>
-auto copy_range_ignore_aliasing(const Range& range, std::byte* address)
+auto copy_range_ignore_aliasing(Range&& range, std::byte* address)
 {
     using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
-    if constexpr (detail::HasDataAndSize<Range>{} && detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
+    if constexpr (detail::HasDataAndSize<detail::RemoveCvrefT<Range>>{} &&
+                  detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
         const auto size = std::size(range);
         std::memcpy(address, std::data(range), size * sizeof(TargetType));
@@ -39,15 +40,24 @@ auto copy_range_ignore_aliasing(const Range& range, std::byte* address)
     else
     {
         const auto prev_address = reinterpret_cast<std::add_pointer_t<TargetType>>(address);
-        return reinterpret_cast<std::byte*>(std::uninitialized_copy(std::begin(range), std::end(range), prev_address));
+        if constexpr (!std::is_lvalue_reference_v<Range>)
+        {
+            return reinterpret_cast<std::byte*>(
+                std::uninitialized_move(std::begin(range), std::end(range), prev_address));
+        }
+        else
+        {
+            return reinterpret_cast<std::byte*>(
+                std::uninitialized_copy(std::begin(range), std::end(range), prev_address));
+        }
     }
 }
 
 template <class TargetType, class Range>
-auto copy_ignore_aliasing(const Range& range, std::byte* address, std::size_t)
+auto copy_ignore_aliasing(Range&& range, std::byte* address, std::size_t)
     -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
 {
-    return copy_range_ignore_aliasing<TargetType>(range, address);
+    return copy_range_ignore_aliasing<TargetType>(std::forward<Range>(range), address);
 }
 
 template <class TargetType, class Iterator>

@@ -68,6 +68,13 @@ class ContiguousVectorIterator
         return copy;
     }
 
+    constexpr auto operator+(ContiguousVectorIterator diff) const noexcept
+    {
+        auto copy{*this};
+        copy.index += diff.index;
+        return copy;
+    }
+
     constexpr decltype(auto) operator+=(difference_type diff) noexcept
     {
         index += diff;
@@ -78,6 +85,13 @@ class ContiguousVectorIterator
     {
         auto copy{*this};
         copy.index -= diff;
+        return copy;
+    }
+
+    constexpr auto operator-(ContiguousVectorIterator it) const noexcept
+    {
+        auto copy{*this};
+        copy.index -= it.index;
         return copy;
     }
 
