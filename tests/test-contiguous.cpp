@@ -316,6 +316,8 @@ using TwoVaryingAligned = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<c
 using OneFixedAligned = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<cntgs::AlignAs<float, 32>>>;
 using TwoFixedAligned = cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 8>>,
                                                 cntgs::AlignAs<uint32_t, 16>, cntgs::FixedSize<float>>;
+using TwoFixedAlignedAlt =
+    cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 32>>, cntgs::FixedSize<uint32_t>, uint32_t>;
 using OneFixedOneVaryingAligned = cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 16>>, uint32_t,
                                                           cntgs::VaryingSize<cntgs::AlignAs<float, 8>>>;
 
@@ -391,68 +393,100 @@ TEST_CASE("ContiguousTest: with alignment: emplace_back() and subscript operator
 {
     std::array firsts{1.f, 2.f};
     std::array seconds{1.f, 2.f};
-    SUBCASE("no special parameter")
+    // SUBCASE("no special parameter")
+    // {
+    //     TwoNonSpecialAligned vector{5};
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         vector.emplace_back('a', i);
+    //     }
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         auto&& [a, b] = vector[i];
+    //         CHECK_EQ('a', a);
+    //         CHECK_EQ(i, b);
+    //         check_alignment<8>(&b);
+    //     }
+    // }
+    // SUBCASE("one varying")
+    // {
+    //     OneVaryingAligned vector{5, 5 * firsts.size() * sizeof(float)};
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         vector.emplace_back(firsts, i);
+    //     }
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         auto&& [a, b] = vector[i];
+    //         CHECK(test::range_equal(firsts, a));
+    //         CHECK_EQ(i, b);
+    //         check_alignment<16>(a);
+    //     }
+    // }
+    // SUBCASE("two varying")
+    // {
+    //     TwoVaryingAligned vector{5, 5 * (firsts.size() * sizeof(float) + seconds.size() * sizeof(float))};
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         vector.emplace_back(i, firsts, seconds);
+    //     }
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         auto&& [a, b, c] = vector[i];
+    //         CHECK_EQ(i, a);
+    //         CHECK(test::range_equal(firsts, b));
+    //         CHECK(test::range_equal(seconds, c));
+    //         check_alignment<8>(b);
+    //         check_alignment<8>(c);
+    //     }
+    // }
+    // SUBCASE("one fixed")
+    // {
+    //     OneFixedAligned vector{5, {firsts.size()}};
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         vector.emplace_back(i, firsts);
+    //     }
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         auto&& [a, b] = vector[i];
+    //         CHECK_EQ(i, a);
+    //         CHECK(test::range_equal(firsts, b));
+    //         check_alignment<32>(b);
+    //     }
+    // }
+    // SUBCASE("two fixed")
+    // {
+    //     TwoFixedAligned vector{5, {firsts.size(), seconds.size()}};
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         vector.emplace_back(firsts, i, seconds);
+    //     }
+    //     for (uint32_t i = 0; i < 5; ++i)
+    //     {
+    //         auto&& [a, b, c] = vector[i];
+    //         CHECK(test::range_equal(firsts, a));
+    //         CHECK_EQ(i, b);
+    //         CHECK(test::range_equal(seconds, c));
+    //         check_alignment<8>(a);
+    //         check_alignment<16>(&b);
+    //     }
+    // }
+    SUBCASE("two fixed alt")
     {
-        TwoNonSpecialAligned vector{5};
+        // std::array seconds_uint{50u, 100u, 150u};
+        TwoFixedAlignedAlt vector{5, {firsts.size(), seconds.size()}};
         for (uint32_t i = 0; i < 5; ++i)
         {
-            vector.emplace_back('a', i);
-            auto&& [a, b] = vector[i];
-            CHECK_EQ('a', a);
-            CHECK_EQ(i, b);
-            check_alignment<8>(&b);
+            vector.emplace_back(firsts, seconds, i);
         }
-    }
-    SUBCASE("one varying")
-    {
-        OneVaryingAligned vector{5, 5 * firsts.size() * sizeof(float)};
         for (uint32_t i = 0; i < 5; ++i)
         {
-            vector.emplace_back(firsts, 10u);
-            auto&& [a, b] = vector[i];
-            CHECK(test::range_equal(firsts, a));
-            CHECK_EQ(10u, b);
-            check_alignment<16>(a);
-        }
-    }
-    SUBCASE("two varying")
-    {
-        TwoVaryingAligned vector{5, 5 * (firsts.size() * sizeof(float) + seconds.size() * sizeof(float))};
-        for (uint32_t i = 0; i < 5; ++i)
-        {
-            vector.emplace_back(10u, firsts, seconds);
             auto&& [a, b, c] = vector[i];
-            CHECK_EQ(10u, a);
-            CHECK(test::range_equal(firsts, b));
-            CHECK(test::range_equal(seconds, c));
-            check_alignment<8>(b);
-            check_alignment<8>(c);
-        }
-    }
-    SUBCASE("one fixed")
-    {
-        OneFixedAligned vector{5, {firsts.size()}};
-        for (uint32_t i = 0; i < 5; ++i)
-        {
-            vector.emplace_back(10u, firsts);
-            auto&& [a, b] = vector[i];
-            CHECK_EQ(10u, a);
-            CHECK(test::range_equal(firsts, b));
-            check_alignment<32>(b);
-        }
-    }
-    SUBCASE("two fixed")
-    {
-        TwoFixedAligned vector{5, {firsts.size(), seconds.size()}};
-        for (uint32_t i = 0; i < 5; ++i)
-        {
-            vector.emplace_back(firsts, 10u, seconds);
-            auto&& [a, b, c] = vector[i];
             CHECK(test::range_equal(firsts, a));
-            CHECK_EQ(10u, b);
-            CHECK(test::range_equal(seconds, c));
-            check_alignment<8>(a);
-            check_alignment<16>(&b);
+            CHECK(test::range_equal(seconds, b));
+            CHECK_EQ(i, c);
+            check_alignment<32>(a);
         }
     }
     SUBCASE("one fixed one varying")
@@ -460,10 +494,13 @@ TEST_CASE("ContiguousTest: with alignment: emplace_back() and subscript operator
         OneFixedOneVaryingAligned vector{5, 5 * seconds.size() * sizeof(float), {firsts.size()}};
         for (uint32_t i = 0; i < 5; ++i)
         {
-            vector.emplace_back(firsts, 10u, seconds);
+            vector.emplace_back(firsts, i, seconds);
+        }
+        for (uint32_t i = 0; i < 5; ++i)
+        {
             auto&& [a, b, c] = vector[i];
             CHECK(test::range_equal(firsts, a));
-            CHECK_EQ(10u, b);
+            CHECK_EQ(i, b);
             CHECK(test::range_equal(seconds, c));
             check_alignment<16>(a);
             check_alignment<8>(c);

@@ -37,7 +37,7 @@ TEST_CASE("CodeGenTest: two FixedSize aligned lookup and accumulate")
 
 TEST_CASE("CodeGenTest: two FixedSize emplace")
 {
-    check_code_gen_sizes("reference_two_fixed_emplace", "contiguous_two_fixed_emplace", 3);
+    check_code_gen_sizes("reference_two_fixed_emplace", "contiguous_two_fixed_emplace", 2);
 }
 
 TEST_CASE("CodeGenTest: two FixedSize random lookup")

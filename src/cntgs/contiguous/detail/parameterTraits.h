@@ -41,10 +41,10 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         return std::pair{result, address + detail::MAX_SIZE_T_OF<SIZE_IN_MEMORY, ALIGNMENT>};
     }
 
-    template <class Arg>
+    template <bool NeedsAlignment, class Arg>
     static constexpr auto store_contiguously(Arg&& arg, std::byte* address, std::size_t)
     {
-        address = reinterpret_cast<std::byte*>(detail::align<ALIGNMENT>(address));
+        address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         new (address) Type(std::forward<Arg>(arg));
         return address + detail::MAX_SIZE_T_OF<SIZE_IN_MEMORY, ALIGNMENT>;
     }
@@ -82,13 +82,13 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
         return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
-    template <class Range>
+    template <bool NeedsAlignment, class Range>
     static auto store_contiguously(const Range& range, std::byte* address, std::size_t)
     {
         const auto start = std::launder(reinterpret_cast<iterator_type*>(address));
         address += MEMORY_OVERHEAD;
-        address = reinterpret_cast<std::byte*>(detail::align<ALIGNMENT>(address));
-        auto new_address = detail::copy_range_ignore_aliasing(range, address);
+        address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        auto new_address = detail::copy_range_ignore_aliasing<value_type>(range, address);
         *start = std::launder(reinterpret_cast<iterator_type>(new_address));
         return new_address;
     }
@@ -126,11 +126,11 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
         return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
-    template <class RangeOrIterator>
+    template <bool NeedsAlignment, class RangeOrIterator>
     static auto store_contiguously(RangeOrIterator&& range_or_iterator, std::byte* address, std::size_t size)
     {
-        address = reinterpret_cast<std::byte*>(detail::align<ALIGNMENT>(address));
-        return detail::copy_ignore_aliasing(range_or_iterator, address, size);
+        address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        return detail::copy_ignore_aliasing<value_type>(range_or_iterator, address, size);
     }
 };
 

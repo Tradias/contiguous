@@ -51,20 +51,23 @@ class BaseElementLocator<std::index_sequence<I...>, Types...>
     template <class T>
     using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
 
-    template <std::size_t K, class Type, class NeedsAlignmentSelector, std::size_t N>
-    static constexpr auto load_one_element(std::byte* address, const std::array<SizeType, N>& fixed_sizes) noexcept
+    template <class NeedsAlignmentSelector, std::size_t N, class... Args>
+    static auto emplace_back(std::byte* last_element, const std::array<SizeType, N>& fixed_sizes, Args&&... args)
     {
-        constexpr auto NEEDS_ALIGNMENT = NeedsAlignmentSelector::template VALUE<K>;
-        return detail::ParameterTraits<Type>::template from_address<NEEDS_ALIGNMENT>(
-            address, FixedSizeGetter<Type>::template get<K>(fixed_sizes));
+        ((last_element =
+              detail::ParameterTraits<Types>::template store_contiguously<NeedsAlignmentSelector::template VALUE<I>>(
+                  std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+         ...);
+        return last_element;
     }
 
     template <class NeedsAlignmentSelector, std::size_t N>
-    static constexpr auto load_element_at_impl(std::byte* address, const std::array<SizeType, N>& fixed_sizes) noexcept
+    static auto load_element_at_impl(std::byte* address, const std::array<SizeType, N>& fixed_sizes) noexcept
     {
         typename Traits::PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =
-              load_one_element<I, Types, NeedsAlignmentSelector>(address, fixed_sizes)),
+              detail::ParameterTraits<Types>::template from_address<NeedsAlignmentSelector::template VALUE<I>>(
+                  address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
         return result;
     }
@@ -132,20 +135,13 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
         return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
     }
 
-    template <std::size_t N, std::size_t... I, class... Args>
-    auto emplace_back(const std::array<SizeType, N>& fixed_sizes, std::index_sequence<I...>, Args&&... args)
-    {
-        *this->last_element_address = last_element;
-        ++this->last_element_address;
-        ((last_element = detail::ParameterTraits<Types>::store_contiguously(
-              std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
-         ...);
-    }
-
     template <std::size_t N, class... Args>
     auto emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
     {
-        return emplace_back(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}, std::forward<Args>(args)...);
+        *this->last_element_address = last_element;
+        ++this->last_element_address;
+        last_element = Base::template emplace_back<detail::DefaultAlignmentSelector>(last_element, fixed_sizes,
+                                                                                     std::forward<Args>(args)...);
     }
 
     template <std::size_t N>
@@ -201,29 +197,20 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
 
     constexpr SizeType size(std::byte*) const noexcept { return this->element_count; }
 
-    template <std::size_t N, std::size_t... I, class... Args>
-    auto emplace_back(const std::array<SizeType, N>& fixed_sizes, std::index_sequence<I...>, Args&&... args)
-    {
-        auto last_element = this->at({}, element_count);
-        ((last_element = detail::ParameterTraits<Types>::store_contiguously(
-              std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
-         ...);
-        ++this->element_count;
-    }
-
     template <std::size_t N, class... Args>
     auto emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
     {
-        return emplace_back(fixed_sizes, std::make_index_sequence<TYPE_COUNT>{}, std::forward<Args>(args)...);
+        auto last_element = this->at(element_count);
+        ++this->element_count;
+        Base::template emplace_back<detail::AllFixedSizeAlignmentSelector>(last_element, fixed_sizes,
+                                                                           std::forward<Args>(args)...);
     }
 
     template <std::size_t N>
-    constexpr auto load_element_at(SizeType i, std::byte*, const std::array<SizeType, N>& fixed_sizes) const noexcept
+    auto load_element_at(SizeType i, std::byte*, const std::array<SizeType, N>& fixed_sizes) const noexcept
     {
         return Base::template load_element_at_impl<detail::AllFixedSizeAlignmentSelector>(this->at(i), fixed_sizes);
     }
-
-    constexpr auto at(std::byte*, SizeType index) const noexcept { return start + this->stride * index; }
 
     constexpr auto at(SizeType index) const noexcept { return start + this->stride * index; }
 };

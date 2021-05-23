@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/iterator.h"
 #include "cntgs/contiguous/detail/range.h"
 #include "cntgs/contiguous/span.h"
@@ -13,6 +14,11 @@
 
 namespace cntgs::detail
 {
+template <class T, class U>
+static constexpr auto MEMCPY_COMPATIBLE =
+    sizeof(T) == sizeof(U) && std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<
+                                  U>&& std::is_floating_point_v<T> == std::is_floating_point_v<U>;
+
 template <class T>
 auto copy_using_memcpy(const T* source, std::byte* target, std::size_t size)
 {
@@ -20,46 +26,46 @@ auto copy_using_memcpy(const T* source, std::byte* target, std::size_t size)
     return target + size * sizeof(T);
 }
 
-template <class Range>
+template <class TargetType, class Range>
 auto copy_range_ignore_aliasing(const Range& range, std::byte* address)
 {
     using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
-    if constexpr (std::is_trivially_copyable_v<RangeValueType> && detail::HasDataAndSize<Range>{})
+    if constexpr (detail::HasDataAndSize<Range>{} && detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
         const auto size = std::size(range);
-        std::memcpy(address, std::data(range), size * sizeof(RangeValueType));
-        return address + size * sizeof(RangeValueType);
+        std::memcpy(address, std::data(range), size * sizeof(TargetType));
+        return address + size * sizeof(TargetType);
     }
     else
     {
-        const auto prev_address = reinterpret_cast<RangeValueType*>(address);
+        const auto prev_address = reinterpret_cast<std::add_pointer_t<TargetType>>(address);
         return reinterpret_cast<std::byte*>(std::uninitialized_copy(std::begin(range), std::end(range), prev_address));
     }
 }
 
-template <class Range>
+template <class TargetType, class Range>
 auto copy_ignore_aliasing(const Range& range, std::byte* address, std::size_t)
     -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
 {
-    return copy_range_ignore_aliasing(range, address);
+    return copy_range_ignore_aliasing<TargetType>(range, address);
 }
 
-template <class Iterator>
+template <class TargetType, class Iterator>
 auto copy_ignore_aliasing(const Iterator& iterator, std::byte* address, std::size_t size)
     -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
-    if constexpr (std::is_pointer_v<Iterator> && std::is_trivially_copyable_v<IteratorValueType>)
+    if constexpr (std::is_pointer_v<Iterator> && detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
         return detail::copy_using_memcpy(iterator, address, size);
     }
-    else if constexpr (detail::ContiguousIterator<Iterator> && std::is_trivially_copyable_v<IteratorValueType>)
+    else if constexpr (detail::ContiguousIterator<Iterator> && detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
         return detail::copy_using_memcpy(iterator.operator->(), address, size);
     }
     else
     {
-        const auto prev_address = reinterpret_cast<IteratorValueType*>(address);
+        const auto prev_address = reinterpret_cast<std::add_pointer_t<TargetType>>(address);
         return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, prev_address));
     }
 }
