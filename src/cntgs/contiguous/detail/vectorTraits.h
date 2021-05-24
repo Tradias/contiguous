@@ -25,7 +25,7 @@ template <class T, class... Types>
 struct FixedSizeGetterImplementation<cntgs::FixedSize<T>, detail::TypeList<Types...>>
 {
     static constexpr auto FIXED_SIZE_INDICES = detail::calculate_fixed_size_indices(
-        cntgs::detail::TypeList<Types...>{}, std::make_index_sequence<sizeof...(Types)>{});
+        detail::TypeList<Types...>{}, std::make_index_sequence<sizeof...(Types)>{});
 
     template <std::size_t I, std::size_t N>
     static constexpr auto get(const std::array<std::size_t, N>& fixed_sizes) noexcept
@@ -77,7 +77,7 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
 #ifdef CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER
     static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER;
 #else
-    static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 32;
+    static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 15;
 #endif
 
     static_assert(MAX_FIXED_SIZE_VECTOR_PARAMETER > CONTIGUOUS_FIXED_SIZE_COUNT,

@@ -5,7 +5,6 @@
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
-#include <algorithm>
 #include <array>
 #include <type_traits>
 
@@ -43,9 +42,8 @@ class BaseElementLocator<std::index_sequence<I...>, Types...>
     template <class NeedsAlignmentSelector, std::size_t N, class... Args>
     static auto emplace_back(std::byte* last_element, const std::array<SizeType, N>& fixed_sizes, Args&&... args)
     {
-        ((last_element =
-              detail::ParameterTraits<Types>::template store_contiguously<NeedsAlignmentSelector::template VALUE<I>>(
-                  std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+        ((last_element = detail::ParameterTraits<Types>::template store<NeedsAlignmentSelector::template VALUE<I>>(
+              std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
         return last_element;
     }
@@ -55,7 +53,7 @@ class BaseElementLocator<std::index_sequence<I...>, Types...>
     {
         typename Traits::PointerReturnType result;
         ((std::tie(cntgs::get<I>(result), address) =
-              detail::ParameterTraits<Types>::template from_address<NeedsAlignmentSelector::template VALUE<I>>(
+              detail::ParameterTraits<Types>::template load<NeedsAlignmentSelector::template VALUE<I>>(
                   address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
         return result;
@@ -210,14 +208,9 @@ using ElementLocatorT =
                            detail::ContiguousVectorTraits<Types...>::CONTIGUOUS_COUNT,
                        detail::AllFixedSizeElementLocator<Types...>, detail::ElementLocator<Types...>>;
 
-static constexpr auto MAX_ELEMENT_LOCATOR_SIZE =
-    detail::max_size_t_of<sizeof(detail::ElementLocator<>), sizeof(detail::AllFixedSizeElementLocator<>)>();
-
-static constexpr auto MAX_ELEMENT_LOCATOR_ALIGNMENT =
-    detail::max_size_t_of<alignof(detail::ElementLocator<>), alignof(detail::AllFixedSizeElementLocator<>)>();
-
-using TypeErasedElementLocator =
-    std::aligned_storage_t<detail::MAX_ELEMENT_LOCATOR_SIZE, detail::MAX_ELEMENT_LOCATOR_ALIGNMENT>;
+using TypeErasedElementLocator = std::aligned_storage_t<
+    detail::MAX_SIZE_T_OF<sizeof(detail::ElementLocator<>), sizeof(detail::AllFixedSizeElementLocator<>)>,
+    detail::MAX_SIZE_T_OF<alignof(detail::ElementLocator<>), alignof(detail::AllFixedSizeElementLocator<>)>>;
 
 template <class T>
 auto type_erase_element_locator(T&& locator)

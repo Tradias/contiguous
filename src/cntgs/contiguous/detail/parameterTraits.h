@@ -35,7 +35,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
 
     template <bool NeedsAlignment>
-    static auto from_address(std::byte* address, std::size_t) noexcept
+    static auto load(std::byte* address, std::size_t) noexcept
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         auto result = std::launder(reinterpret_cast<PointerReturnType>(address));
@@ -43,7 +43,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     }
 
     template <bool NeedsAlignment, class Arg>
-    static constexpr auto store_contiguously(Arg&& arg, std::byte* address, std::size_t)
+    static constexpr auto store(Arg&& arg, std::byte* address, std::size_t)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         new (address) Type(std::forward<Arg>(arg));
@@ -96,7 +96,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
     static constexpr auto MEMORY_OVERHEAD = sizeof(iterator_type);
 
     template <bool NeedsAlignment>
-    static auto from_address(std::byte* address, std::size_t) noexcept
+    static auto load(std::byte* address, std::size_t) noexcept
     {
         const auto last = *reinterpret_cast<iterator_type*>(address);
         address += MEMORY_OVERHEAD;
@@ -105,7 +105,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
     }
 
     template <bool NeedsAlignment, class Range>
-    static auto store_contiguously(Range&& range, std::byte* address, std::size_t)
+    static auto store(Range&& range, std::byte* address, std::size_t)
     {
         const auto start = std::launder(reinterpret_cast<iterator_type*>(address));
         address += MEMORY_OVERHEAD;
@@ -161,7 +161,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
 
     template <bool NeedsAlignment>
-    static auto from_address(std::byte* address, std::size_t size) noexcept
+    static auto load(std::byte* address, std::size_t size) noexcept
     {
         const auto first =
             std::launder(reinterpret_cast<iterator_type>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
@@ -170,7 +170,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
     }
 
     template <bool NeedsAlignment, class RangeOrIterator>
-    static auto store_contiguously(RangeOrIterator&& range_or_iterator, std::byte* address, std::size_t size)
+    static auto store(RangeOrIterator&& range_or_iterator, std::byte* address, std::size_t size)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         return detail::copy_ignore_aliasing<value_type>(std::forward<RangeOrIterator>(range_or_iterator), address,
