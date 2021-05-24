@@ -213,11 +213,17 @@ using ElementLocatorT =
 static constexpr auto MAX_ELEMENT_LOCATOR_SIZE =
     detail::max_size_t_of<sizeof(detail::ElementLocator<>), sizeof(detail::AllFixedSizeElementLocator<>)>();
 
+static constexpr auto MAX_ELEMENT_LOCATOR_ALIGNMENT =
+    detail::max_size_t_of<alignof(detail::ElementLocator<>), alignof(detail::AllFixedSizeElementLocator<>)>();
+
+using TypeErasedElementLocator =
+    std::aligned_storage_t<detail::MAX_ELEMENT_LOCATOR_SIZE, detail::MAX_ELEMENT_LOCATOR_ALIGNMENT>;
+
 template <class T>
 auto type_erase_element_locator(T&& locator)
 {
-    std::array<std::byte, detail::MAX_ELEMENT_LOCATOR_SIZE> result;
-    new (result.data()) T(std::forward<T>(locator));
+    TypeErasedElementLocator result;
+    new (&result) T(std::forward<T>(locator));
     return result;
 }
 }  // namespace cntgs::detail

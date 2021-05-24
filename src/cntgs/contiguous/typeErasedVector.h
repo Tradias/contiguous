@@ -16,6 +16,6 @@ class TypeErasedVector
     SizeType max_element_count;
     Traits::StorageType memory;
     std::array<SizeType, Traits::MAX_FIXED_SIZE_VECTOR_PARAMETER> fixed_sizes;
-    std::array<std::byte, detail::MAX_ELEMENT_LOCATOR_SIZE> locator;
+    detail::TypeErasedElementLocator locator;
 };
 }  // namespace cntgs
