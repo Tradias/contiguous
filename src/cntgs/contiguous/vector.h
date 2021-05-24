@@ -130,13 +130,7 @@ class ContiguousVector
     ContiguousVector& operator=(const ContiguousVector&) = default;
     ContiguousVector& operator=(ContiguousVector&&) = default;
 
-    ~ContiguousVector()
-    {
-        if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
-        {
-            destruct();
-        }
-    }
+    ~ContiguousVector() { destruct(); }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -238,32 +232,20 @@ class ContiguousVector
     template <std::size_t... I>
     void destruct(std::index_sequence<I...>)
     {
-        for ([[maybe_unused]] auto&& element : *this)
+        for (auto&& element : *this)
         {
-            (
-                [&] {
-                    using ValueType = typename detail::ParameterTraits<Types>::value_type;
-                    if constexpr (!std::is_trivially_destructible_v<ValueType>)
-                    {
-                        if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
-                        {
-                            std::destroy(cntgs::get<I>(element).begin(), cntgs::get<I>(element).end());
-                        }
-                        else
-                        {
-                            cntgs::get<I>(element).~ValueType();
-                        }
-                    }
-                }(),
-                ...);
+            (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...);
         }
     }
 
     void destruct()
     {
-        if (memory && memory.is_owned)
+        if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            destruct(std::make_index_sequence<TYPE_COUNT>{});
+            if (memory && memory.is_owned)
+            {
+                destruct(std::make_index_sequence<TYPE_COUNT>{});
+            }
         }
     }
 };

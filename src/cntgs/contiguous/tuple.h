@@ -80,56 +80,20 @@ class ContiguousTuple
     template <detail::ContiguousTupleQualifier Qualifier, class... T, std::size_t... I>
     constexpr void swap(ContiguousTuple<Qualifier, T...>& other, std::index_sequence<I...>)
     {
-        (
-            [&]() mutable {
-                if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
-                {
-                    std::swap_ranges(std::begin(std::get<I>(other.tuple)), std::end(std::get<I>(other.tuple)),
-                                     std::begin(std::get<I>(this->tuple)));
-                }
-                else
-                {
-                    std::swap(std::get<I>(this->tuple), std::get<I>(other.tuple));
-                }
-            }(),
-            ...);
+        (detail::ParameterTraits<Types>::swap(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
     }
 
   private:
     template <detail::ContiguousTupleQualifier Qualifier, class... T, std::size_t... I>
     constexpr void assign(const ContiguousTuple<Qualifier, T...>& other, std::index_sequence<I...>)
     {
-        (
-            [&]() mutable {
-                if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
-                {
-                    std::copy(std::begin(std::get<I>(other.tuple)), std::end(std::get<I>(other.tuple)),
-                              std::begin(std::get<I>(this->tuple)));
-                }
-                else
-                {
-                    std::get<I>(this->tuple) = std::get<I>(other.tuple);
-                }
-            }(),
-            ...);
+        (detail::ParameterTraits<Types>::copy(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
     }
 
     template <detail::ContiguousTupleQualifier Qualifier, class... T, std::size_t... I>
     constexpr void assign(ContiguousTuple<Qualifier, T...>&& other, std::index_sequence<I...>)
     {
-        (
-            [&]() mutable {
-                if constexpr (detail::ParameterTraits<Types>::IS_CONTIGUOUS)
-                {
-                    std::move(std::begin(std::get<I>(other.tuple)), std::end(std::get<I>(other.tuple)),
-                              std::begin(std::get<I>(this->tuple)));
-                }
-                else
-                {
-                    std::get<I>(this->tuple) = std::move(std::get<I>(other.tuple));
-                }
-            }(),
-            ...);
+        (detail::ParameterTraits<Types>::move(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
     }
 };
 
