@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/tuple.h"
+#include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
 
 #include <cstddef>
@@ -112,25 +113,25 @@ constexpr void swap(cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::NON
 }
 
 template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>
-constexpr decltype(auto) get(cntgs::ContiguousTuple<Qualifier, Types...>& tuple) noexcept
+[[nodiscard]] constexpr decltype(auto) get(cntgs::ContiguousTuple<Qualifier, Types...>& tuple) noexcept
 {
     return std::get<I>(tuple.tuple);
 }
 
 template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>
-constexpr decltype(auto) get(const cntgs::ContiguousTuple<Qualifier, Types...>& tuple) noexcept
+[[nodiscard]] constexpr decltype(auto) get(const cntgs::ContiguousTuple<Qualifier, Types...>& tuple) noexcept
 {
     return std::get<I>(tuple.tuple);
 }
 
 template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>
-constexpr decltype(auto) get(cntgs::ContiguousTuple<Qualifier, Types...>&& tuple) noexcept
+[[nodiscard]] constexpr decltype(auto) get(cntgs::ContiguousTuple<Qualifier, Types...>&& tuple) noexcept
 {
     return std::get<I>(std::move(tuple.tuple));
 }
 
 template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>
-constexpr decltype(auto) get(const cntgs::ContiguousTuple<Qualifier, Types...>&& tuple) noexcept
+[[nodiscard]] constexpr decltype(auto) get(const cntgs::ContiguousTuple<Qualifier, Types...>&& tuple) noexcept
 {
     return std::get<I>(std::move(tuple.tuple));
 }

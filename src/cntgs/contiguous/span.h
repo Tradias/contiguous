@@ -40,19 +40,19 @@ struct Span
 
     constexpr Span(iterator first, size_type size) noexcept : first(first), last(first + size) {}
 
-    constexpr iterator begin() const noexcept { return first; }
+    [[nodiscard]] constexpr iterator begin() const noexcept { return first; }
 
-    constexpr iterator end() const noexcept { return last; }
+    [[nodiscard]] constexpr iterator end() const noexcept { return last; }
 
-    constexpr size_type size() const noexcept { return last - first; }
+    [[nodiscard]] constexpr size_type size() const noexcept { return last - first; }
 
-    constexpr pointer data() const noexcept { return first; }
+    [[nodiscard]] constexpr pointer data() const noexcept { return first; }
 
-    constexpr reference operator[](size_type i) const { return first[i]; }
+    [[nodiscard]] constexpr reference operator[](size_type i) const { return first[i]; }
 
-    constexpr reference front() const { return *first; }
+    [[nodiscard]] constexpr reference front() const { return *first; }
 
-    constexpr reference back() const { return *(last - 1); }
+    [[nodiscard]] constexpr reference back() const { return *(last - 1); }
 };
 #endif
 }  // namespace cntgs

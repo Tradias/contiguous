@@ -29,97 +29,109 @@ class ContiguousVectorIterator
 
     constexpr ContiguousVectorIterator(Vector& vector) noexcept : ContiguousVectorIterator(vector, {}) {}
 
-    [[nodiscard]] auto operator*() const noexcept { return (*vector)[index]; }
+    [[nodiscard]] constexpr reference operator*() const noexcept { return (*vector)[index]; }
 
-    [[nodiscard]] auto operator*() noexcept { return (*vector)[index]; }
+    [[nodiscard]] constexpr reference operator*() noexcept { return (*vector)[index]; }
 
-    [[nodiscard]] constexpr auto operator->() const noexcept { return detail::ArrowProxy<reference>{*(*this)}; }
+    [[nodiscard]] constexpr detail::ArrowProxy<reference> operator->() const noexcept { return {*(*this)}; }
 
-    constexpr decltype(auto) operator++() noexcept
+    constexpr ContiguousVectorIterator& operator++() noexcept
     {
         ++index;
         return *this;
     }
 
-    constexpr auto operator++(int) noexcept
+    constexpr ContiguousVectorIterator operator++(int) noexcept
     {
         auto copy{*this};
         ++(*this);
         return copy;
     }
 
-    constexpr decltype(auto) operator--() noexcept
+    constexpr ContiguousVectorIterator& operator--() noexcept
     {
         --index;
         return *this;
     }
 
-    constexpr auto operator--(int) noexcept
+    constexpr ContiguousVectorIterator operator--(int) noexcept
     {
         auto copy{*this};
         --(*this);
         return copy;
     }
 
-    constexpr auto operator+(difference_type diff) const noexcept
+    [[nodiscard]] constexpr ContiguousVectorIterator operator+(difference_type diff) const noexcept
     {
         auto copy{*this};
         copy.index += diff;
         return copy;
     }
 
-    constexpr auto operator+(ContiguousVectorIterator diff) const noexcept
+    [[nodiscard]] constexpr ContiguousVectorIterator operator+(ContiguousVectorIterator diff) const noexcept
     {
         auto copy{*this};
         copy.index += diff.index;
         return copy;
     }
 
-    constexpr decltype(auto) operator+=(difference_type diff) noexcept
+    constexpr ContiguousVectorIterator& operator+=(difference_type diff) noexcept
     {
         index += diff;
         return *this;
     }
 
-    constexpr auto operator-(difference_type diff) const noexcept
+    [[nodiscard]] constexpr ContiguousVectorIterator operator-(difference_type diff) const noexcept
     {
         auto copy{*this};
         copy.index -= diff;
         return copy;
     }
 
-    constexpr auto operator-(ContiguousVectorIterator it) const noexcept
+    [[nodiscard]] constexpr ContiguousVectorIterator operator-(ContiguousVectorIterator it) const noexcept
     {
         auto copy{*this};
         copy.index -= it.index;
         return copy;
     }
 
-    constexpr decltype(auto) operator-=(difference_type diff) noexcept
+    constexpr ContiguousVectorIterator& operator-=(difference_type diff) noexcept
     {
         index -= diff;
         return *this;
     }
 
-    auto operator[](difference_type diff) const noexcept { return *(*this + diff); }
+    [[nodiscard]] reference operator[](difference_type diff) const noexcept { return *(*this + diff); }
 
-    constexpr bool operator==(const ContiguousVectorIterator& other) const noexcept
+    [[nodiscard]] constexpr bool operator==(const ContiguousVectorIterator& other) const noexcept
     {
         return index == other.index && vector == other.vector;
     }
 
-    constexpr bool operator!=(const ContiguousVectorIterator& other) const noexcept { return !(*this == other); }
+    [[nodiscard]] constexpr bool operator!=(const ContiguousVectorIterator& other) const noexcept
+    {
+        return !(*this == other);
+    }
 
-    constexpr bool operator<(const ContiguousVectorIterator& other) const noexcept
+    [[nodiscard]] constexpr bool operator<(const ContiguousVectorIterator& other) const noexcept
     {
         return index < other.index && vector == other.vector;
     }
 
-    constexpr bool operator>(const ContiguousVectorIterator& other) const noexcept { return other < *this; }
+    [[nodiscard]] constexpr bool operator>(const ContiguousVectorIterator& other) const noexcept
+    {
+        return other < *this;
+    }
 
-    constexpr bool operator<=(const ContiguousVectorIterator& other) const noexcept { return !(*this > other); }
+    [[nodiscard]] constexpr bool operator<=(const ContiguousVectorIterator& other) const noexcept
+    {
+        return !(*this > other);
+    }
 
-    constexpr bool operator>=(const ContiguousVectorIterator& other) const noexcept { return !(*this < other); }
+    [[nodiscard]] constexpr bool operator>=(const ContiguousVectorIterator& other) const noexcept
+    {
+        return !(*this < other);
+    }
 
   private:
     Vector* vector{};
