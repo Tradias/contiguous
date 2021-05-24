@@ -11,20 +11,6 @@
 
 namespace cntgs::detail
 {
-template <class T>
-static constexpr auto aligned_size_in_memory(std::size_t fixed_size) noexcept
-{
-    using Trait = detail::ParameterTraits<T>;
-    if constexpr (Trait::ALIGNMENT == 0)
-    {
-        return fixed_size * Trait::VALUE_BYTES + Trait::SIZE_IN_MEMORY;
-    }
-    else
-    {
-        return std::max(fixed_size * Trait::VALUE_BYTES + Trait::SIZE_IN_MEMORY, Trait::ALIGNMENT);
-    }
-}
-
 template <std::size_t Alignment>
 static constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
 {
@@ -80,9 +66,9 @@ class BaseElementLocator<std::index_sequence<I...>, Types...>
     static constexpr auto calculate_element_size(const std::array<SizeType, N>& fixed_sizes) noexcept
     {
         SizeType result{};
-        ((result += detail::ParameterTraits<Types>::MEMORY_OVERHEAD +
-                    alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result) +
-                    aligned_size_in_memory<Types>(FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+        ((result +=
+          detail::ParameterTraits<Types>::aligned_size_in_memory(FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
+          alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
          ...);
         return result + alignment_offset<detail::ParameterTraits<TypeAt<0>>::ALIGNMENT>(result);
     }

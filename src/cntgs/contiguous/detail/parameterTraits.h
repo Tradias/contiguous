@@ -29,8 +29,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 
     static constexpr bool IS_CONTIGUOUS = false;
     static constexpr bool IS_FIXED_SIZE = false;
-    static constexpr auto SIZE_IN_MEMORY = sizeof(value_type);
-    static constexpr auto VALUE_BYTES = SIZE_IN_MEMORY;
+    static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
 
@@ -39,7 +38,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         auto result = std::launder(reinterpret_cast<PointerReturnType>(address));
-        return std::pair{result, address + detail::MAX_SIZE_T_OF<SIZE_IN_MEMORY, ALIGNMENT>};
+        return std::pair{result, address + detail::MAX_SIZE_T_OF<VALUE_BYTES, ALIGNMENT>};
     }
 
     template <bool NeedsAlignment, class Arg>
@@ -47,8 +46,10 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         new (address) Type(std::forward<Arg>(arg));
-        return address + detail::MAX_SIZE_T_OF<SIZE_IN_MEMORY, ALIGNMENT>;
+        return address + detail::MAX_SIZE_T_OF<VALUE_BYTES, ALIGNMENT>;
     }
+
+    static constexpr auto aligned_size_in_memory(std::size_t) noexcept { return std::max(VALUE_BYTES, ALIGNMENT); }
 
     template <class Source, class Target>
     static constexpr void copy(const Source& source, Target& target)
@@ -89,7 +90,6 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
 
     static constexpr bool IS_CONTIGUOUS = true;
     static constexpr bool IS_FIXED_SIZE = false;
-    static constexpr auto SIZE_IN_MEMORY = std::size_t{};
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(iterator_type);
@@ -113,6 +113,8 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
         *start = std::launder(reinterpret_cast<iterator_type>(new_address));
         return new_address;
     }
+
+    static constexpr auto aligned_size_in_memory(std::size_t) noexcept { return MEMORY_OVERHEAD + ALIGNMENT; }
 
     template <class Source, class Target>
     static constexpr void copy(const Source& source, Target& target)
@@ -153,7 +155,6 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
 
     static constexpr bool IS_CONTIGUOUS = true;
     static constexpr bool IS_FIXED_SIZE = true;
-    static constexpr auto SIZE_IN_MEMORY = std::size_t{};
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
@@ -173,6 +174,11 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         return detail::copy_ignore_aliasing<value_type>(std::forward<RangeOrIterator>(range_or_iterator), address,
                                                         size);
+    }
+
+    static constexpr auto aligned_size_in_memory(std::size_t fixed_size) noexcept
+    {
+        return std::max(fixed_size * VALUE_BYTES, ALIGNMENT);
     }
 
     template <class Source, class Target>

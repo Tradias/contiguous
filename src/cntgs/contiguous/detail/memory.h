@@ -29,7 +29,7 @@ template <class TargetType, class Range>
 auto copy_range_ignore_aliasing(Range&& range, std::byte* address)
 {
     using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
-    if constexpr (detail::HasDataAndSize<detail::RemoveCvrefT<Range>>{} &&
+    if constexpr (detail::HasDataAndSize<std::decay_t<Range>>{} &&
                   detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
         const auto size = std::size(range);

@@ -29,10 +29,6 @@ class ContiguousVector
     using ElementLocator = detail::ElementLocatorT<Types...>;
     using StorageType = typename Traits::StorageType;
 
-    template <class T>
-    using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
-
-    static constexpr auto TYPE_COUNT = sizeof...(Types);
     static constexpr bool IS_MIXED = Traits::IS_MIXED;
     static constexpr bool IS_ALL_FIXED_SIZE = Traits::IS_ALL_FIXED_SIZE;
     static constexpr bool IS_ALL_VARYING_SIZE = Traits::IS_ALL_VARYING_SIZE;
@@ -244,7 +240,7 @@ class ContiguousVector
         {
             if (memory && memory.is_owned)
             {
-                destruct(std::make_index_sequence<TYPE_COUNT>{});
+                destruct(std::make_index_sequence<sizeof...(Types)>{});
             }
         }
     }
