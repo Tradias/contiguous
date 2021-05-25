@@ -63,7 +63,7 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
     static constexpr auto CONTIGUOUS_COUNT = (SizeType{} + ... + detail::ParameterTraits<Types>::IS_CONTIGUOUS);
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
         (SizeType{} + ... + detail::ParameterTraits<Types>::IS_FIXED_SIZE);
-    static constexpr auto MAX_ALIGNMENT = detail::max_size_t_of<detail::ParameterTraits<Types>::ALIGNMENT...>();
+    static constexpr auto MAX_ALIGNMENT = detail::MAX_SIZE_T_OF<detail::ParameterTraits<Types>::ALIGNMENT...>;
 
     static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE =
         (std::is_trivially_destructible_v<typename detail::ParameterTraits<Types>::value_type> && ...);

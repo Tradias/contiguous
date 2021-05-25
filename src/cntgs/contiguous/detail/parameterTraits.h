@@ -120,19 +120,22 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
     template <class Source, class Target>
     static void copy(const Source& source, Target& target)
     {
-        std::copy(std::begin(source), std::end(source), std::begin(target));
+        const auto size = std::min(std::size(source), std::size(target));
+        std::copy_n(std::begin(source), size, std::begin(target));
     }
 
     template <class Source, class Target>
     static void move(Source&& source, Target& target)
     {
-        std::move(std::begin(source), std::end(source), std::begin(target));
+        const auto size = std::min(std::size(source), std::size(target));
+        std::copy_n(std::make_move_iterator(std::begin(source)), size, std::begin(target));
     }
 
     template <class Source, class Target>
     static void swap(Source& lhs, Target& rhs)
     {
-        std::swap_ranges(std::begin(lhs), std::end(lhs), std::begin(rhs));
+        const auto size = std::min(std::size(lhs), std::size(rhs));
+        std::swap_ranges(std::begin(lhs), std::begin(lhs) + size, std::begin(rhs));
     }
 
     static void destroy(ReferenceReturnType value) { std::destroy(std::begin(value), std::end(value)); }
