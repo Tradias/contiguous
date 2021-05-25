@@ -77,20 +77,12 @@ add_executable(cntgs-benchmark)
 
 target_sources(cntgs-benchmark PRIVATE benchmark.cpp)
 
-target_compile_options(
-    cntgs-benchmark
-    PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4
-            /GR-
-            /EHsc->
-            $<$<CXX_COMPILER_ID:GNU>:-Wall
-            -Wextra
-            -pedantic-errors
-            -fno-exceptions
-            -fno-rtti>)
+target_compile_options(cntgs-benchmark PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra
+                                               -pedantic-errors>)
 
 target_link_libraries(cntgs-benchmark PRIVATE cntgs cntgs-test-utils)
 
 target_include_directories(cntgs-benchmark PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                                   $<INSTALL_INTERFACE:include>)
 
-# target_compile_features(cntgs-benchmark PRIVATE cxx_std_20)
+target_compile_features(cntgs-benchmark PRIVATE cxx_std_20)

@@ -18,7 +18,25 @@ static std::random_device rd;
 static std::mt19937 gen(rd());
 static std::uniform_real_distribution<float> float_dist(0.f, FLOAT_MAX);
 
-auto work(float e) { return (e + std::sqrt(e)) * std::sqrt(e); }
+auto work(float e)
+{
+    auto v = std::abs(e) + std::sqrt(e);
+    ankerl::nanobench::doNotOptimizeAway(v);
+}
+
+template <class Target>
+void fill_vector(Target& target, const std::vector<std::vector<float>>& source)
+{
+    target.reserve(source.size());
+    for (size_t i = 0; i < source.size(); i++)
+    {
+        target.emplace_back();
+    }
+    for (size_t i = 0; i < source.size(); i++)
+    {
+        target[i].assign(source[i].begin(), source[i].end());
+    }
+}
 
 template <std::size_t N>
 void array_vs_cntgs(std::size_t elements, std::size_t fixed_size)
@@ -34,6 +52,9 @@ void array_vs_cntgs(std::size_t elements, std::size_t fixed_size)
     {
         std::copy(input[i].begin(), input[i].end(), array_vector[i].begin());
     }
+    std::pmr::monotonic_buffer_resource resource{elements * 16 * sizeof(float) * sizeof(std::pmr::vector<float>)};
+    std::pmr::vector<std::pmr::vector<float>> vector_vector{&resource};
+    fill_vector(vector_vector, input);
     FixedSizeVector fixed_size_vector{input.size(), {fixed_size}};
     for (size_t i = 0; i < input.size(); i++)
     {
@@ -52,7 +73,17 @@ void array_vs_cntgs(std::size_t elements, std::size_t fixed_size)
             {
                 for (size_t i = 0; i < fixed_size; i++)
                 {
-                    ankerl::nanobench::doNotOptimizeAway(work(elem[i]));
+                    work(elem[i]);
+                }
+            }
+        });
+    ankerl::nanobench::Bench().minEpochIterations(5).run(
+        format("std::vector<std::vector> elements: {} fixed_size: {}", elements, fixed_size), [&] {
+            for (auto&& elem : vector_vector)
+            {
+                for (auto&& e : elem)
+                {
+                    work(e);
                 }
             }
         });
@@ -62,7 +93,7 @@ void array_vs_cntgs(std::size_t elements, std::size_t fixed_size)
             {
                 for (auto&& e : elem)
                 {
-                    ankerl::nanobench::doNotOptimizeAway(work(e));
+                    work(e);
                 }
             }
         });
@@ -72,7 +103,7 @@ void array_vs_cntgs(std::size_t elements, std::size_t fixed_size)
             {
                 for (auto&& e : elem)
                 {
-                    ankerl::nanobench::doNotOptimizeAway(work(e));
+                    work(e);
                 }
             }
         });
@@ -93,15 +124,7 @@ void vector_vs_cntgs(std::size_t elements, uint32_t variance)
     std::pmr::monotonic_buffer_resource resource{total_size * sizeof(float) +
                                                  elements * 16 * sizeof(std::pmr::vector<float>)};
     std::pmr::vector<std::pmr::vector<float>> vector_vector{&resource};
-    vector_vector.reserve(input.size());
-    for (size_t i = 0; i < input.size(); i++)
-    {
-        vector_vector.emplace_back();
-    }
-    for (size_t i = 0; i < input.size(); i++)
-    {
-        vector_vector[i].assign(input[i].begin(), input[i].end());
-    }
+    fill_vector(vector_vector, input);
     VaryingSizeVector varying_size_vector{input.size(), total_size * sizeof(float)};
     for (size_t i = 0; i < input.size(); i++)
     {
@@ -115,7 +138,7 @@ void vector_vs_cntgs(std::size_t elements, uint32_t variance)
                                        {
                                            for (auto&& e : elem)
                                            {
-                                               ankerl::nanobench::doNotOptimizeAway(work(e));
+                                               work(e);
                                            }
                                        }
                                    });
@@ -124,7 +147,7 @@ void vector_vs_cntgs(std::size_t elements, uint32_t variance)
         {
             for (auto&& e : elem)
             {
-                ankerl::nanobench::doNotOptimizeAway(work(e));
+                work(e);
             }
         }
     });
@@ -133,11 +156,11 @@ void vector_vs_cntgs(std::size_t elements, uint32_t variance)
 int main()
 {
     auto random = static_cast<uint32_t>(float_dist(gen) / FLOAT_MAX * 3);
-    array_vs_cntgs<15>(500000, random + 15);
-    array_vs_cntgs<30>(500000, random + 15);
-    array_vs_cntgs<45>(500000, random + 15);
-    array_vs_cntgs<100>(50000, random + 100);
-    array_vs_cntgs<200>(50000, random + 100);
+    array_vs_cntgs<15>(500000, random + 12);
+    array_vs_cntgs<30>(500000, random + 12);
+    array_vs_cntgs<45>(500000, random + 12);
+    array_vs_cntgs<100>(50000, random + 97);
+    array_vs_cntgs<200>(50000, random + 97);
     vector_vs_cntgs(500000, random + 10);
     vector_vs_cntgs(100000, random + 100);
     vector_vs_cntgs(50000, random + 1000);
