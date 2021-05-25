@@ -71,3 +71,26 @@ set_source_files_properties(
     test-code-gen.cpp
     PROPERTIES COMPILE_OPTIONS
                "$<$<CXX_COMPILER_ID:MSVC>:/EHs>;$<$<CXX_COMPILER_ID:MSVC>:/GR>;$<$<CXX_COMPILER_ID:GNU>:-fexceptions>")
+
+# benchmark
+add_executable(cntgs-benchmark)
+
+target_sources(cntgs-benchmark PRIVATE benchmark.cpp)
+
+target_compile_options(
+    cntgs-benchmark
+    PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4
+            /GR-
+            /EHsc->
+            $<$<CXX_COMPILER_ID:GNU>:-Wall
+            -Wextra
+            -pedantic-errors
+            -fno-exceptions
+            -fno-rtti>)
+
+target_link_libraries(cntgs-benchmark PRIVATE cntgs cntgs-test-utils)
+
+target_include_directories(cntgs-benchmark PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                                                  $<INSTALL_INTERFACE:include>)
+
+# target_compile_features(cntgs-benchmark PRIVATE cxx_std_20)
