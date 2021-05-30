@@ -93,25 +93,27 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
     static constexpr bool IS_FIXED_SIZE = false;
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
-    static constexpr auto MEMORY_OVERHEAD = sizeof(iterator_type);
+    static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
     {
-        const auto last = *reinterpret_cast<iterator_type*>(address);
+        const auto size = *reinterpret_cast<std::size_t*>(address);
         address += MEMORY_OVERHEAD;
-        const auto first = reinterpret_cast<iterator_type>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        const auto first_byte = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        const auto first = std::launder(reinterpret_cast<iterator_type>(first_byte));
+        const auto last = std::launder(reinterpret_cast<iterator_type>(first_byte + size));
         return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
     template <bool NeedsAlignment, class Range>
     static auto store(Range&& range, std::byte* address, std::size_t)
     {
-        const auto start = std::launder(reinterpret_cast<iterator_type*>(address));
+        const auto size = reinterpret_cast<std::size_t*>(address);
         address += MEMORY_OVERHEAD;
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         auto new_address = detail::copy_range_ignore_aliasing<value_type>(std::forward<Range>(range), address);
-        *start = std::launder(reinterpret_cast<iterator_type>(new_address));
+        *size = new_address - address;
         return new_address;
     }
 
