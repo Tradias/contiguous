@@ -8,14 +8,21 @@ namespace cntgs::test
 {
 namespace detail
 {
+template <class Iterator>
+auto to_string_view(Iterator begin, Iterator end)
+{
+    const auto* data = std::addressof(*begin);
+    const auto size = static_cast<std::size_t>(std::distance(begin, end));
+    return std::string_view{data, size};
+}
+
 template <class Iterator, class Arg>
 decltype(auto) format_one(std::ostringstream& stream, std::string_view format, Iterator& iterator, Arg&& arg)
 {
-    auto next = std::find(iterator, format.end(), '{');
-    auto* data = std::addressof(*iterator);
-    auto size = static_cast<std::size_t>(std::distance(iterator, next));
+    const auto next = std::find(iterator, format.end(), '{');
+    const auto next_string_view = detail::to_string_view(iterator, next);
     iterator = std::next(next, 2);
-    stream << std::string_view{data, size} << std::forward<Arg>(arg);
+    stream << next_string_view << std::forward<Arg>(arg);
     return stream;
 }
 }  // namespace detail
@@ -28,6 +35,10 @@ auto format(std::string_view format, Args&&... args)
     std::ostringstream stream;
     auto iterator = format.begin();
     (detail::format_one(stream, format, iterator, std::forward<Args>(args)), ...);
+    if (iterator != format.end())
+    {
+        stream << detail::to_string_view(iterator, format.end());
+    }
     return std::move(stream).str();
 }
 }  // namespace cntgs::test

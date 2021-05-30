@@ -7,9 +7,15 @@ auto reference_two_fixed_lookup_and_accumulate(ReferenceFixedSizeVector& vector,
 {
     auto&& node = vector.get_node(i);
     auto&& seconds = vector.get_second(node);
-    std::for_each_n(seconds, vector.second_count, [&](auto&& v) { out += v; });
+    for (size_t i = 0; i < vector.second_count; i++)
+    {
+        out += seconds[i];
+    }
     auto&& firsts = vector.get_first(node);
-    std::for_each_n(firsts, vector.first_count, [&](auto&& v) { out += v; });
+    for (size_t i = 0; i < vector.first_count; i++)
+    {
+        out += firsts[i];
+    }
 }
 
 using CntgsFixedSizeVector = cntgs::ContiguousVector<cntgs::FixedSize<char>, cntgs::FixedSize<uint32_t>, uint32_t>;
@@ -19,8 +25,14 @@ auto contiguous_two_fixed_lookup_and_accumulate(CntgsFixedSizeVector& vector, ui
                                                 uint32_t third)
 {
     auto&& [firsts, seconds, c] = vector[i];
-    std::for_each(seconds.begin(), seconds.end(), [&](auto&& v) { out += v; });
-    std::for_each(firsts.begin(), firsts.end(), [&](auto&& v) { out += v; });
+    for (auto&& v : seconds)
+    {
+        out += v;
+    }
+    for (auto&& v : firsts)
+    {
+        out += v;
+    }
 }
 
 auto reference_two_fixed_emplace(ReferenceFixedSizeVector& vector, const std::vector<char>& first,
@@ -63,9 +75,15 @@ auto reference_two_fixed_aligned_lookup_and_accumulate(ReferenceFixedSizeVector&
 {
     auto&& node = vector.get_node(i);
     auto&& seconds = vector.get_second(node);
-    std::for_each_n(seconds, vector.second_count, [&](auto&& v) { out += v; });
+    for (size_t i = 0; i < vector.second_count; i++)
+    {
+        out += seconds[i];
+    }
     auto&& firsts = vector.get_first(node);
-    std::for_each_n(firsts, vector.first_count, [&](auto&& v) { out += v; });
+    for (size_t i = 0; i < vector.first_count; i++)
+    {
+        out += firsts[i];
+    }
 }
 
 using CntgsFixedSizeAlignedVector =
@@ -76,6 +94,12 @@ auto contiguous_two_fixed_aligned_lookup_and_accumulate(CntgsFixedSizeAlignedVec
                                                         const std::vector<uint32_t>& second, uint32_t third)
 {
     auto&& [firsts, seconds, c] = vector[i];
-    std::for_each(seconds.begin(), seconds.end(), [&](auto&& v) { out += v; });
-    std::for_each(firsts.begin(), firsts.end(), [&](auto&& v) { out += v; });
+    for (auto&& v : seconds)
+    {
+        out += v;
+    }
+    for (auto&& v : firsts)
+    {
+        out += v;
+    }
 }
