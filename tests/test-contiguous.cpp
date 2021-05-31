@@ -87,14 +87,42 @@ TEST_CASE("ContiguousTest: TwoFixed get_fixed_size<I>()")
     CHECK_EQ(20, vector.get_fixed_size<1>());
 }
 
-TEST_CASE("ContiguousTest: OneVarying reference can be converted to value_type")
+template <class Value>
+void check_const_and_non_const(Value&& value)
 {
-    std::array elements{1.f, 2.f};
-    OneVarying vector{2, elements.size() * sizeof(float)};
-    vector.emplace_back(10u, elements);
-    OneVarying::value_type value = vector[0];
     CHECK_EQ(10u, cntgs::get<0>(value));
-    CHECK_EQ(10u, cntgs::get<0>(vector[0]));
+    CHECK_EQ(10u, cntgs::get<0>(std::as_const(value)));
+    CHECK(test::range_equal(FLOATS1, cntgs::get<1>(value)));
+    CHECK(test::range_equal(FLOATS1, cntgs::get<1>(std::as_const(value))));
+}
+
+template <class Vector>
+void mutate_first_and_check(Vector&& vector)
+{
+    using ValueType = typename std::decay_t<Vector>::value_type;
+    ValueType value{vector[0]};
+    check_const_and_non_const(value);
+    cntgs::get<1>(value).front() = 10.f;
+    CHECK_EQ(1.f, cntgs::get<1>(vector[0]).front());
+    ValueType value2{std::move(vector[0])};
+    check_const_and_non_const(value2);
+    cntgs::get<1>(value2).front() = 12.f;
+    vector[0] = std::move(value2);
+    CHECK_EQ(12.f, cntgs::get<1>(vector[0]).front());
+}
+
+TEST_CASE("ContiguousTest: OneVarying mutating value_type does not mutate underlying ContiguousVector")
+{
+    OneVarying vector{1, FLOATS1.size() * sizeof(float)};
+    vector.emplace_back(10u, FLOATS1);
+    mutate_first_and_check(vector);
+}
+
+TEST_CASE("ContiguousTest: OneFixed mutating value_type does not mutate underlying ContiguousVector")
+{
+    OneFixed vector{1, {FLOATS1.size()}};
+    vector.emplace_back(10u, FLOATS1);
+    mutate_first_and_check(vector);
 }
 
 TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumption()")

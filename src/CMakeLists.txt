@@ -7,9 +7,11 @@ list(
     APPEND
     CNTGS_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/element.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/iterator.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/parameter.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/span.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/tuple.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/typeErasedVector.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/vector.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/array.h
@@ -21,7 +23,9 @@ list(
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterTraits.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/range.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/tuple.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/tupleQualifier.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/typeUtils.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/utility.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/vector.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/vectorTraits.h)
 set_target_properties(cntgs PROPERTIES CNTGS_SOURCE_FILES "${CNTGS_SOURCE_FILES}")

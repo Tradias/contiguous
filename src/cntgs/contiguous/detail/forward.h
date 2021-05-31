@@ -25,4 +25,7 @@ struct AlignAs;
 
 template <detail::ContiguousTupleQualifier Qualifier, class... Types>
 class ContiguousTuple;
+
+template <class... Types>
+class ContiguousElement;
 }  // namespace cntgs

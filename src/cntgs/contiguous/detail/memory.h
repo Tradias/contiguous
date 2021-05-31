@@ -89,6 +89,12 @@ auto make_unique_for_overwrite(std::size_t size)
 #endif
 }
 
+template <std::size_t N>
+struct alignas(N) AlignedByte
+{
+    std::byte byte;
+};
+
 template <class T>
 struct MaybeOwnedPtr
 {

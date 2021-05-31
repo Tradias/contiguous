@@ -24,12 +24,11 @@ static constexpr auto alignment_offset([[maybe_unused]] std::size_t position) no
 }
 
 template <class, class...>
-class BaseElementLocator;
+struct BaseElementLocator;
 
 template <std::size_t... I, class... Types>
-class BaseElementLocator<std::index_sequence<I...>, Types...>
+struct BaseElementLocator<std::index_sequence<I...>, Types...>
 {
-  protected:
     using Traits = detail::ContiguousVectorTraits<Types...>;
     using SizeType = typename Traits::SizeType;
 
@@ -49,17 +48,16 @@ class BaseElementLocator<std::index_sequence<I...>, Types...>
     }
 
     template <class NeedsAlignmentSelector, std::size_t N>
-    static auto load_element_at_impl(std::byte* address, const std::array<SizeType, N>& fixed_sizes) noexcept
+    static auto load_element_at(std::byte* address, const std::array<SizeType, N>& fixed_sizes) noexcept
     {
         typename Traits::PointerReturnType result;
-        ((std::tie(cntgs::get<I>(result), address) =
+        ((std::tie(std::get<I>(result), address) =
               detail::ParameterTraits<Types>::template load<NeedsAlignmentSelector::template VALUE<I>>(
                   address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
          ...);
         return result;
     }
 
-  public:
     template <std::size_t N>
     static constexpr auto calculate_element_size(const std::array<SizeType, N>& fixed_sizes) noexcept
     {
@@ -134,8 +132,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     template <std::size_t N>
     auto load_element_at(SizeType i, std::byte* memory_begin, const std::array<SizeType, N>& fixed_sizes) const noexcept
     {
-        return Base::template load_element_at_impl<detail::DefaultAlignmentSelector>(this->at(memory_begin, i),
-                                                                                     fixed_sizes);
+        return Base::template load_element_at<detail::DefaultAlignmentSelector>(this->at(memory_begin, i), fixed_sizes);
     }
 
     auto at(std::byte* memory_begin, SizeType index) const noexcept
@@ -145,7 +142,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     }
 };
 
-struct AllFixedSizeAlignmentSelector
+struct IgnoreFirstAlignmentSelector
 {
     template <std::size_t I>
     static constexpr auto VALUE = I != 0;
@@ -189,14 +186,14 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     {
         auto last_element = this->at(element_count);
         ++this->element_count;
-        Base::template emplace_back<detail::AllFixedSizeAlignmentSelector>(last_element, fixed_sizes,
-                                                                           std::forward<Args>(args)...);
+        Base::template emplace_back<detail::IgnoreFirstAlignmentSelector>(last_element, fixed_sizes,
+                                                                          std::forward<Args>(args)...);
     }
 
     template <std::size_t N>
     auto load_element_at(SizeType i, std::byte*, const std::array<SizeType, N>& fixed_sizes) const noexcept
     {
-        return Base::template load_element_at_impl<detail::AllFixedSizeAlignmentSelector>(this->at(i), fixed_sizes);
+        return Base::template load_element_at<detail::IgnoreFirstAlignmentSelector>(this->at(i), fixed_sizes);
     }
 
     constexpr auto at(SizeType index) const noexcept { return start + this->stride * index; }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
@@ -13,14 +14,9 @@ template <detail::ContiguousTupleQualifier Qualifier, class... Types>
 class ContiguousTuple
 {
   public:
-    using Tuple = std::conditional_t<
-        (Qualifier == detail::ContiguousTupleQualifier::NONE),
-        detail::ToContiguousTupleOfValueReturnType<std::tuple<Types...>>,
-        std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
-                           detail::ToContiguousTupleOfReferenceReturnType<std::tuple<Types...>>,
-                           std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::CONST_REFERENCE),
-                                              detail::ToContiguousTupleOfConstReferenceReturnType<std::tuple<Types...>>,
-                                              detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>>>>;
+    using Tuple = std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
+                                     detail::ToContiguousTupleOfReferenceReturnType<std::tuple<Types...>>,
+                                     detail::ToContiguousTupleOfConstReferenceReturnType<std::tuple<Types...>>>;
 
     Tuple tuple;
 
@@ -42,15 +38,19 @@ class ContiguousTuple
     {
     }
 
-    template <detail::ContiguousTupleQualifier TQualifier, class... T>
-    constexpr ContiguousTuple(const ContiguousTuple<TQualifier, T...>& other) : tuple(other.tuple)
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr ContiguousTuple(const ContiguousTuple<TQualifier, Types...>& other) : tuple(other.tuple)
     {
     }
 
-    template <detail::ContiguousTupleQualifier TQualifier, class... T>
-    constexpr ContiguousTuple(ContiguousTuple<TQualifier, T...>&& other) : tuple(std::move(other.tuple))
+    constexpr ContiguousTuple(const ContiguousElement<Types...>& other) : tuple(other.tuple) {}
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr ContiguousTuple(ContiguousTuple<TQualifier, Types...>&& other) : tuple(std::move(other.tuple))
     {
     }
+
+    constexpr ContiguousTuple(ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple)) {}
 
     ContiguousTuple(const ContiguousTuple&) = default;
     ContiguousTuple(ContiguousTuple&&) = default;
@@ -58,8 +58,8 @@ class ContiguousTuple
     ContiguousTuple& operator=(const ContiguousTuple&) = default;
     ContiguousTuple& operator=(ContiguousTuple&&) = default;
 
-    template <detail::ContiguousTupleQualifier TQualifier, class... T>
-    constexpr ContiguousTuple& operator=(const ContiguousTuple<TQualifier, T...>& other)
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr ContiguousTuple& operator=(const ContiguousTuple<TQualifier, Types...>& other)
     {
         if (this != &other)
         {
@@ -68,8 +68,14 @@ class ContiguousTuple
         return *this;
     }
 
-    template <detail::ContiguousTupleQualifier TQualifier, class... T>
-    constexpr ContiguousTuple& operator=(ContiguousTuple<TQualifier, T...>&& other)
+    constexpr ContiguousTuple& operator=(const ContiguousElement<Types...>& other)
+    {
+        this->assign(other.tuple, std::make_index_sequence<sizeof...(Types)>{});
+        return *this;
+    }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr ContiguousTuple& operator=(ContiguousTuple<TQualifier, Types...>&& other)
     {
         if (this != &other)
         {
@@ -78,36 +84,42 @@ class ContiguousTuple
         return *this;
     }
 
-    template <detail::ContiguousTupleQualifier TQualifier, class... T, std::size_t... I>
-    constexpr void swap(ContiguousTuple<TQualifier, T...>& other, std::index_sequence<I...>)
+    constexpr ContiguousTuple& operator=(ContiguousElement<Types...>&& other)
+    {
+        this->assign(std::move(other.tuple), std::make_index_sequence<sizeof...(Types)>{});
+        return *this;
+    }
+
+    template <detail::ContiguousTupleQualifier TQualifier, std::size_t... I>
+    constexpr void swap(ContiguousTuple<TQualifier, Types...>& other, std::index_sequence<I...>)
     {
         (detail::ParameterTraits<Types>::swap(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
     }
 
-  private:
-    template <detail::ContiguousTupleQualifier TQualifier, class... T, std::size_t... I>
-    constexpr void assign(const ContiguousTuple<TQualifier, T...>& other, std::index_sequence<I...>)
+    constexpr auto size_in_bytes() const noexcept
     {
-        (detail::ParameterTraits<Types>::copy(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
+        using TraitsOfFirst = detail::ParameterTraits<std::tuple_element_t<0, std::tuple<Types...>>>;
+        using TraitsOfLast = detail::ParameterTraits<std::tuple_element_t<sizeof...(Types) - 1, std::tuple<Types...>>>;
+        return TraitsOfLast::end_address(std::get<sizeof...(Types) - 1>(this->tuple)) -
+               TraitsOfFirst::start_address(std::get<0>(this->tuple));
     }
 
-    template <detail::ContiguousTupleQualifier TQualifier, class... T, std::size_t... I>
-    constexpr void assign(ContiguousTuple<TQualifier, T...>&& other, std::index_sequence<I...>)
+  private:
+    template <detail::ContiguousTupleQualifier TQualifier, std::size_t... I>
+    constexpr void assign(const ContiguousTuple<TQualifier, Types...>& other, std::index_sequence<I...>)
     {
-        (detail::ParameterTraits<Types>::move(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
+        (detail::ParameterTraits<Types>::copy(std::get<I>(other.tuple), std::get<I>(this->tuple)), ...);
+    }
+
+    template <detail::ContiguousTupleQualifier TQualifier, std::size_t... I>
+    constexpr void assign(ContiguousTuple<TQualifier, Types...>&& other, std::index_sequence<I...>)
+    {
+        (detail::ParameterTraits<Types>::move(std::get<I>(other.tuple), std::get<I>(this->tuple)), ...);
     }
 };
 
-template <detail::ContiguousTupleQualifier Qualifier, class... T, class... U>
-constexpr void swap(cntgs::ContiguousTuple<Qualifier, T...> lhs, cntgs::ContiguousTuple<Qualifier, U...> rhs,
-                    std::enable_if_t<(Qualifier != detail::ContiguousTupleQualifier::NONE)>* = nullptr)
-{
-    lhs.swap(rhs, std::make_index_sequence<sizeof...(T)>{});
-}
-
-template <class... T, class... U>
-constexpr void swap(cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::NONE, T...>& lhs,
-                    cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::NONE, U...>& rhs)
+template <detail::ContiguousTupleQualifier Qualifier, class... T>
+constexpr void swap(cntgs::ContiguousTuple<Qualifier, T...> lhs, cntgs::ContiguousTuple<Qualifier, T...> rhs)
 {
     lhs.swap(rhs, std::make_index_sequence<sizeof...(T)>{});
 }

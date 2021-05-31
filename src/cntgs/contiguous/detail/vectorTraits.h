@@ -49,11 +49,11 @@ struct VectorTraits : BaseVectorTraits
 template <class... Types>
 struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
 {
-    using ValueReturnType = cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::NONE, Types...>;
+    using ValueReturnType = cntgs::ContiguousElement<Types...>;
     using ReferenceReturnType = cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::REFERENCE, Types...>;
     using ConstReferenceReturnType =
         cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::CONST_REFERENCE, Types...>;
-    using PointerReturnType = cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::POINTER, Types...>;
+    using PointerReturnType = detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>;
     using StorageType = detail::MaybeOwnedPtr<std::byte[]>;
 
     template <class T>

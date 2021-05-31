@@ -2,35 +2,40 @@
 
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
-#include "cntgs/contiguous/span.h"
 
 #include <array>
 #include <cstddef>
 
 namespace cntgs::detail
 {
-template <class T>
-constexpr auto dereference(const cntgs::Span<T>& memory) noexcept
-{
-    return memory;
-}
-
-template <class T>
-constexpr decltype(auto) dereference(T&& memory) noexcept
-{
-    return *memory;
-}
-
 template <class... T, std::size_t... I>
 constexpr auto calculate_fixed_size_indices(detail::TypeList<T...>, std::index_sequence<I...>)
 {
     std::array<std::size_t, sizeof...(T)> fixed_size_indices{};
-    std::size_t index = 0;
+    [[maybe_unused]] std::size_t index = 0;
     (
         [&] {
             if constexpr (detail::ParameterTraits<T>::IS_FIXED_SIZE)
             {
                 std::get<I>(fixed_size_indices) = index;
+                ++index;
+            }
+        }(),
+        ...);
+    return fixed_size_indices;
+}
+
+template <class... T, std::size_t... I>
+constexpr auto calculate_inverse_fixed_size_indices(detail::TypeList<T...>, std::index_sequence<I...>)
+{
+    constexpr auto FIXED_SIZE_COUNT = (std::size_t{} + ... + detail::ParameterTraits<T>::IS_FIXED_SIZE);
+    std::array<std::size_t, FIXED_SIZE_COUNT> fixed_size_indices{};
+    [[maybe_unused]] std::size_t index = 0;
+    (
+        [&] {
+            if constexpr (detail::ParameterTraits<T>::IS_FIXED_SIZE)
+            {
+                fixed_size_indices[index] = I;
                 ++index;
             }
         }(),

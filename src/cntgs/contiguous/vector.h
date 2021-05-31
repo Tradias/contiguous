@@ -4,6 +4,8 @@
 #include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
+#include "cntgs/contiguous/detail/tuple.h"
+#include "cntgs/contiguous/detail/utility.h"
 #include "cntgs/contiguous/detail/vector.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 #include "cntgs/contiguous/iterator.h"
@@ -193,21 +195,6 @@ class ContiguousVector
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
-    template <class Result, class... T, std::size_t... I>
-    static constexpr auto convert_tuple_to(
-        const cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::POINTER, T...>& tuple_of_pointer,
-        std::index_sequence<I...>) noexcept
-    {
-        return Result{detail::dereference(cntgs::get<I>(tuple_of_pointer))...};
-    }
-
-    template <class Result, class... T>
-    static constexpr auto convert_tuple_to(
-        const cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::POINTER, T...>& tuple_of_pointer) noexcept
-    {
-        return convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
-    }
-
     auto load_element_at(size_type i) const noexcept
     {
         return this->locator.load_element_at(i, this->memory.get(), fixed_sizes);
@@ -215,14 +202,14 @@ class ContiguousVector
 
     auto subscript_operator(size_type i) noexcept
     {
-        const auto tuple = load_element_at(i);
-        return this->convert_tuple_to<reference>(tuple);
+        const auto tuple_of_pointer = load_element_at(i);
+        return detail::convert_tuple_to<reference>(tuple_of_pointer);
     }
 
     auto subscript_operator(size_type i) const noexcept
     {
-        const auto tuple = load_element_at(i);
-        return this->convert_tuple_to<const_reference>(tuple);
+        const auto tuple_of_pointer = load_element_at(i);
+        return detail::convert_tuple_to<const_reference>(tuple_of_pointer);
     }
 
     template <std::size_t... I>

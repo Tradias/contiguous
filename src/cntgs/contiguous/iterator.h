@@ -68,11 +68,9 @@ class ContiguousVectorIterator
         return copy;
     }
 
-    [[nodiscard]] constexpr ContiguousVectorIterator operator+(ContiguousVectorIterator diff) const noexcept
+    [[nodiscard]] constexpr difference_type operator+(ContiguousVectorIterator it) const noexcept
     {
-        auto copy{*this};
-        copy.index += diff.index;
-        return copy;
+        return this->index + it.index;
     }
 
     constexpr ContiguousVectorIterator& operator+=(difference_type diff) noexcept
@@ -88,16 +86,14 @@ class ContiguousVectorIterator
         return copy;
     }
 
-    [[nodiscard]] constexpr ContiguousVectorIterator operator-(ContiguousVectorIterator it) const noexcept
+    [[nodiscard]] constexpr difference_type operator-(ContiguousVectorIterator it) const noexcept
     {
-        auto copy{*this};
-        copy.index -= it.index;
-        return copy;
+        return this->index - it.index;
     }
 
     constexpr ContiguousVectorIterator& operator-=(difference_type diff) noexcept
     {
-        index -= diff;
+        this->index -= diff;
         return *this;
     }
 
@@ -105,7 +101,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr bool operator==(const ContiguousVectorIterator& other) const noexcept
     {
-        return index == other.index && vector == other.vector;
+        return this->index == other.index && this->vector == other.vector;
     }
 
     [[nodiscard]] constexpr bool operator!=(const ContiguousVectorIterator& other) const noexcept
@@ -115,7 +111,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr bool operator<(const ContiguousVectorIterator& other) const noexcept
     {
-        return index < other.index && vector == other.vector;
+        return this->index < other.index && this->vector == other.vector;
     }
 
     [[nodiscard]] constexpr bool operator>(const ContiguousVectorIterator& other) const noexcept

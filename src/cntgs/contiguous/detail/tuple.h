@@ -3,6 +3,7 @@
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
+#include "cntgs/contiguous/detail/utility.h"
 
 #include <tuple>
 #include <utility>
@@ -44,4 +45,16 @@ using ToContiguousPointer = typename detail::ParameterTraits<T>::PointerReturnTy
 
 template <class T>
 using ToContiguousTupleOfPointerReturnType = typename detail::TransformTuple<ToContiguousPointer, T>::Type;
+
+template <class Result, class... T, std::size_t... I>
+constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer, std::index_sequence<I...>) noexcept
+{
+    return Result{detail::dereference(std::get<I>(tuple_of_pointer))...};
+}
+
+template <class Result, class... T>
+constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexcept
+{
+    return convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
+}
 }  // namespace cntgs::detail

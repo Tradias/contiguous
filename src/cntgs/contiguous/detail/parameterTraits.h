@@ -52,6 +52,23 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 
     static constexpr auto aligned_size_in_memory(std::size_t) noexcept { return std::max(VALUE_BYTES, ALIGNMENT); }
 
+    static auto start_address(PointerReturnType return_type) noexcept
+    {
+        return reinterpret_cast<std::byte*>(return_type);
+    }
+
+    template <class U>
+    static auto start_address(U&& return_type) noexcept
+    {
+        return reinterpret_cast<std::byte*>(std::addressof(return_type));
+    }
+
+    template <class U>
+    static auto end_address(U&& return_type) noexcept
+    {
+        return start_address(return_type) + VALUE_BYTES;
+    }
+
     template <class Source, class Target>
     static constexpr void copy(const Source& source, Target& target)
     {
@@ -119,6 +136,18 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
 
     static constexpr auto aligned_size_in_memory(std::size_t) noexcept { return MEMORY_OVERHEAD + ALIGNMENT; }
 
+    template <class U>
+    static auto start_address(const cntgs::Span<U>& return_type) noexcept
+    {
+        return reinterpret_cast<std::byte*>(return_type.data());
+    }
+
+    template <class U>
+    static auto end_address(const cntgs::Span<U>& return_type) noexcept
+    {
+        return reinterpret_cast<std::byte*>(return_type.data() + return_type.size());
+    }
+
     template <class Source, class Target>
     static void copy(const Source& source, Target& target)
     {
@@ -185,6 +214,18 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
     static constexpr auto aligned_size_in_memory(std::size_t fixed_size) noexcept
     {
         return std::max(fixed_size * VALUE_BYTES, ALIGNMENT);
+    }
+
+    template <class U>
+    static auto start_address(const cntgs::Span<U>& return_type) noexcept
+    {
+        return reinterpret_cast<std::byte*>(return_type.data());
+    }
+
+    template <class U>
+    static auto end_address(const cntgs::Span<U>& return_type) noexcept
+    {
+        return reinterpret_cast<std::byte*>(return_type.data() + return_type.size());
     }
 
     template <class Source, class Target>
