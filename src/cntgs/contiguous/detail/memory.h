@@ -19,7 +19,7 @@ static constexpr auto MEMCPY_COMPATIBLE =
                                   U>&& std::is_floating_point_v<T> == std::is_floating_point_v<U>;
 
 template <class T>
-auto copy_using_memcpy(const T* source, std::byte* target, std::size_t size)
+auto copy_using_memcpy(const T* source, std::byte* target, std::size_t size) noexcept
 {
     std::memcpy(target, source, size * sizeof(T));
     return target + size * sizeof(T);

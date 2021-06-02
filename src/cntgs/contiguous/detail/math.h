@@ -25,5 +25,5 @@ constexpr auto min_size_t_of() noexcept
 }
 
 template <std::size_t... I>
-static constexpr auto MIN_SIZE_T_OF = detail::max_size_t_of<I...>();
+static constexpr auto MIN_SIZE_T_OF = detail::min_size_t_of<I...>();
 }  // namespace cntgs::detail

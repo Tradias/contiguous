@@ -238,8 +238,7 @@ auto type_erase(cntgs::ContiguousVector<Types...>&& vector)
 {
     return cntgs::TypeErasedVector{
         vector.memory_size, vector.max_element_count, std::move(vector.memory),
-        detail::convert_array_to_size<detail::ContiguousVectorTraits<>::MAX_FIXED_SIZE_VECTOR_PARAMETER>(
-            vector.fixed_sizes),
+        detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.fixed_sizes),
         detail::type_erase_element_locator(std::move(vector.locator))};
 }
 }  // namespace cntgs

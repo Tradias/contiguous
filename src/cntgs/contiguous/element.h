@@ -72,17 +72,19 @@ class ContiguousElement
     {
         if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            if (memory)
+            if (this->memory)
             {
-                destruct(std::make_index_sequence<sizeof...(Types)>{});
+                this->destruct(std::make_index_sequence<sizeof...(Types)>{});
             }
         }
     }
 
+  private:
     template <class Tuple>
-    constexpr auto create_tuple(Tuple&& tuple) noexcept
+    constexpr auto create_tuple(Tuple&& tuple)
     {
-        const auto fixed_sizes = create_fixed_sizes(tuple, std::make_index_sequence<CONTIGUOUS_FIXED_SIZE_COUNT>{});
+        const auto fixed_sizes =
+            this->create_fixed_sizes(tuple, std::make_index_sequence<CONTIGUOUS_FIXED_SIZE_COUNT>{});
         this->emplace_back(fixed_sizes, std::forward<Tuple>(tuple), std::make_index_sequence<TYPE_COUNT>{});
         auto tuple_of_pointer =
             Locator::template load_element_at<detail::IgnoreFirstAlignmentSelector>(this->memory_begin(), fixed_sizes);
@@ -97,8 +99,7 @@ class ContiguousElement
     }
 
     template <std::size_t N, class Tuple, std::size_t... I>
-    constexpr auto emplace_back(const std::array<std::size_t, N>& fixed_sizes, Tuple&& tuple,
-                                std::index_sequence<I...>) noexcept
+    constexpr auto emplace_back(const std::array<std::size_t, N>& fixed_sizes, Tuple&& tuple, std::index_sequence<I...>)
     {
         Locator::template emplace_back<detail::IgnoreFirstAlignmentSelector>(this->memory_begin(), fixed_sizes,
                                                                              extract<I>(tuple)...);
@@ -116,7 +117,7 @@ class ContiguousElement
         return std::move(std::get<I>(tuple));
     }
 
-    constexpr auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(memory.get()); }
+    constexpr auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
 
     template <std::size_t... I>
     void destruct(std::index_sequence<I...>)

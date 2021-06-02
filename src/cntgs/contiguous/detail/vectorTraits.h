@@ -11,6 +11,12 @@
 
 namespace cntgs::detail
 {
+#ifdef CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER
+static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER;
+#else
+static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 15;
+#endif
+
 template <class T, class U>
 struct FixedSizeGetterImplementation
 {
@@ -74,13 +80,7 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
     static constexpr bool IS_ALL_VARYING_SIZE = CONTIGUOUS_FIXED_SIZE_COUNT == 0 && CONTIGUOUS_COUNT != 0;
     static constexpr bool IS_NONE_SPECIAL = CONTIGUOUS_COUNT == 0;
 
-#ifdef CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER
-    static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER;
-#else
-    static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 15;
-#endif
-
-    static_assert(MAX_FIXED_SIZE_VECTOR_PARAMETER > CONTIGUOUS_FIXED_SIZE_COUNT,
+    static_assert(detail::MAX_FIXED_SIZE_VECTOR_PARAMETER > CONTIGUOUS_FIXED_SIZE_COUNT,
                   "Maximum number of FixedSize vector parameter exceeded. Define CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER "
                   "to a higher limit.");
 };

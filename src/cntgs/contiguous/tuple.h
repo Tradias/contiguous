@@ -43,14 +43,14 @@ class ContiguousTuple
     {
     }
 
-    constexpr ContiguousTuple(const ContiguousElement<Types...>& other) : tuple(other.tuple) {}
+    constexpr ContiguousTuple(const cntgs::ContiguousElement<Types...>& other) : tuple(other.tuple) {}
 
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr ContiguousTuple(ContiguousTuple<TQualifier, Types...>&& other) : tuple(std::move(other.tuple))
     {
     }
 
-    constexpr ContiguousTuple(ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple)) {}
+    constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple)) {}
 
     ContiguousTuple(const ContiguousTuple&) = default;
     ContiguousTuple(ContiguousTuple&&) = default;
@@ -68,7 +68,7 @@ class ContiguousTuple
         return *this;
     }
 
-    constexpr ContiguousTuple& operator=(const ContiguousElement<Types...>& other)
+    constexpr ContiguousTuple& operator=(const cntgs::ContiguousElement<Types...>& other)
     {
         this->assign(other.tuple, std::make_index_sequence<sizeof...(Types)>{});
         return *this;
@@ -84,7 +84,7 @@ class ContiguousTuple
         return *this;
     }
 
-    constexpr ContiguousTuple& operator=(ContiguousElement<Types...>&& other)
+    constexpr ContiguousTuple& operator=(cntgs::ContiguousElement<Types...>&& other)
     {
         this->assign(std::move(other.tuple), std::make_index_sequence<sizeof...(Types)>{});
         return *this;

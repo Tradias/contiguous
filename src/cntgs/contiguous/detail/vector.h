@@ -9,7 +9,7 @@
 namespace cntgs::detail
 {
 template <class... T, std::size_t... I>
-constexpr auto calculate_fixed_size_indices(detail::TypeList<T...>, std::index_sequence<I...>)
+constexpr auto calculate_fixed_size_indices(detail::TypeList<T...>, std::index_sequence<I...>) noexcept
 {
     std::array<std::size_t, sizeof...(T)> fixed_size_indices{};
     [[maybe_unused]] std::size_t index = 0;
@@ -26,7 +26,7 @@ constexpr auto calculate_fixed_size_indices(detail::TypeList<T...>, std::index_s
 }
 
 template <class... T, std::size_t... I>
-constexpr auto calculate_inverse_fixed_size_indices(detail::TypeList<T...>, std::index_sequence<I...>)
+constexpr auto calculate_inverse_fixed_size_indices(detail::TypeList<T...>, std::index_sequence<I...>) noexcept
 {
     constexpr auto FIXED_SIZE_COUNT = (std::size_t{} + ... + detail::ParameterTraits<T>::IS_FIXED_SIZE);
     std::array<std::size_t, FIXED_SIZE_COUNT> fixed_size_indices{};

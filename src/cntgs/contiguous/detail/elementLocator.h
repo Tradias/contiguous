@@ -210,7 +210,7 @@ using TypeErasedElementLocator = std::aligned_storage_t<
     detail::MAX_SIZE_T_OF<alignof(detail::ElementLocator<>), alignof(detail::AllFixedSizeElementLocator<>)>>;
 
 template <class T>
-auto type_erase_element_locator(T&& locator)
+auto type_erase_element_locator(T&& locator) noexcept
 {
     TypeErasedElementLocator result;
     new (&result) T(std::forward<T>(locator));

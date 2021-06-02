@@ -84,7 +84,8 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     template <class Source, class Target>
     static void swap(Source& lhs, Target& rhs)
     {
-        std::swap(lhs, rhs);
+        using std::swap;
+        swap(lhs, rhs);
     }
 
     static constexpr void destroy(value_type& value) { value.~value_type(); }
