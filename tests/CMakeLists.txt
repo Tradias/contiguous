@@ -29,7 +29,8 @@ target_compile_definitions(cntgs-test-utils
 
 target_link_libraries(cntgs-test-utils PRIVATE cntgs)
 
-target_include_directories(cntgs-test-utils PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(cntgs-test-utils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                                                   $<INSTALL_INTERFACE:include>)
 
 # tests
 find_package(doctest REQUIRED)
@@ -71,18 +72,3 @@ set_source_files_properties(
     test-code-gen.cpp
     PROPERTIES COMPILE_OPTIONS
                "$<$<CXX_COMPILER_ID:MSVC>:/EHs>;$<$<CXX_COMPILER_ID:MSVC>:/GR>;$<$<CXX_COMPILER_ID:GNU>:-fexceptions>")
-
-# benchmark
-add_executable(cntgs-benchmark)
-
-target_sources(cntgs-benchmark PRIVATE benchmark.cpp)
-
-target_compile_options(cntgs-benchmark PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra
-                                               -pedantic-errors>)
-
-target_link_libraries(cntgs-benchmark PRIVATE cntgs cntgs-test-utils)
-
-target_include_directories(cntgs-benchmark PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-                                                  $<INSTALL_INTERFACE:include>)
-
-target_compile_features(cntgs-benchmark PRIVATE cxx_std_20)
