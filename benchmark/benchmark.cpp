@@ -2,7 +2,7 @@
 #include "utils/string.h"
 
 #define ANKERL_NANOBENCH_IMPLEMENT
-#include <../third-party/nanobench.h>
+#include <third-party/nanobench.h>
 
 #include <memory_resource>
 #include <random>
