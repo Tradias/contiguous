@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <version>
 
 #ifdef __cpp_lib_span
 #include <span>

@@ -10,6 +10,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <version>
 
 namespace cntgs::detail
 {
@@ -94,6 +95,9 @@ struct alignas(N) AlignedByte
 {
     std::byte byte;
 };
+
+template <std::size_t N>
+using AlignedByteT = std::conditional_t<(N == 0), std::byte, AlignedByte<N>>;
 
 template <class T>
 struct MaybeOwnedPtr

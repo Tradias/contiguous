@@ -18,7 +18,7 @@ class ContiguousElement
 {
   private:
     using Traits = detail::ContiguousVectorTraits<Types...>;
-    using StorageType = std::unique_ptr<detail::AlignedByte<Traits::MAX_ALIGNMENT>[]>;
+    using StorageType = std::unique_ptr<detail::AlignedByteT<Traits::MAX_ALIGNMENT>[]>;
     using StorageElementType = typename StorageType::element_type;
     using Tuple = typename Traits::ReferenceReturnType;
     using Locator = detail::BaseElementLocatorT<Types...>;

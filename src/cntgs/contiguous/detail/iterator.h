@@ -1,5 +1,7 @@
 #pragma once
 
+#include <version>
+
 #ifndef __cpp_concepts
 #include "cntgs/contiguous/detail/typeUtils.h"
 #endif

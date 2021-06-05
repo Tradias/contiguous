@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <version>
 
 #ifdef __cpp_lib_concepts
 #include <concepts>
