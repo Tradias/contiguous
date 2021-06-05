@@ -69,7 +69,7 @@ class ContiguousElement
         return *this;
     }
 
-    ~ContiguousElement()
+    ~ContiguousElement() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
     {
         if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
@@ -124,7 +124,7 @@ class ContiguousElement
     constexpr auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
 
     template <std::size_t... I>
-    void destruct(std::index_sequence<I...>)
+    void destruct(std::index_sequence<I...>) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
     {
         (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(this->tuple)), ...);
     }

@@ -33,6 +33,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
+    static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<value_type>;
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
@@ -88,7 +89,49 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         swap(lhs, rhs);
     }
 
-    static constexpr void destroy(value_type& value) { value.~value_type(); }
+    static constexpr void destroy(value_type& value) noexcept(IS_NOTHROW_DESTRUCTIBLE) { value.~value_type(); }
+};
+
+struct BaseContiguousParameterTraits
+{
+    template <class T>
+    static auto start_address(const cntgs::Span<T>& value) noexcept
+    {
+        return reinterpret_cast<std::byte*>(value.data());
+    }
+
+    template <class T>
+    static auto end_address(const cntgs::Span<T>& value) noexcept
+    {
+        return reinterpret_cast<std::byte*>(value.data() + value.size());
+    }
+
+    template <class Source, class Target>
+    static void copy(const Source& source, Target& target)
+    {
+        const auto size = std::min(std::size(source), std::size(target));
+        std::copy_n(std::begin(source), size, std::begin(target));
+    }
+
+    template <class Source, class Target>
+    static void move(Source&& source, Target& target)
+    {
+        const auto size = std::min(std::size(source), std::size(target));
+        std::copy_n(std::make_move_iterator(std::begin(source)), size, std::begin(target));
+    }
+
+    template <class Source, class Target>
+    static void swap(Source& lhs, Target& rhs)
+    {
+        const auto size = std::min(std::size(lhs), std::size(rhs));
+        std::swap_ranges(std::begin(lhs), std::begin(lhs) + size, std::begin(rhs));
+    }
+
+    template <class T>
+    static void destroy(const cntgs::Span<T>& value) noexcept(std::is_nothrow_destructible_v<T>)
+    {
+        std::destroy(std::begin(value), std::end(value));
+    }
 };
 
 template <class T>
@@ -97,7 +140,7 @@ struct ParameterTraits<cntgs::VaryingSize<T>> : ParameterTraits<cntgs::VaryingSi
 };
 
 template <class T, std::size_t Alignment>
-struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
+struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits
 {
     using Type = cntgs::VaryingSize<T>;
     using ValueReturnType = cntgs::Span<T>;
@@ -112,6 +155,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
+    static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<value_type>;
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
@@ -136,41 +180,6 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>>
     }
 
     static constexpr auto aligned_size_in_memory(std::size_t) noexcept { return MEMORY_OVERHEAD + ALIGNMENT; }
-
-    template <class U>
-    static auto start_address(const cntgs::Span<U>& return_type) noexcept
-    {
-        return reinterpret_cast<std::byte*>(return_type.data());
-    }
-
-    template <class U>
-    static auto end_address(const cntgs::Span<U>& return_type) noexcept
-    {
-        return reinterpret_cast<std::byte*>(return_type.data() + return_type.size());
-    }
-
-    template <class Source, class Target>
-    static void copy(const Source& source, Target& target)
-    {
-        const auto size = std::min(std::size(source), std::size(target));
-        std::copy_n(std::begin(source), size, std::begin(target));
-    }
-
-    template <class Source, class Target>
-    static void move(Source&& source, Target& target)
-    {
-        const auto size = std::min(std::size(source), std::size(target));
-        std::copy_n(std::make_move_iterator(std::begin(source)), size, std::begin(target));
-    }
-
-    template <class Source, class Target>
-    static void swap(Source& lhs, Target& rhs)
-    {
-        const auto size = std::min(std::size(lhs), std::size(rhs));
-        std::swap_ranges(std::begin(lhs), std::begin(lhs) + size, std::begin(rhs));
-    }
-
-    static void destroy(ReferenceReturnType value) { std::destroy(std::begin(value), std::end(value)); }
 };
 
 template <class T>
@@ -179,7 +188,7 @@ struct ParameterTraits<cntgs::FixedSize<T>> : ParameterTraits<cntgs::FixedSize<c
 };
 
 template <class T, std::size_t Alignment>
-struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
+struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits
 {
     using Type = cntgs::FixedSize<T>;
     using ValueReturnType = cntgs::Span<T>;
@@ -194,6 +203,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
+    static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<value_type>;
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t size) noexcept
@@ -216,38 +226,6 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>>
     {
         return std::max(fixed_size * VALUE_BYTES, ALIGNMENT);
     }
-
-    template <class U>
-    static auto start_address(const cntgs::Span<U>& return_type) noexcept
-    {
-        return reinterpret_cast<std::byte*>(return_type.data());
-    }
-
-    template <class U>
-    static auto end_address(const cntgs::Span<U>& return_type) noexcept
-    {
-        return reinterpret_cast<std::byte*>(return_type.data() + return_type.size());
-    }
-
-    template <class Source, class Target>
-    static void copy(const Source& source, Target& target)
-    {
-        std::copy(std::begin(source), std::end(source), std::begin(target));
-    }
-
-    template <class Source, class Target>
-    static void move(Source&& source, Target& target)
-    {
-        std::move(std::begin(source), std::end(source), std::begin(target));
-    }
-
-    template <class Source, class Target>
-    static void swap(Source& lhs, Target& rhs)
-    {
-        std::swap_ranges(std::begin(lhs), std::end(lhs), std::begin(rhs));
-    }
-
-    static void destroy(ReferenceReturnType value) { std::destroy(std::begin(value), std::end(value)); }
 };
 
 template <class T>

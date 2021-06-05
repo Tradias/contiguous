@@ -128,7 +128,7 @@ class ContiguousVector
     ContiguousVector& operator=(const ContiguousVector&) = default;
     ContiguousVector& operator=(ContiguousVector&&) = default;
 
-    ~ContiguousVector() { destruct(); }
+    ~ContiguousVector() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE) { destruct(); }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -212,16 +212,7 @@ class ContiguousVector
         return detail::convert_tuple_to<const_reference>(tuple_of_pointer);
     }
 
-    template <std::size_t... I>
-    void destruct(std::index_sequence<I...>)
-    {
-        for (auto&& element : *this)
-        {
-            (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...);
-        }
-    }
-
-    void destruct()
+    void destruct() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
     {
         if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
@@ -229,6 +220,15 @@ class ContiguousVector
             {
                 destruct(std::make_index_sequence<sizeof...(Types)>{});
             }
+        }
+    }
+
+    template <std::size_t... I>
+    void destruct(std::index_sequence<I...>) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
+    {
+        for (auto&& element : *this)
+        {
+            (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...);
         }
     }
 };
