@@ -33,27 +33,41 @@ struct Span
     Span() = default;
 
     template <class U>
-    explicit Span(Span<U> other) noexcept : first(other.first), last(other.last)
+    explicit constexpr Span(const Span<U>& other) noexcept : first(other.first), last(other.last)
     {
     }
 
-    constexpr Span(iterator first, iterator last) noexcept : first(first), last(last) {}
+    Span(const Span& other) = default;
 
-    constexpr Span(iterator first, size_type size) noexcept : first(first), last(first + size) {}
+    template <class It, class Sentinel>
+    constexpr Span(It first, Sentinel last) noexcept : first(first), last(last)
+    {
+    }
 
-    [[nodiscard]] constexpr iterator begin() const noexcept { return first; }
+    template <class It>
+    constexpr Span(It first, size_type size) noexcept(noexcept(first + size)) : first(first), last(first + size)
+    {
+    }
 
-    [[nodiscard]] constexpr iterator end() const noexcept { return last; }
+    [[nodiscard]] constexpr iterator begin() const noexcept { return this->first; }
 
-    [[nodiscard]] constexpr size_type size() const noexcept { return last - first; }
+    [[nodiscard]] constexpr iterator end() const noexcept { return this->last; }
 
-    [[nodiscard]] constexpr pointer data() const noexcept { return first; }
+    [[nodiscard]] constexpr reverse_iterator rbegin() const noexcept { return reverse_iterator{this->end()}; }
 
-    [[nodiscard]] constexpr reference operator[](size_type i) const { return first[i]; }
+    [[nodiscard]] constexpr reverse_iterator rend() const noexcept { return reverse_iterator{this->begin()}; }
 
-    [[nodiscard]] constexpr reference front() const { return *first; }
+    [[nodiscard]] constexpr bool empty() const noexcept { return this->first == this->last; }
 
-    [[nodiscard]] constexpr reference back() const { return *(last - 1); }
+    [[nodiscard]] constexpr size_type size() const noexcept { return this->last - this->first; }
+
+    [[nodiscard]] constexpr pointer data() const noexcept { return this->first; }
+
+    [[nodiscard]] constexpr reference operator[](size_type i) const noexcept { return this->first[i]; }
+
+    [[nodiscard]] constexpr reference front() const noexcept { return this->first[0]; }
+
+    [[nodiscard]] constexpr reference back() const noexcept { return *(this->last - 1); }
 };
 #endif
 }  // namespace cntgs
