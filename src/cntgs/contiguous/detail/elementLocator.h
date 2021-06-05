@@ -93,7 +93,6 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     static constexpr auto TYPE_COUNT = sizeof...(Types);
 
     std::byte** last_element_address{};
-    std::byte* start{};
     std::byte* last_element{};
 
   public:
@@ -102,9 +101,8 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     template <std::size_t N>
     ElementLocator(SizeType max_element_count, std::byte* memory_begin, const std::array<SizeType, N>&) noexcept
         : last_element_address(reinterpret_cast<std::byte**>(memory_begin)),
-          start(reinterpret_cast<std::byte*>(
-              detail::align<Traits::MAX_ALIGNMENT>(memory_begin + ElementLocator::reserved_bytes(max_element_count)))),
-          last_element(start)
+          last_element(reinterpret_cast<std::byte*>(
+              detail::align<Traits::MAX_ALIGNMENT>(memory_begin + ElementLocator::reserved_bytes(max_element_count))))
     {
     }
 
