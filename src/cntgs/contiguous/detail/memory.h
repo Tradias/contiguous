@@ -185,7 +185,14 @@ void* align_if(void* ptr) noexcept
     }
     else
     {
-        return ptr;
+        if constexpr (Alignment == 0)
+        {
+            return ptr;
+        }
+        else
+        {
+            return CNTGS_ASSUME_ALIGNED(ptr, Alignment);
+        }
     }
 }
 }  // namespace cntgs::detail
