@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/iterator.h"
 #include "cntgs/contiguous/detail/range.h"
 #include "cntgs/contiguous/span.h"
@@ -20,14 +21,14 @@ static constexpr auto MEMCPY_COMPATIBLE =
                                   U>&& std::is_floating_point_v<T> == std::is_floating_point_v<U>;
 
 template <class T>
-auto copy_using_memcpy(const T* source, std::byte* target, std::size_t size) noexcept
+auto copy_using_memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept
 {
     std::memcpy(target, source, size * sizeof(T));
     return target + size * sizeof(T);
 }
 
 template <class TargetType, class Range>
-auto copy_range_ignore_aliasing(Range&& range, std::byte* address)
+auto copy_range_ignore_aliasing(Range&& range, std::byte* CNTGS_RESTRICT address)
 {
     using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
     if constexpr (detail::HasDataAndSize<std::decay_t<Range>>{} &&
@@ -54,14 +55,14 @@ auto copy_range_ignore_aliasing(Range&& range, std::byte* address)
 }
 
 template <class TargetType, class Range>
-auto copy_ignore_aliasing(Range&& range, std::byte* address, std::size_t)
+auto copy_ignore_aliasing(Range&& range, std::byte* CNTGS_RESTRICT address, std::size_t)
     -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
 {
     return copy_range_ignore_aliasing<TargetType>(std::forward<Range>(range), address);
 }
 
 template <class TargetType, class Iterator>
-auto copy_ignore_aliasing(const Iterator& iterator, std::byte* address, std::size_t size)
+auto copy_ignore_aliasing(const Iterator& iterator, std::byte* CNTGS_RESTRICT address, std::size_t size)
     -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
@@ -172,7 +173,7 @@ void* align(void* ptr) noexcept
 {
     const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
     const auto aligned = detail::align<Alignment>(uintptr);
-    return ptr = reinterpret_cast<void*>(aligned);
+    return reinterpret_cast<void*>(aligned);
 }
 
 template <bool NeedsAlignment, std::size_t Alignment>

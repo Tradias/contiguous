@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/tuple.h"
@@ -98,7 +99,7 @@ class ContiguousElement
     }
 
     template <class Tuple, std::size_t... I>
-    static auto store_and_load(Tuple&& tuple, std::byte* address, std::index_sequence<I...>)
+    static auto store_and_load(Tuple&& tuple, std::byte* CNTGS_RESTRICT address, std::index_sequence<I...>)
     {
         typename Traits::PointerReturnType tuple_of_pointer;
         ((address = Self::template store_and_load_one<detail::IgnoreFirstAlignmentSelector::template VALUE<I>, Types>(
@@ -108,7 +109,8 @@ class ContiguousElement
     }
 
     template <bool NeedsAlignment, class Type, class Result, class Arg>
-    static auto store_and_load_one(Result& result, std::byte* address, Arg&& arg)
+    CNTGS_RESTRICT_RETURN static std::byte* store_and_load_one(Result& CNTGS_RESTRICT result,
+                                                               std::byte* CNTGS_RESTRICT address, Arg&& arg)
     {
         using ParameterTraits = detail::ParameterTraits<Type>;
         const auto fixed_size = Self::get_size(arg);

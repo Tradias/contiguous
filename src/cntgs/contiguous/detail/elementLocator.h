@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
@@ -39,7 +40,8 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
     using TypeAt = std::tuple_element_t<K, std::tuple<Types...>>;
 
     template <class NeedsAlignmentSelector, std::size_t N, class... Args>
-    static auto emplace_back(std::byte* last_element, const std::array<SizeType, N>& fixed_sizes, Args&&... args)
+    CNTGS_RESTRICT_RETURN static std::byte* emplace_back(std::byte* CNTGS_RESTRICT last_element,
+                                                         const std::array<SizeType, N>& fixed_sizes, Args&&... args)
     {
         ((last_element = detail::ParameterTraits<Types>::template store<NeedsAlignmentSelector::template VALUE<I>>(
               std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
@@ -119,7 +121,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     }
 
     template <std::size_t N, class... Args>
-    auto emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
+    void emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
     {
         *this->last_element_address = last_element;
         ++this->last_element_address;
@@ -180,7 +182,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     constexpr SizeType size(std::byte*) const noexcept { return this->element_count; }
 
     template <std::size_t N, class... Args>
-    auto emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
+    void emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
     {
         auto last_element = this->at(element_count);
         ++this->element_count;

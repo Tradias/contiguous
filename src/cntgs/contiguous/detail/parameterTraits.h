@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/parameter.h"
@@ -44,7 +45,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     }
 
     template <bool NeedsAlignment, class Arg>
-    static constexpr auto store(Arg&& arg, std::byte* address, std::size_t)
+    CNTGS_RESTRICT_RETURN static constexpr std::byte* store(Arg&& arg, std::byte* CNTGS_RESTRICT address, std::size_t)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         new (address) Type(std::forward<Arg>(arg));
@@ -169,7 +170,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     }
 
     template <bool NeedsAlignment, class Range>
-    static auto store(Range&& range, std::byte* address, std::size_t)
+    CNTGS_RESTRICT_RETURN static std::byte* store(Range&& range, std::byte* CNTGS_RESTRICT address, std::size_t)
     {
         const auto size = reinterpret_cast<std::size_t*>(address);
         address += MEMORY_OVERHEAD;
@@ -215,7 +216,8 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     }
 
     template <bool NeedsAlignment, class RangeOrIterator>
-    static auto store(RangeOrIterator&& range_or_iterator, std::byte* address, std::size_t size)
+    CNTGS_RESTRICT_RETURN static std::byte* store(RangeOrIterator&& range_or_iterator,
+                                                  std::byte* CNTGS_RESTRICT address, std::size_t size)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         return detail::copy_ignore_aliasing<value_type>(std::forward<RangeOrIterator>(range_or_iterator), address,
