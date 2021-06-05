@@ -17,5 +17,3 @@
 #endif
 
 #define CNTGS_RESTRICT __restrict
-
-#define CNTGS_ASSUME_ALIGNED(ptr, alignment) __builtin_assume_aligned(ptr, alignment)

@@ -82,7 +82,7 @@ auto copy_ignore_aliasing(const Iterator& iterator, std::byte* CNTGS_RESTRICT ad
 }
 
 template <class T>
-auto make_unique_for_overwrite(std::size_t size)
+[[nodiscard]] auto make_unique_for_overwrite(std::size_t size)
 {
 #ifdef __cpp_lib_smart_ptr_for_overwrite
     return std::make_unique_for_overwrite<T>(size);
@@ -141,7 +141,7 @@ struct MaybeOwnedPtr
 };
 
 template <class T>
-auto acquire_or_create_new(detail::MaybeOwnedPtr<T>&& ptr, std::size_t memory_size)
+[[nodiscard]] auto acquire_or_create_new(detail::MaybeOwnedPtr<T>&& ptr, std::size_t memory_size)
 {
     if (ptr)
     {
@@ -150,13 +150,22 @@ auto acquire_or_create_new(detail::MaybeOwnedPtr<T>&& ptr, std::size_t memory_si
     return detail::MaybeOwnedPtr<T>{detail::make_unique_for_overwrite<std::byte[]>(memory_size)};
 }
 
-inline auto align(std::size_t alignment, std::uintptr_t position) noexcept
+template <std::size_t Alignment, class T>
+[[nodiscard]] constexpr T* assume_aligned(T* const ptr) noexcept
+{
+#ifdef __cpp_lib_assume_aligned
+    return std::assume_aligned<Alignment>(ptr);
+#endif
+    return static_cast<T*>(__builtin_assume_aligned(ptr, Alignment));
+}
+
+[[nodiscard]] constexpr auto align(std::size_t alignment, std::uintptr_t position) noexcept
 {
     return (position - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
 }
 
 template <std::size_t Alignment>
-auto align(std::uintptr_t position) noexcept
+[[nodiscard]] constexpr auto align(std::uintptr_t position) noexcept
 {
     if constexpr (Alignment == 0)
     {
@@ -169,7 +178,7 @@ auto align(std::uintptr_t position) noexcept
 }
 
 template <std::size_t Alignment>
-void* align(void* ptr) noexcept
+[[nodiscard]] void* align(void* ptr) noexcept
 {
     const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
     const auto aligned = detail::align<Alignment>(uintptr);
@@ -177,7 +186,7 @@ void* align(void* ptr) noexcept
 }
 
 template <bool NeedsAlignment, std::size_t Alignment>
-void* align_if(void* ptr) noexcept
+[[nodiscard]] void* align_if(void* ptr) noexcept
 {
     if constexpr (NeedsAlignment)
     {
@@ -191,7 +200,7 @@ void* align_if(void* ptr) noexcept
         }
         else
         {
-            return CNTGS_ASSUME_ALIGNED(ptr, Alignment);
+            return detail::assume_aligned<Alignment>(ptr);
         }
     }
 }
