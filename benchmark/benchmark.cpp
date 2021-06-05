@@ -10,13 +10,34 @@
 
 using namespace cntgs::test;
 
-using FixedSizeVector = cntgs::ContiguousVector<cntgs::FixedSize<float>>;
-using VaryingSizeVector = cntgs::ContiguousVector<cntgs::VaryingSize<float>>;
-
 static constexpr auto FLOAT_MAX = 100000.f;
 static std::random_device rd;
 static std::mt19937 gen(rd());
 static std::uniform_real_distribution<float> float_dist(0.f, FLOAT_MAX);
+
+using FixedSizeVector = cntgs::ContiguousVector<cntgs::FixedSize<float>>;
+using VaryingSizeVector = cntgs::ContiguousVector<cntgs::VaryingSize<float>>;
+
+template <std::size_t N, std::size_t K>
+struct TwoArray
+{
+    std::array<float, N> a;
+    float b;
+    std::array<float, K> c;
+};
+
+struct TwoVector
+{
+    std::pmr::vector<float> a;
+    float b;
+    std::pmr::vector<float> c;
+};
+
+struct VectorVector
+{
+    std::unique_ptr<std::pmr::monotonic_buffer_resource> resource;
+    std::pmr::vector<std::pmr::vector<float>> vector{resource.get()};
+};
 
 auto work(float e)
 {
@@ -94,11 +115,18 @@ auto random_lookup(const cntgs::ContiguousVector<T...>& vector, const std::vecto
     };
 }
 
-struct VectorVector
+static auto random_lookup(const VectorVector& vector, const std::vector<size_t>& indices)
 {
-    std::unique_ptr<std::pmr::monotonic_buffer_resource> resource;
-    std::pmr::vector<std::pmr::vector<float>> vector{resource.get()};
-};
+    return [&] {
+        for (auto&& j : indices)
+        {
+            for (auto&& elem : vector.vector[j])
+            {
+                work(elem);
+            }
+        }
+    };
+}
 
 template <std::size_t N>
 auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_size)
@@ -239,34 +267,11 @@ void random_lookup_varying(std::size_t elements, std::uint32_t variance)
     ankerl::nanobench::Bench().run(
         format("random_lookup: std::pmr::vector<std::pmr::vector<float>> elements: {} variance: 0-{}", elements,
                variance),
-        [&] {
-            for (auto&& j : indices)
-            {
-                for (auto&& elem : vector_vector.vector[j])
-                {
-                    work(elem);
-                }
-            }
-        });
+        random_lookup(vector_vector, indices));
     ankerl::nanobench::Bench().run(
         format("random_lookup: ContiguousVector<VaryingSize<float>> elements: {} variance: 0-{}", elements, variance),
         random_lookup(varying_size_vector, indices));
 }
-
-template <std::size_t N, std::size_t K>
-struct TwoArray
-{
-    std::array<float, N> a;
-    float b;
-    std::array<float, K> c;
-};
-
-struct TwoVector
-{
-    std::pmr::vector<float> a;
-    float b;
-    std::pmr::vector<float> c;
-};
 
 template <std::size_t N, std::size_t K>
 void full_iteration_two(std::size_t elements, std::size_t fixed_size)

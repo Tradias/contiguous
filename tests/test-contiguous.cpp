@@ -231,6 +231,20 @@ TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript 
     CHECK_EQ(STRING2, *string_ptr);
 }
 
+struct NotNothrowDestructible
+{
+    ~NotNothrowDestructible() noexcept(false) {}
+};
+
+TEST_CASE("ContiguousTest: ContiguousVector is conditionally nothrow destructible")
+{
+    CHECK(!std::is_nothrow_destructible_v<
+          cntgs::ContiguousVector<cntgs::FixedSize<NotNothrowDestructible>, NotNothrowDestructible>>);
+    CHECK(!std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::VaryingSize<NotNothrowDestructible>>>);
+    CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::FixedSize<float>, float>>);
+    CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::VaryingSize<float>>>);
+}
+
 template <class T>
 void check_iterator(T&& vector)
 {

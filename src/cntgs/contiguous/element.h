@@ -25,9 +25,6 @@ class ContiguousElement
     using Locator = detail::BaseElementLocatorT<Types...>;
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
-    static constexpr auto INVERSE_FIXED_SIZE_INDICES = detail::calculate_inverse_fixed_size_indices(
-        detail::TypeList<Types...>{}, std::make_index_sequence<Self::TYPE_COUNT>{});
-    static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT = Traits::CONTIGUOUS_FIXED_SIZE_COUNT;
 
   public:
     StorageType memory;

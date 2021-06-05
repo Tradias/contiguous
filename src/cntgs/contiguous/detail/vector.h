@@ -24,22 +24,4 @@ constexpr auto calculate_fixed_size_indices(detail::TypeList<T...>, std::index_s
         ...);
     return fixed_size_indices;
 }
-
-template <class... T, std::size_t... I>
-constexpr auto calculate_inverse_fixed_size_indices(detail::TypeList<T...>, std::index_sequence<I...>) noexcept
-{
-    constexpr auto FIXED_SIZE_COUNT = (std::size_t{} + ... + detail::ParameterTraits<T>::IS_FIXED_SIZE);
-    std::array<std::size_t, FIXED_SIZE_COUNT> fixed_size_indices{};
-    [[maybe_unused]] std::size_t index = 0;
-    (
-        [&] {
-            if constexpr (detail::ParameterTraits<T>::IS_FIXED_SIZE)
-            {
-                fixed_size_indices[index] = I;
-                ++index;
-            }
-        }(),
-        ...);
-    return fixed_size_indices;
-}
 }  // namespace cntgs::detail
