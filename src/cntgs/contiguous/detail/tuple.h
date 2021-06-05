@@ -57,4 +57,16 @@ constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexce
 {
     return convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
 }
+
+template <std::size_t I, class Tuple>
+constexpr decltype(auto) extract(const Tuple& tuple) noexcept
+{
+    return std::get<I>(tuple);
+}
+
+template <std::size_t I, class Tuple>
+constexpr decltype(auto) extract(Tuple& tuple) noexcept
+{
+    return std::move(std::get<I>(tuple));
+}
 }  // namespace cntgs::detail
