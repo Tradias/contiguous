@@ -3,7 +3,9 @@
 #include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/math.h"
+#include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
+#include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
 #include <array>
@@ -220,7 +222,7 @@ template <class T>
 auto type_erase_element_locator(T&& locator) noexcept
 {
     TypeErasedElementLocator result;
-    new (&result) T(std::forward<T>(locator));
+    detail::construct_at(reinterpret_cast<detail::RemoveCvrefT<T>*>(&result), std::forward<T>(locator));
     return result;
 }
 }  // namespace cntgs::detail

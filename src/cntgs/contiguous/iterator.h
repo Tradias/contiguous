@@ -27,7 +27,26 @@ class ContiguousVectorIterator
     {
     }
 
-    constexpr ContiguousVectorIterator(Vector& vector) noexcept : ContiguousVectorIterator(vector, {}) {}
+    explicit constexpr ContiguousVectorIterator(Vector& vector) noexcept : ContiguousVectorIterator(vector, {}) {}
+
+    template <class TVector>
+    constexpr ContiguousVectorIterator(const ContiguousVectorIterator<TVector>& other) noexcept
+        : vector(other.vector), index(index)
+    {
+    }
+
+    ContiguousVectorIterator(const ContiguousVectorIterator&) = default;
+    ContiguousVectorIterator(ContiguousVectorIterator&&) = default;
+
+    template <class TVector>
+    constexpr ContiguousVectorIterator& operator=(const ContiguousVectorIterator<TVector>& other) noexcept
+    {
+        this->vector = other.vector;
+        this->index = other.index;
+    }
+
+    ContiguousVectorIterator& operator=(const ContiguousVectorIterator&) = default;
+    ContiguousVectorIterator& operator=(ContiguousVectorIterator&&) = default;
 
     [[nodiscard]] constexpr reference operator*() const noexcept { return (*vector)[index]; }
 

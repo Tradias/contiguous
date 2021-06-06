@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <new>
 #include <type_traits>
 
 namespace cntgs::detail
@@ -48,7 +49,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     CNTGS_RESTRICT_RETURN static constexpr std::byte* store(Arg&& arg, std::byte* CNTGS_RESTRICT address, std::size_t)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        new (address) Type(std::forward<Arg>(arg));
+        detail::construct_at(reinterpret_cast<value_type*>(address), std::forward<Arg>(arg));
         return address + detail::MAX_SIZE_T_OF<VALUE_BYTES, ALIGNMENT>;
     }
 

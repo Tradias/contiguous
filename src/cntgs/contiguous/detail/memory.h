@@ -91,6 +91,16 @@ template <class T>
 #endif
 }
 
+template <class T, class... Args>
+constexpr T* construct_at(T* ptr, Args&&... args)
+{
+#ifdef __cpp_lib_ranges
+    return std::construct_at(ptr, std::forward<Args>(args)...);
+#else
+    return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(std::forward<Args>(args)...);
+#endif
+}
+
 template <std::size_t N>
 struct alignas(N) AlignedByte
 {

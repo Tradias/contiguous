@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <memory>
+#include <new>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -32,6 +33,7 @@ class ContiguousVector
     using ElementLocator = detail::ElementLocatorT<Types...>;
     using StorageType = typename Traits::StorageType;
 
+    static constexpr std::size_t GROWTH_FACTOR = 2;
     static constexpr bool IS_MIXED = Traits::IS_MIXED;
     static constexpr bool IS_ALL_FIXED_SIZE = Traits::IS_ALL_FIXED_SIZE;
     static constexpr bool IS_ALL_VARYING_SIZE = Traits::IS_ALL_VARYING_SIZE;
@@ -134,12 +136,30 @@ class ContiguousVector
     template <class... Args>
     void emplace_back(Args&&... args)
     {
-        if (this->max_element_count <= this->size())
-        {
-            this->grow();
-        }
         this->locator.emplace_back(this->fixed_sizes, std::forward<Args>(args)...);
     }
+
+    void resize(size_type new_size)
+    {
+        if (this->size() <= new_size)
+        {
+            this->grow(new_size, {});
+        }
+        else
+        {
+            this->shrink_and_destruct(new_size);
+        }
+    }
+
+    void reserve(size_type new_max_element_count, size_type new_varying_size_bytes = {})
+    {
+        if (this->max_element_count <= new_max_element_count)
+        {
+            this->grow(new_max_element_count, new_varying_size_bytes);
+        }
+    }
+
+    void shrink(size_type new_max_element_count) { this->shrink_and_destruct(new_max_element_count); }
 
     reference operator[](size_type i) noexcept { return this->subscript_operator(i); }
 
@@ -159,13 +179,13 @@ class ContiguousVector
 
     constexpr size_type memory_consumption() const noexcept { return this->memory_size; }
 
-    constexpr iterator begin() noexcept { return {*this}; }
+    constexpr iterator begin() noexcept { return iterator{*this}; }
 
-    constexpr const_iterator begin() const noexcept { return {*this}; }
+    constexpr const_iterator begin() const noexcept { return const_iterator{*this}; }
 
-    constexpr iterator end() noexcept { return {*this, this->size()}; }
+    constexpr iterator end() noexcept { return iterator{*this, this->size()}; }
 
-    constexpr const_iterator end() const noexcept { return {*this, this->size()}; }
+    constexpr const_iterator end() const noexcept { return const_iterator{*this, this->size()}; }
 
     // private API
   private:
@@ -217,44 +237,56 @@ class ContiguousVector
         return detail::convert_tuple_to<const_reference>(tuple_of_pointer);
     }
 
-    void grow()
+    void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
     {
-        if constexpr (Traits::IS_ALL_FIXED_SIZE)
-        {
-            using StorageElementType = typename StorageType::element_type;
-            const auto new_max_element_count = std::max(size_type{1}, this->max_element_count) * 2;
-            const auto new_memory_size =
-                this->calculate_needed_memory_size(new_max_element_count, {}, this->fixed_sizes);
-            auto new_memory = detail::make_maybe_owned_ptr<StorageElementType[]>(new_memory_size);
-            this->locator.~ElementLocator();
-            auto* new_locator =
-                new (&this->locator) ElementLocator{new_max_element_count, new_memory.get(), this->fixed_sizes};
-            new_locator->resize(this->max_element_count, new_memory.get());
-            std::memcpy(new_memory.get(), this->memory.get(), this->memory_size);
-            this->memory_size = new_memory_size;
-            this->max_element_count = new_max_element_count;
-            this->memory = std::move(new_memory);
-        }
+        using StorageElementType = typename StorageType::element_type;
+        const auto new_memory_size =
+            this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
+        auto new_memory = detail::make_maybe_owned_ptr<StorageElementType[]>(new_memory_size);
+        this->locator.~ElementLocator();
+        auto* new_locator =
+            detail::construct_at(&this->locator, new_max_element_count, new_memory.get(), this->fixed_sizes);
+        new_locator->resize(this->max_element_count, new_memory.get());
+        std::memcpy(new_memory.get(), this->memory.get(), this->memory_size);
+        this->memory_size = new_memory_size;
+        this->max_element_count = new_max_element_count;
+        this->memory = std::move(new_memory);
     }
 
-    void destruct() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
+    void grow()
+    {
+        const auto new_max_element_count =
+            std::max(size_type{1} + this->max_element_count, this->max_element_count * Self::GROWTH_FACTOR);
+        this->grow(new_max_element_count, {});
+    }
+
+    void shrink_and_destruct(size_type new_max_element_count)
+    {
+        this->destruct(this->begin() + std::min(new_max_element_count, this->size()), this->end());
+        this->max_element_count = new_max_element_count;
+        this->locator.resize(new_max_element_count, this->memory.get());
+    }
+
+    void destruct() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE) { this->destruct(this->begin(), this->end()); }
+
+    void destruct([[maybe_unused]] iterator first,
+                  [[maybe_unused]] iterator last) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
     {
         if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            if (memory && memory.is_owned)
+            if (this->memory && this->memory.is_owned)
             {
-                destruct(std::make_index_sequence<sizeof...(Types)>{});
+                destruct(first, last, std::make_index_sequence<sizeof...(Types)>{});
             }
         }
     }
 
     template <std::size_t... I>
-    void destruct(std::index_sequence<I...>) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
+    static void destruct(iterator first, iterator last,
+                         std::index_sequence<I...>) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
     {
-        for (auto&& element : *this)
-        {
-            (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...);
-        }
+        std::for_each(first, last,
+                      [](auto&& element) { (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...); });
     }
 };
 
