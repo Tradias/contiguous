@@ -14,6 +14,7 @@
 #include "cntgs/contiguous/tuple.h"
 #include "cntgs/contiguous/typeErasedVector.h"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <tuple>
@@ -133,6 +134,10 @@ class ContiguousVector
     template <class... Args>
     void emplace_back(Args&&... args)
     {
+        if (this->max_element_count <= this->size())
+        {
+            this->grow();
+        }
         this->locator.emplace_back(this->fixed_sizes, std::forward<Args>(args)...);
     }
 
@@ -197,7 +202,7 @@ class ContiguousVector
 
     auto load_element_at(size_type i) const noexcept
     {
-        return this->locator.load_element_at(i, this->memory.get(), fixed_sizes);
+        return this->locator.load_element_at(i, this->memory.get(), this->fixed_sizes);
     }
 
     auto subscript_operator(size_type i) noexcept
@@ -210,6 +215,26 @@ class ContiguousVector
     {
         const auto tuple_of_pointer = load_element_at(i);
         return detail::convert_tuple_to<const_reference>(tuple_of_pointer);
+    }
+
+    void grow()
+    {
+        if constexpr (Traits::IS_ALL_FIXED_SIZE)
+        {
+            using StorageElementType = typename StorageType::element_type;
+            const auto new_max_element_count = std::max(size_type{1}, this->max_element_count) * 2;
+            const auto new_memory_size =
+                this->calculate_needed_memory_size(new_max_element_count, {}, this->fixed_sizes);
+            auto new_memory = detail::make_maybe_owned_ptr<StorageElementType[]>(new_memory_size);
+            this->locator.~ElementLocator();
+            auto* new_locator =
+                new (&this->locator) ElementLocator{new_max_element_count, new_memory.get(), this->fixed_sizes};
+            new_locator->resize(this->max_element_count, new_memory.get());
+            std::memcpy(new_memory.get(), this->memory.get(), this->memory_size);
+            this->memory_size = new_memory_size;
+            this->max_element_count = new_max_element_count;
+            this->memory = std::move(new_memory);
+        }
     }
 
     void destruct() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)

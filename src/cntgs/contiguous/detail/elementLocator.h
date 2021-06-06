@@ -100,8 +100,8 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
   public:
     ElementLocator() = default;
 
-    template <std::size_t N>
-    ElementLocator(SizeType max_element_count, std::byte* memory_begin, const std::array<SizeType, N>&) noexcept
+    ElementLocator(SizeType max_element_count, std::byte* memory_begin,
+                   const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&) noexcept
         : last_element_address(reinterpret_cast<std::byte**>(memory_begin)),
           last_element(reinterpret_cast<std::byte*>(
               detail::align<Traits::MAX_ALIGNMENT>(memory_begin + ElementLocator::reserved_bytes(max_element_count))))
@@ -118,6 +118,11 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     SizeType size(std::byte* memory_begin) const noexcept
     {
         return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
+    }
+
+    void resize(SizeType new_size, std::byte* memory_begin) noexcept
+    {
+        this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 
     template <std::size_t N, class... Args>
@@ -168,8 +173,8 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
   public:
     AllFixedSizeElementLocator() = default;
 
-    template <std::size_t N>
-    AllFixedSizeElementLocator(SizeType, std::byte* memory_begin, const std::array<SizeType, N>& fixed_sizes) noexcept
+    AllFixedSizeElementLocator(SizeType, std::byte* memory_begin,
+                               const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
         : stride(Base::calculate_element_size(fixed_sizes)),
           start(reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(memory_begin)))
     {
@@ -180,6 +185,8 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     constexpr bool empty(std::byte*) const noexcept { return this->element_count == SizeType{}; }
 
     constexpr SizeType size(std::byte*) const noexcept { return this->element_count; }
+
+    constexpr void resize(SizeType new_size, std::byte*) noexcept { this->element_count = new_size; }
 
     template <std::size_t N, class... Args>
     void emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)

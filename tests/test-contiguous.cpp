@@ -3,6 +3,7 @@
 
 #include <doctest/doctest.h>
 
+#include <any>
 #include <array>
 #include <list>
 #include <optional>
@@ -304,6 +305,13 @@ TEST_CASE("ContiguousTest: swap and iter_swap with ContiguousVectorIterator of F
     }
 }
 
+auto array_one_unique_ptr(int v1 = 10) { return std::array{std::make_unique<int>(v1)}; }
+
+auto array_two_unique_ptr(int v1 = 30, int v2 = 40)
+{
+    return std::array{std::make_unique<int>(v1), std::make_unique<int>(v2)};
+}
+
 TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of FixedSize std::unique_ptr")
 {
     cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>> vector{2, {1}};
@@ -320,15 +328,13 @@ TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of VaryingS
 {
     cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, cntgs::VaryingSize<std::unique_ptr<int>>> vector{
         2, 10 * sizeof(std::unique_ptr<int>)};
-    auto v1 = [&] { return std::array{std::make_unique<int>(10)}; };
-    auto v2 = [&] { return std::array{std::make_unique<int>(20), std::make_unique<int>(30)}; };
-    vector.emplace_back(v1(), v2());
-    vector.emplace_back(v2(), v1());
+    vector.emplace_back(array_one_unique_ptr(), array_two_unique_ptr());
+    vector.emplace_back(array_two_unique_ptr(), array_one_unique_ptr());
     std::iter_swap(vector.begin(), ++vector.begin());
     auto&& [a, b] = vector[0];
-    CHECK_EQ(20, *a[0]);
+    CHECK_EQ(30, *a[0]);
     CHECK_EQ(10, *b[0]);
-    CHECK_EQ(30, *b[1]);
+    CHECK_EQ(40, *b[1]);
 }
 
 TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
@@ -391,6 +397,33 @@ TEST_CASE("ContiguousTest: std::string TypeErasedVector")
     CHECK_EQ(STRING1, string_one);
     auto&& [string_two] = restored[1];
     CHECK_EQ(STRING2, string_two);
+}
+
+TEST_CASE("ContiguousTest: OneFixed grow on emplace_back")
+{
+    std::array<float, 2> floats2{-1.f, -2.f};
+    OneFixed vector{1, {FLOATS1.size()}};
+    vector.emplace_back(10u, FLOATS1);
+    vector.emplace_back(20u, floats2);
+    auto&& [a, b] = vector[0];
+    CHECK_EQ(10u, a);
+    CHECK(test::range_equal(FLOATS1, b));
+    auto&& [c, d] = vector[1];
+    CHECK_EQ(20u, c);
+    CHECK(test::range_equal(floats2, d));
+}
+
+TEST_CASE("ContiguousTest: std::any OneFixed grow on emplace_back")
+{
+    cntgs::ContiguousVector<cntgs::FixedSize<std::any>, std::any> vector{1, {1}};
+    vector.emplace_back(std::array{STRING1}, STRING1);
+    vector.emplace_back(std::array{STRING2}, STRING2);
+    auto&& [a, b] = vector[0];
+    CHECK_EQ(STRING1, std::any_cast<std::string>(a.front()));
+    CHECK_EQ(STRING1, std::any_cast<std::string>(b));
+    auto&& [c, d] = vector[1];
+    CHECK_EQ(STRING2, std::any_cast<std::string>(c.front()));
+    CHECK_EQ(STRING2, std::any_cast<std::string>(d));
 }
 
 using PlainAligned = cntgs::ContiguousVector<char, cntgs::AlignAs<uint32_t, 8>>;

@@ -103,6 +103,10 @@ using AlignedByteT = std::conditional_t<(N == 0), std::byte, AlignedByte<N>>;
 template <class T>
 struct MaybeOwnedPtr
 {
+    using pointer = typename std::unique_ptr<T>::pointer;
+    using element_type = typename std::unique_ptr<T>::element_type;
+    using deleter_type = typename std::unique_ptr<T>::deleter_type;
+
     std::unique_ptr<T> ptr;
     bool is_owned{};
 
@@ -141,13 +145,19 @@ struct MaybeOwnedPtr
 };
 
 template <class T>
+[[nodiscard]] auto make_maybe_owned_ptr(std::size_t memory_size)
+{
+    return detail::MaybeOwnedPtr<T>{detail::make_unique_for_overwrite<T>(memory_size)};
+}
+
+template <class T>
 [[nodiscard]] auto acquire_or_create_new(detail::MaybeOwnedPtr<T>&& ptr, std::size_t memory_size)
 {
     if (ptr)
     {
         return std::move(ptr);
     }
-    return detail::MaybeOwnedPtr<T>{detail::make_unique_for_overwrite<std::byte[]>(memory_size)};
+    return detail::make_maybe_owned_ptr<T>(memory_size);
 }
 
 template <std::size_t Alignment, class T>
