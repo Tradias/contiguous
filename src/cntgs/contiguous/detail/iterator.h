@@ -1,12 +1,9 @@
 #pragma once
 
-#include <version>
-
-#ifndef __cpp_concepts
 #include "cntgs/contiguous/detail/typeUtils.h"
-#endif
 
 #include <iterator>
+#include <version>
 
 namespace cntgs::detail
 {
@@ -18,10 +15,6 @@ struct ArrowProxy
     constexpr const T* operator->() const noexcept { return &t; }
 };
 
-#ifdef __cpp_concepts
-template <class I>
-concept ContiguousIterator = std::contiguous_iterator<I>;
-#else
 template <class I>
 static constexpr auto ContiguousIterator =
     detail::DerivedFrom<typename std::iterator_traits<I>::iterator_category, std::random_access_iterator_tag>&&
@@ -30,5 +23,4 @@ static constexpr auto ContiguousIterator =
                            detail::RemoveCvrefT<typename std::iterator_traits<I>::reference>>&&
                 std::is_same_v<decltype(std::declval<const I&>().operator->()),
                                std::add_pointer_t<typename std::iterator_traits<I>::reference>>;
-#endif
 }  // namespace cntgs::detail

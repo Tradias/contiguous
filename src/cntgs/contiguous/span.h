@@ -9,10 +9,6 @@
 
 namespace cntgs
 {
-#ifdef __cpp_lib_span
-template <class T>
-using Span = std::span<T>;
-#else
 template <class T>
 struct Span
 {
@@ -68,6 +64,9 @@ struct Span
     [[nodiscard]] constexpr reference front() const noexcept { return this->first[0]; }
 
     [[nodiscard]] constexpr reference back() const noexcept { return *(this->last - 1); }
-};
+
+#ifdef __cpp_lib_span
+    constexpr operator std::span<T>() const noexcept { return std::span<T>{first, last}; }
 #endif
+};
 }  // namespace cntgs

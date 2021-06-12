@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <version>
 
 namespace test_contiguous
 {
@@ -432,6 +433,17 @@ TEST_CASE("ContiguousTest: std::unique_ptr VaryingSize reserve and shrink")
     CHECK_EQ(10, *e.front());
     CHECK_EQ(20, *f);
 }
+
+#ifdef __cpp_lib_span
+TEST_CASE("ContiguousTest: cntgs::Span can be implicitly converted to std::span")
+{
+    std::array<int, 1> ints{42};
+    cntgs::Span<int> span{ints.data(), ints.size()};
+    std::span<int> actual = span;
+    REQUIRE_EQ(1, actual.size());
+    CHECK_EQ(42, actual.front());
+}
+#endif
 
 using PlainAligned = cntgs::ContiguousVector<char, cntgs::AlignAs<uint32_t, 8>>;
 using OneVaryingAligned = cntgs::ContiguousVector<cntgs::VaryingSize<cntgs::AlignAs<float, 16>>, uint32_t>;

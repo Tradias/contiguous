@@ -81,25 +81,25 @@ auto copy_ignore_aliasing(const Iterator& iterator, std::byte* CNTGS_RESTRICT ad
     }
 }
 
+#ifdef __cpp_lib_smart_ptr_for_overwrite
+using std::make_unique_for_overwrite;
+#else
 template <class T>
 [[nodiscard]] auto make_unique_for_overwrite(std::size_t size)
 {
-#ifdef __cpp_lib_smart_ptr_for_overwrite
-    return std::make_unique_for_overwrite<T>(size);
-#else
     return std::unique_ptr<T>(new std::remove_extent_t<T>[size]);
-#endif
 }
+#endif
 
+#ifdef __cpp_lib_ranges
+using std::construct_at;
+#else
 template <class T, class... Args>
 constexpr T* construct_at(T* ptr, Args&&... args)
 {
-#ifdef __cpp_lib_ranges
-    return std::construct_at(ptr, std::forward<Args>(args)...);
-#else
     return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(std::forward<Args>(args)...);
-#endif
 }
+#endif
 
 template <std::size_t N>
 struct alignas(N) AlignedByte
@@ -170,14 +170,15 @@ template <class T>
     return detail::make_maybe_owned_ptr<T>(memory_size);
 }
 
+#ifdef __cpp_lib_assume_aligned
+using std::assume_aligned;
+#else
 template <std::size_t Alignment, class T>
 [[nodiscard]] constexpr T* assume_aligned(T* const ptr) noexcept
 {
-#ifdef __cpp_lib_assume_aligned
-    return std::assume_aligned<Alignment>(ptr);
-#endif
     return static_cast<T*>(__builtin_assume_aligned(ptr, Alignment));
 }
+#endif
 
 [[nodiscard]] constexpr auto align(std::size_t alignment, std::uintptr_t position) noexcept
 {
