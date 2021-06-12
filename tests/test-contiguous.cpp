@@ -399,18 +399,19 @@ TEST_CASE("ContiguousTest: std::string TypeErasedVector")
     CHECK_EQ(STRING2, string_two);
 }
 
-// TEST_CASE("ContiguousTest: std::any OneFixed grow on emplace_back")
-// {
-//     cntgs::ContiguousVector<cntgs::FixedSize<std::any>, std::any> vector{1, {1}};
-//     vector.emplace_back(std::array{STRING1}, STRING1);
-//     vector.emplace_back(std::array{STRING2}, STRING2);
-//     auto&& [a, b] = vector[0];
-//     CHECK_EQ(STRING1, std::any_cast<std::string>(a.front()));
-//     CHECK_EQ(STRING1, std::any_cast<std::string>(b));
-//     auto&& [c, d] = vector[1];
-//     CHECK_EQ(STRING2, std::any_cast<std::string>(c.front()));
-//     CHECK_EQ(STRING2, std::any_cast<std::string>(d));
-// }
+TEST_CASE("ContiguousTest: std::any OneFixed emplace_back->reserve->emplace_back")
+{
+    cntgs::ContiguousVector<cntgs::FixedSize<std::any>, std::any> vector{1, {1}};
+    vector.emplace_back(std::array{STRING1}, STRING1);
+    vector.reserve(2);
+    vector.emplace_back(std::array{STRING2}, STRING2);
+    auto&& [a, b] = vector[0];
+    CHECK_EQ(STRING1, std::any_cast<std::string>(a.front()));
+    CHECK_EQ(STRING1, std::any_cast<std::string>(b));
+    auto&& [c, d] = vector[1];
+    CHECK_EQ(STRING2, std::any_cast<std::string>(c.front()));
+    CHECK_EQ(STRING2, std::any_cast<std::string>(d));
+}
 
 TEST_CASE("ContiguousTest: std::unique_ptr VaryingSize reserve and shrink")
 {
@@ -420,16 +421,14 @@ TEST_CASE("ContiguousTest: std::unique_ptr VaryingSize reserve and shrink")
     auto&& [a, b] = vector[0];
     CHECK_EQ(10, *a.front());
     CHECK_EQ(20, *b);
-    vector.shrink(0);
-    CHECK_EQ(0, vector.size());
-    vector.reserve(2, 5 * sizeof(std::unique_ptr<int>));
+    vector.reserve(3, 8 * sizeof(std::unique_ptr<int>));
     vector.emplace_back(array_two_unique_ptr(), std::make_unique<int>(50));
     vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    auto&& [c, d] = vector[0];
+    auto&& [c, d] = vector[1];
     CHECK_EQ(30, *c.front());
     CHECK_EQ(40, *c.back());
     CHECK_EQ(50, *d);
-    auto&& [e, f] = vector[1];
+    auto&& [e, f] = vector[2];
     CHECK_EQ(10, *e.front());
     CHECK_EQ(20, *f);
 }

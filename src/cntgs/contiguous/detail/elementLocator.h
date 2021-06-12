@@ -90,11 +90,13 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     using Base = detail::BaseElementLocatorT<Types...>;
     using Traits = typename Base::Traits;
     using SizeType = typename Base::SizeType;
+    using DifferenceType = std::ptrdiff_t;
 
     template <class T>
     using FixedSizeGetter = typename Base::template FixedSizeGetter<T>;
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
+    static constexpr auto RESERVED_BYTES_PER_ELEMENT = sizeof(std::byte*);
 
     std::byte** last_element_address{};
     std::byte* last_element{};
@@ -110,7 +112,32 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     {
     }
 
-    static constexpr auto reserved_bytes(SizeType element_count) noexcept { return element_count * sizeof(std::byte*); }
+    ElementLocator(SizeType max_element_count, std::byte* memory_begin,
+                   const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&, ElementLocator& other,
+                   SizeType other_max_element_count, std::byte* other_memory_begin) noexcept
+        : last_element_address(reinterpret_cast<std::byte**>(memory_begin))
+    {
+        const auto size_diff =
+            static_cast<DifferenceType>(max_element_count) - static_cast<DifferenceType>(other_max_element_count);
+        auto other_begin = reinterpret_cast<std::byte**>(other_memory_begin);
+        while (other_begin != other.last_element_address)
+        {
+            *this->last_element_address =
+                memory_begin + std::distance(other_memory_begin, *other_begin) + size_diff * RESERVED_BYTES_PER_ELEMENT;
+            ++this->last_element_address;
+            ++other_begin;
+        }
+        const auto other_used_memory_size = std::distance(other_memory_begin, other.last_element);
+        this->last_element = memory_begin + other_used_memory_size + size_diff * RESERVED_BYTES_PER_ELEMENT;
+        const auto other_reserved_bytes = ElementLocator::reserved_bytes(other_max_element_count);
+        std::memcpy(memory_begin + ElementLocator::reserved_bytes(max_element_count),
+                    other_memory_begin + other_reserved_bytes, other_used_memory_size - other_reserved_bytes);
+    }
+
+    static constexpr auto reserved_bytes(SizeType element_count) noexcept
+    {
+        return element_count * RESERVED_BYTES_PER_ELEMENT;
+    }
 
     bool empty(std::byte* memory_begin) const noexcept
     {
@@ -120,11 +147,6 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     SizeType size(std::byte* memory_begin) const noexcept
     {
         return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
-    }
-
-    void resize(SizeType new_size, std::byte* memory_begin) noexcept
-    {
-        this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 
     template <std::size_t N, class... Args>
@@ -144,8 +166,8 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
 
     auto at(std::byte* memory_begin, SizeType index) const noexcept
     {
-        const auto element_address = reinterpret_cast<std::byte**>(memory_begin);
-        return element_address[index];
+        const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
+        return element_addresses_begin[index];
     }
 };
 
@@ -182,13 +204,21 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     {
     }
 
+    AllFixedSizeElementLocator(SizeType, std::byte* memory_begin,
+                               const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&,
+                               AllFixedSizeElementLocator& other, SizeType, std::byte* other_memory_begin) noexcept
+        : element_count(other.element_count),
+          stride(other.stride),
+          start(reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(memory_begin)))
+    {
+        std::memcpy(memory_begin, other_memory_begin, other.size({}) * this->stride);
+    }
+
     static constexpr auto reserved_bytes(SizeType) noexcept { return SizeType{}; }
 
     constexpr bool empty(std::byte*) const noexcept { return this->element_count == SizeType{}; }
 
     constexpr SizeType size(std::byte*) const noexcept { return this->element_count; }
-
-    constexpr void resize(SizeType new_size, std::byte*) noexcept { this->element_count = new_size; }
 
     template <std::size_t N, class... Args>
     void emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)

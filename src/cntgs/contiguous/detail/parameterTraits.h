@@ -46,7 +46,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     }
 
     template <bool NeedsAlignment, class Arg>
-    CNTGS_RESTRICT_RETURN static constexpr std::byte* store(Arg&& arg, std::byte* CNTGS_RESTRICT address, std::size_t)
+    CNTGS_RESTRICT_RETURN static std::byte* store(Arg&& arg, std::byte* CNTGS_RESTRICT address, std::size_t)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         detail::construct_at(reinterpret_cast<value_type*>(address), std::forward<Arg>(arg));
@@ -72,26 +72,27 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         return start_address(return_type) + VALUE_BYTES;
     }
 
-    template <class Source, class Target>
-    static constexpr void copy(const Source& source, Target& target)
-    {
-        target = source;
-    }
+    static constexpr void copy(ConstReferenceReturnType source, ReferenceReturnType target) { target = source; }
 
-    template <class Source, class Target>
-    static constexpr void move(Source&& source, Target& target)
+    template <class Source>
+    static constexpr void move(Source&& source, ReferenceReturnType target)
     {
         target = std::move(source);
     }
 
-    template <class Source, class Target>
-    static void swap(Source& lhs, Target& rhs)
+    template <class Source>
+    static constexpr void uninitialized_move(Source&& source, value_type* target)
+    {
+        detail::construct_at(target, std::move(source));
+    }
+
+    static constexpr void swap(ReferenceReturnType lhs, ReferenceReturnType rhs)
     {
         using std::swap;
         swap(lhs, rhs);
     }
 
-    static constexpr void destroy(value_type& value) noexcept(IS_NOTHROW_DESTRUCTIBLE) { value.~value_type(); }
+    static constexpr void destroy(ReferenceReturnType value) noexcept(IS_NOTHROW_DESTRUCTIBLE) { value.~value_type(); }
 };
 
 struct BaseContiguousParameterTraits
@@ -108,22 +109,29 @@ struct BaseContiguousParameterTraits
         return reinterpret_cast<std::byte*>(value.data() + value.size());
     }
 
-    template <class Source, class Target>
-    static void copy(const Source& source, Target& target)
+    template <class T, class U>
+    static void copy(const cntgs::Span<T>& source, cntgs::Span<U>& target)
     {
         const auto size = std::min(std::size(source), std::size(target));
         std::copy_n(std::begin(source), size, std::begin(target));
     }
 
-    template <class Source, class Target>
-    static void move(Source&& source, Target& target)
+    template <class Source, class T>
+    static void move(Source&& source, cntgs::Span<T>& target)
     {
         const auto size = std::min(std::size(source), std::size(target));
         std::copy_n(std::make_move_iterator(std::begin(source)), size, std::begin(target));
     }
 
-    template <class Source, class Target>
-    static void swap(Source& lhs, Target& rhs)
+    template <class Source, class T>
+    static void uninitialized_move(Source&& source, cntgs::Span<T>& target)
+    {
+        std::uninitialized_copy(std::make_move_iterator(std::begin(source)), std::make_move_iterator(std::end(source)),
+                                std::begin(target));
+    }
+
+    template <class T>
+    static void swap(cntgs::Span<T>& lhs, cntgs::Span<T>& rhs)
     {
         const auto size = std::min(std::size(lhs), std::size(rhs));
         std::swap_ranges(std::begin(lhs), std::begin(lhs) + size, std::begin(rhs));

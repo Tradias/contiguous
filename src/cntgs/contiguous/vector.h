@@ -139,21 +139,9 @@ class ContiguousVector
         this->locator.emplace_back(this->fixed_sizes, std::forward<Args>(args)...);
     }
 
-    void resize(size_type new_size)
-    {
-        if (this->size() <= new_size)
-        {
-            this->grow(new_size, {});
-        }
-        else
-        {
-            this->shrink_and_destruct(new_size);
-        }
-    }
-
     void reserve(size_type new_max_element_count, size_type new_varying_size_bytes = {})
     {
-        if (this->max_element_count <= new_max_element_count)
+        if (this->max_element_count < new_max_element_count)
         {
             this->grow(new_max_element_count, new_varying_size_bytes);
         }
@@ -220,21 +208,21 @@ class ContiguousVector
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
-    auto load_element_at(size_type i) const noexcept
+    template <class ReturnType>
+    auto subscript_operator(size_type i, std::byte* memory_begin, const ElementLocator& element_locator) const noexcept
     {
-        return this->locator.load_element_at(i, this->memory.get(), this->fixed_sizes);
+        const auto tuple_of_pointer = element_locator.load_element_at(i, memory_begin, this->fixed_sizes);
+        return detail::convert_tuple_to<ReturnType>(tuple_of_pointer);
     }
 
     auto subscript_operator(size_type i) noexcept
     {
-        const auto tuple_of_pointer = load_element_at(i);
-        return detail::convert_tuple_to<reference>(tuple_of_pointer);
+        return this->subscript_operator<reference>(i, this->memory.get(), this->locator);
     }
 
     auto subscript_operator(size_type i) const noexcept
     {
-        const auto tuple_of_pointer = load_element_at(i);
-        return detail::convert_tuple_to<const_reference>(tuple_of_pointer);
+        return this->subscript_operator<const_reference>(i, this->memory.get(), this->locator);
     }
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
@@ -242,15 +230,33 @@ class ContiguousVector
         using StorageElementType = typename StorageType::element_type;
         const auto new_memory_size =
             this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
-        auto new_memory = detail::make_maybe_owned_ptr<StorageElementType[]>(new_memory_size);
-        this->locator.~ElementLocator();
-        auto* new_locator =
-            detail::construct_at(&this->locator, new_max_element_count, new_memory.get(), this->fixed_sizes);
-        new_locator->resize(this->max_element_count, new_memory.get());
-        std::memcpy(new_memory.get(), this->memory.get(), this->memory_size);
+        auto new_memory = detail::make_unique_for_overwrite<StorageElementType[]>(new_memory_size);
+        ElementLocator new_locator{new_max_element_count, new_memory.get(),        this->fixed_sizes,
+                                   this->locator,         this->max_element_count, this->memory.get()};
+        this->uninitialized_move(new_memory.get(), new_locator, std::make_index_sequence<sizeof...(Types)>{});
         this->memory_size = new_memory_size;
         this->max_element_count = new_max_element_count;
         this->memory = std::move(new_memory);
+        this->locator = std::move(new_locator);
+    }
+
+    template <std::size_t... I>
+    void uninitialized_move([[maybe_unused]] std::byte* new_memory, [[maybe_unused]] ElementLocator& new_locator,
+                            std::index_sequence<I...>)
+    {
+        if constexpr (!Traits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE)
+        {
+            for (size_type i{}; i < this->size(); ++i)
+            {
+                auto&& source = this->subscript_operator(i);
+                auto&& target = new_locator.load_element_at(i, new_memory, this->fixed_sizes);
+                (detail::ParameterTraits<Types>::uninitialized_move(cntgs::get<I>(source), std::get<I>(target)), ...);
+            }
+        }
+        if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
+        {
+            this->destruct();
+        }
     }
 
     void grow()

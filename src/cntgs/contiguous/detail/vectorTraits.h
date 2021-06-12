@@ -74,6 +74,8 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
     static constexpr auto IS_NOTHROW_DESTRUCTIBLE = (detail::ParameterTraits<Types>::IS_NOTHROW_DESTRUCTIBLE && ...);
     static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE =
         (std::is_trivially_destructible_v<typename detail::ParameterTraits<Types>::value_type> && ...);
+    static constexpr auto IS_TRIVIALLY_MOVE_CONSTRUCTIBLE =
+        (std::is_trivially_move_constructible_v<typename detail::ParameterTraits<Types>::value_type> && ...);
 
     static constexpr bool IS_MIXED =
         CONTIGUOUS_FIXED_SIZE_COUNT != 0 && CONTIGUOUS_FIXED_SIZE_COUNT != CONTIGUOUS_COUNT;
