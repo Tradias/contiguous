@@ -8,13 +8,14 @@
 #include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
+#include <algorithm>
 #include <array>
 #include <type_traits>
 
 namespace cntgs::detail
 {
 template <std::size_t Alignment>
-static constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
+constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
 {
     if constexpr (Alignment == 0)
     {
@@ -164,23 +165,21 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     void copy_from(SizeType new_max_element_count, std::byte* new_memory_begin, ElementLocator& old_locator,
                    SizeType old_max_element_count, std::byte* old_memory_begin) noexcept
     {
-        auto new_last_element_address = reinterpret_cast<std::byte**>(new_memory_begin);
         const auto size_diff =
             static_cast<DifferenceType>(new_max_element_count) - static_cast<DifferenceType>(old_max_element_count);
-        auto old_begin = reinterpret_cast<std::byte**>(old_memory_begin);
-        while (old_begin != old_locator.last_element_address)
-        {
-            *new_last_element_address =
-                new_memory_begin + std::distance(old_memory_begin, *old_begin) + size_diff * RESERVED_BYTES_PER_ELEMENT;
-            ++new_last_element_address;
-            ++old_begin;
-        }
-        const auto other_used_memory_size = std::distance(old_memory_begin, old_locator.last_element);
-        const auto other_reserved_bytes = ElementLocator::reserved_bytes(old_max_element_count);
+        auto new_last_element_address = reinterpret_cast<std::byte**>(new_memory_begin);
+        std::for_each(reinterpret_cast<std::byte**>(old_memory_begin), old_locator.last_element_address,
+                      [&](auto&& element) {
+                          *new_last_element_address = new_memory_begin + std::distance(old_memory_begin, element) +
+                                                      size_diff * RESERVED_BYTES_PER_ELEMENT;
+                          ++new_last_element_address;
+                      });
+        const auto old_used_memory_size = std::distance(old_memory_begin, old_locator.last_element);
+        const auto old_reserved_bytes = ElementLocator::reserved_bytes(old_max_element_count);
         std::memcpy(new_memory_begin + ElementLocator::reserved_bytes(new_max_element_count),
-                    old_memory_begin + other_reserved_bytes, other_used_memory_size - other_reserved_bytes);
+                    old_memory_begin + old_reserved_bytes, old_used_memory_size - old_reserved_bytes);
         this->last_element_address = new_last_element_address;
-        this->last_element = new_memory_begin + other_used_memory_size + size_diff * RESERVED_BYTES_PER_ELEMENT;
+        this->last_element = new_memory_begin + old_used_memory_size + size_diff * RESERVED_BYTES_PER_ELEMENT;
     }
 };
 

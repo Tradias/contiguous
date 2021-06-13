@@ -35,13 +35,9 @@ struct Span
 
     Span(const Span& other) = default;
 
-    template <class It, class Sentinel>
-    constexpr Span(It first, Sentinel last) noexcept : first(first), last(last)
-    {
-    }
+    constexpr Span(iterator first, iterator last) noexcept : first(first), last(last) {}
 
-    template <class It>
-    constexpr Span(It first, size_type size) noexcept(noexcept(first + size)) : first(first), last(first + size)
+    constexpr Span(iterator first, size_type size) noexcept(noexcept(first + size)) : first(first), last(first + size)
     {
     }
 
