@@ -36,6 +36,8 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
     static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<value_type>;
+    static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE = std::is_trivially_destructible_v<value_type>;
+    static constexpr auto IS_TRIVIALLY_MOVE_CONSTRUCTIBLE = std::is_trivially_move_constructible_v<value_type>;
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
@@ -95,8 +97,13 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr void destroy(ReferenceReturnType value) noexcept(IS_NOTHROW_DESTRUCTIBLE) { value.~value_type(); }
 };
 
+template <class ValueType>
 struct BaseContiguousParameterTraits
 {
+    static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<ValueType>;
+    static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE = std::is_trivially_destructible_v<ValueType>;
+    static constexpr auto IS_TRIVIALLY_MOVE_CONSTRUCTIBLE = std::is_trivially_move_constructible_v<ValueType>;
+
     template <class T>
     static auto start_address(const cntgs::Span<T>& value) noexcept
     {
@@ -150,7 +157,7 @@ struct ParameterTraits<cntgs::VaryingSize<T>> : ParameterTraits<cntgs::VaryingSi
 };
 
 template <class T, std::size_t Alignment>
-struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits
+struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T>
 {
     using Type = cntgs::VaryingSize<T>;
     using ValueReturnType = cntgs::Span<T>;
@@ -165,7 +172,6 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
-    static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<value_type>;
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
@@ -198,7 +204,7 @@ struct ParameterTraits<cntgs::FixedSize<T>> : ParameterTraits<cntgs::FixedSize<c
 };
 
 template <class T, std::size_t Alignment>
-struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits
+struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T>
 {
     using Type = cntgs::FixedSize<T>;
     using ValueReturnType = cntgs::Span<T>;
@@ -213,7 +219,6 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
-    static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<value_type>;
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t size) noexcept

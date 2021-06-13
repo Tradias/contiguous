@@ -211,7 +211,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
           stride(other.stride),
           start(reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(memory_begin)))
     {
-        std::memcpy(memory_begin, other_memory_begin, other.size({}) * this->stride);
+        std::memcpy(memory_begin, other_memory_begin, other.element_count * this->stride);
     }
 
     static constexpr auto reserved_bytes(SizeType) noexcept { return SizeType{}; }
