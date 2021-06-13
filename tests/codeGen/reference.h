@@ -14,6 +14,7 @@ struct ReferenceFixedSizeVector
     const uint32_t second_offset;
     const uint32_t third_offset;
     uint32_t next_index;
+    uint32_t capacity;
 
     std::unique_ptr<char[]> ptr;
     char* memory;
@@ -40,5 +41,15 @@ struct ReferenceFixedSizeVector
         std::memcpy(node_memory, first, first_count);
         std::memcpy(node_memory + second_offset, second, second_count * 4);
         std::memcpy(node_memory + third_offset, &third, 4);
+    }
+
+    void reserve_unaligned(uint32_t new_max_element_count)
+    {
+        const auto new_capacity = new_max_element_count * byte_size_per_node;
+        auto new_memory = std::make_unique<char[]>(new_capacity);
+        std::memcpy(new_memory.get(), memory, capacity * byte_size_per_node);
+        capacity = new_capacity;
+        ptr = std::move(new_memory);
+        memory = ptr.get();
     }
 };

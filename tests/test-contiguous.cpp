@@ -416,6 +416,34 @@ TEST_CASE("ContiguousTest: std::any OneFixed emplace_back->reserve->emplace_back
     CHECK_EQ(84, f);
 }
 
+TEST_CASE("ContiguousTest: trivial OneFixed emplace_back->reserve->emplace_back")
+{
+    cntgs::ContiguousVector<cntgs::FixedSize<float>, int> vector{1, {FLOATS1.size()}};
+    vector.emplace_back(FLOATS1, 42);
+    vector.reserve(2);
+    vector.emplace_back(FLOATS1, 84);
+    auto&& [a, b] = vector[0];
+    CHECK(test::range_equal(FLOATS1, a));
+    CHECK_EQ(42, b);
+    auto&& [c, d] = vector[1];
+    CHECK(test::range_equal(FLOATS1, c));
+    CHECK_EQ(84, d);
+}
+
+TEST_CASE("ContiguousTest: trivial VaryingSize emplace_back->reserve->emplace_back")
+{
+    cntgs::ContiguousVector<cntgs::VaryingSize<float>, int> vector{1, FLOATS1.size() * sizeof(float)};
+    vector.emplace_back(FLOATS1, 42);
+    vector.reserve(2, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float));
+    vector.emplace_back(FLOATS2, 84);
+    auto&& [a, b] = vector[0];
+    CHECK(test::range_equal(FLOATS1, a));
+    CHECK_EQ(42, b);
+    auto&& [c, d] = vector[1];
+    CHECK(test::range_equal(FLOATS2, c));
+    CHECK_EQ(84, d);
+}
+
 TEST_CASE("ContiguousTest: std::unique_ptr VaryingSize reserve and shrink")
 {
     cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{0, 0};

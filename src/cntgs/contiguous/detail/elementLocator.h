@@ -112,26 +112,10 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     {
     }
 
-    ElementLocator(SizeType max_element_count, std::byte* memory_begin,
-                   const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&, ElementLocator& other,
+    ElementLocator(SizeType max_element_count, std::byte* memory_begin, ElementLocator& other,
                    SizeType other_max_element_count, std::byte* other_memory_begin) noexcept
-        : last_element_address(reinterpret_cast<std::byte**>(memory_begin))
     {
-        const auto size_diff =
-            static_cast<DifferenceType>(max_element_count) - static_cast<DifferenceType>(other_max_element_count);
-        auto other_begin = reinterpret_cast<std::byte**>(other_memory_begin);
-        while (other_begin != other.last_element_address)
-        {
-            *this->last_element_address =
-                memory_begin + std::distance(other_memory_begin, *other_begin) + size_diff * RESERVED_BYTES_PER_ELEMENT;
-            ++this->last_element_address;
-            ++other_begin;
-        }
-        const auto other_used_memory_size = std::distance(other_memory_begin, other.last_element);
-        this->last_element = memory_begin + other_used_memory_size + size_diff * RESERVED_BYTES_PER_ELEMENT;
-        const auto other_reserved_bytes = ElementLocator::reserved_bytes(other_max_element_count);
-        std::memcpy(memory_begin + ElementLocator::reserved_bytes(max_element_count),
-                    other_memory_begin + other_reserved_bytes, other_used_memory_size - other_reserved_bytes);
+        this->copy_from(max_element_count, memory_begin, other, other_max_element_count, other_memory_begin);
     }
 
     static constexpr auto reserved_bytes(SizeType element_count) noexcept
@@ -169,6 +153,35 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
         return element_addresses_begin[index];
     }
+
+    void copy_from(SizeType new_max_element_count, std::byte* new_memory_begin, SizeType old_max_element_count,
+                   std::byte* old_memory_begin) noexcept
+    {
+        this->copy_from(new_max_element_count, new_memory_begin, *this, old_max_element_count, old_memory_begin);
+    }
+
+  private:
+    void copy_from(SizeType new_max_element_count, std::byte* new_memory_begin, ElementLocator& old_locator,
+                   SizeType old_max_element_count, std::byte* old_memory_begin) noexcept
+    {
+        auto new_last_element_address = reinterpret_cast<std::byte**>(new_memory_begin);
+        const auto size_diff =
+            static_cast<DifferenceType>(new_max_element_count) - static_cast<DifferenceType>(old_max_element_count);
+        auto old_begin = reinterpret_cast<std::byte**>(old_memory_begin);
+        while (old_begin != old_locator.last_element_address)
+        {
+            *new_last_element_address =
+                new_memory_begin + std::distance(old_memory_begin, *old_begin) + size_diff * RESERVED_BYTES_PER_ELEMENT;
+            ++new_last_element_address;
+            ++old_begin;
+        }
+        const auto other_used_memory_size = std::distance(old_memory_begin, old_locator.last_element);
+        const auto other_reserved_bytes = ElementLocator::reserved_bytes(old_max_element_count);
+        std::memcpy(new_memory_begin + ElementLocator::reserved_bytes(new_max_element_count),
+                    old_memory_begin + other_reserved_bytes, other_used_memory_size - other_reserved_bytes);
+        this->last_element_address = new_last_element_address;
+        this->last_element = new_memory_begin + other_used_memory_size + size_diff * RESERVED_BYTES_PER_ELEMENT;
+    }
 };
 
 struct IgnoreFirstAlignmentSelector
@@ -204,14 +217,11 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     {
     }
 
-    AllFixedSizeElementLocator(SizeType, std::byte* memory_begin,
-                               const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&,
-                               AllFixedSizeElementLocator& other, SizeType, std::byte* other_memory_begin) noexcept
-        : element_count(other.element_count),
-          stride(other.stride),
-          start(reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(memory_begin)))
+    AllFixedSizeElementLocator(SizeType, std::byte* memory_begin, AllFixedSizeElementLocator& other, SizeType,
+                               std::byte*) noexcept
+        : element_count(other.element_count), stride(other.stride)
     {
-        std::memcpy(memory_begin, other_memory_begin, other.element_count * this->stride);
+        this->copy_from(memory_begin, other);
     }
 
     static constexpr auto reserved_bytes(SizeType) noexcept { return SizeType{}; }
@@ -236,6 +246,19 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     }
 
     constexpr auto at(SizeType index) const noexcept { return start + this->stride * index; }
+
+    void copy_from(SizeType, std::byte* new_memory_begin, SizeType, std::byte*) noexcept
+    {
+        this->copy_from(new_memory_begin, *this);
+    }
+
+  private:
+    void copy_from(std::byte* new_memory_begin, AllFixedSizeElementLocator& old) noexcept
+    {
+        const auto new_start = reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(new_memory_begin));
+        std::memcpy(new_start, old.start, old.element_count * old.stride);
+        this->start = new_start;
+    }
 };
 
 template <class... Types>

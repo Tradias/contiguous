@@ -231,13 +231,21 @@ class ContiguousVector
         const auto new_memory_size =
             this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
         auto new_memory = detail::make_unique_for_overwrite<StorageElementType[]>(new_memory_size);
-        ElementLocator new_locator{new_max_element_count, new_memory.get(),        this->fixed_sizes,
-                                   this->locator,         this->max_element_count, this->memory.get()};
-        this->uninitialized_move(new_memory.get(), new_locator, std::make_index_sequence<sizeof...(Types)>{});
+        if constexpr (Traits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && Traits::IS_TRIVIALLY_DESTRUCTIBLE)
+        {
+            this->locator.copy_from(new_max_element_count, new_memory.get(), this->max_element_count,
+                                    this->memory.get());
+        }
+        else
+        {
+            ElementLocator new_locator{new_max_element_count, new_memory.get(), this->locator, this->max_element_count,
+                                       this->memory.get()};
+            this->uninitialized_move(new_memory.get(), new_locator, std::make_index_sequence<sizeof...(Types)>{});
+            this->locator = std::move(new_locator);
+        }
         this->memory_size = new_memory_size;
         this->max_element_count = new_max_element_count;
         this->memory = std::move(new_memory);
-        this->locator = std::move(new_locator);
     }
 
     template <std::size_t... I>
