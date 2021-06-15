@@ -27,6 +27,13 @@ constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
     }
 }
 
+template <class Locator>
+inline auto calculate_element_start(std::size_t max_element_count, std::byte* memory_begin) noexcept
+{
+    return reinterpret_cast<std::byte*>(detail::align<Locator::template ParameterTraitsAt<0>::ALIGNMENT>(
+        memory_begin + Locator::reserved_bytes(max_element_count)));
+}
+
 template <class, class...>
 struct BaseElementLocator;
 
@@ -40,7 +47,7 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
     using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
 
     template <std::size_t K>
-    using TypeAt = std::tuple_element_t<K, std::tuple<Types...>>;
+    using ParameterTraitsAt = detail::ParameterTraits<std::tuple_element_t<K, std::tuple<Types...>>>;
 
     template <class NeedsAlignmentSelector, std::size_t N, class... Args>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_back(std::byte* CNTGS_RESTRICT last_element,
@@ -71,7 +78,7 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
           detail::ParameterTraits<Types>::aligned_size_in_memory(FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
           alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
          ...);
-        return result + alignment_offset<detail::ParameterTraits<TypeAt<0>>::ALIGNMENT>(result);
+        return result + alignment_offset<ParameterTraitsAt<0>::ALIGNMENT>(result);
     }
 };
 
@@ -91,12 +98,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     using Base = detail::BaseElementLocatorT<Types...>;
     using Traits = typename Base::Traits;
     using SizeType = typename Base::SizeType;
-    using DifferenceType = std::ptrdiff_t;
 
-    template <class T>
-    using FixedSizeGetter = typename Base::template FixedSizeGetter<T>;
-
-    static constexpr auto TYPE_COUNT = sizeof...(Types);
     static constexpr auto RESERVED_BYTES_PER_ELEMENT = sizeof(std::byte*);
 
     std::byte** last_element_address{};
@@ -108,8 +110,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     ElementLocator(SizeType max_element_count, std::byte* memory_begin,
                    const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&) noexcept
         : last_element_address(reinterpret_cast<std::byte**>(memory_begin)),
-          last_element(reinterpret_cast<std::byte*>(
-              detail::align<Traits::MAX_ALIGNMENT>(memory_begin + ElementLocator::reserved_bytes(max_element_count))))
+          last_element(detail::calculate_element_start<ElementLocator>(max_element_count, memory_begin))
     {
     }
 
@@ -165,21 +166,19 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     void copy_from(SizeType new_max_element_count, std::byte* new_memory_begin, ElementLocator& old_locator,
                    SizeType old_max_element_count, std::byte* old_memory_begin) noexcept
     {
-        const auto size_diff =
-            static_cast<DifferenceType>(new_max_element_count) - static_cast<DifferenceType>(old_max_element_count);
+        const auto new_start = detail::calculate_element_start<ElementLocator>(new_max_element_count, new_memory_begin);
+        const auto old_start = detail::calculate_element_start<ElementLocator>(old_max_element_count, old_memory_begin);
+        const auto size_diff = std::distance(new_memory_begin, new_start) - std::distance(old_memory_begin, old_start);
         auto new_last_element_address = reinterpret_cast<std::byte**>(new_memory_begin);
-        std::for_each(reinterpret_cast<std::byte**>(old_memory_begin), old_locator.last_element_address,
-                      [&](auto&& element) {
-                          *new_last_element_address = new_memory_begin + std::distance(old_memory_begin, element) +
-                                                      size_diff * RESERVED_BYTES_PER_ELEMENT;
-                          ++new_last_element_address;
-                      });
-        const auto old_used_memory_size = std::distance(old_memory_begin, old_locator.last_element);
-        const auto old_reserved_bytes = ElementLocator::reserved_bytes(old_max_element_count);
-        std::memcpy(new_memory_begin + ElementLocator::reserved_bytes(new_max_element_count),
-                    old_memory_begin + old_reserved_bytes, old_used_memory_size - old_reserved_bytes);
+        std::for_each(
+            reinterpret_cast<std::byte**>(old_memory_begin), old_locator.last_element_address, [&](auto&& element) {
+                *new_last_element_address = new_memory_begin + std::distance(old_memory_begin, element) + size_diff;
+                ++new_last_element_address;
+            });
+        const auto old_used_memory_size = std::distance(old_start, old_locator.last_element);
+        std::memcpy(new_start, old_start, old_used_memory_size);
         this->last_element_address = new_last_element_address;
-        this->last_element = new_memory_begin + old_used_memory_size + size_diff * RESERVED_BYTES_PER_ELEMENT;
+        this->last_element = new_memory_begin + std::distance(old_memory_begin, old_locator.last_element) + size_diff;
     }
 };
 
@@ -197,11 +196,6 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     using Traits = typename Base::Traits;
     using SizeType = typename Base::SizeType;
 
-    template <class T>
-    using FixedSizeGetter = typename Base::template FixedSizeGetter<T>;
-
-    static constexpr auto TYPE_COUNT = sizeof...(Types);
-
     SizeType element_count{};
     SizeType stride{};
     std::byte* start{};
@@ -212,7 +206,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     AllFixedSizeElementLocator(SizeType, std::byte* memory_begin,
                                const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
         : stride(Base::calculate_element_size(fixed_sizes)),
-          start(reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(memory_begin)))
+          start(detail::calculate_element_start<AllFixedSizeElementLocator>({}, memory_begin))
     {
     }
 
@@ -254,7 +248,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
   private:
     void copy_from(std::byte* new_memory_begin, AllFixedSizeElementLocator& old) noexcept
     {
-        const auto new_start = reinterpret_cast<std::byte*>(detail::align<Traits::MAX_ALIGNMENT>(new_memory_begin));
+        const auto new_start = detail::calculate_element_start<AllFixedSizeElementLocator>({}, new_memory_begin);
         std::memcpy(new_start, old.start, old.element_count * old.stride);
         this->start = new_start;
     }
