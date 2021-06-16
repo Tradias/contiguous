@@ -1,6 +1,7 @@
 #include "utils/codeGenParser.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <string>
@@ -8,11 +9,12 @@
 
 namespace cntgs::test
 {
-std::vector<std::string> get_disassembly_of_functions(const std::vector<std::string>& function_names)
+std::vector<std::string> get_disassembly_of_functions(const std::filesystem::path& disassembly_file,
+                                                      const std::vector<std::string>& function_names)
 {
     static constexpr size_t MAX_LINE_SIZE{1500};
     std::vector<std::string> result{function_names.size()};
-    std::ifstream stream{CNTGS_CODE_GEN_DISASSEMBLY_FILE};
+    std::ifstream stream{disassembly_file};
     if (!stream)
     {
         return result;

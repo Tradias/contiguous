@@ -470,7 +470,7 @@ TEST_CASE("ContiguousTest: cntgs::Span can be implicitly converted to std::span"
     std::array<int, 1> ints{42};
     cntgs::Span<int> span{ints.data(), ints.size()};
     std::span<int> actual = span;
-    REQUIRE_EQ(1, actual.size());
+    CHECK_EQ(1, actual.size());
     CHECK_EQ(42, actual.front());
 }
 #endif

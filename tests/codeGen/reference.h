@@ -45,8 +45,12 @@ struct ReferenceFixedSizeVector
 
     void reserve_unaligned(uint32_t new_max_element_count)
     {
+        if (new_max_element_count <= capacity)
+        {
+            return;
+        }
         const auto new_capacity = new_max_element_count * byte_size_per_node;
-        auto new_memory = std::make_unique<char[]>(new_capacity);
+        auto new_memory = std::unique_ptr<char[]>(new char[new_capacity]);
         std::memcpy(new_memory.get(), memory, capacity * byte_size_per_node);
         capacity = new_capacity;
         ptr = std::move(new_memory);
