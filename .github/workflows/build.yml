@@ -22,8 +22,11 @@ jobs:
       uses: lukka/run-vcpkg@v7.3
       with:
         vcpkgDirectory: ${{github.workspace}}/vcpkg
+        vcpkgArguments: ""
     
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCNTGS_BUILD_TESTS=on -DCNTGS_DISCOVER_TESTS=on
@@ -33,19 +36,10 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build/tests
-      run: ctest -C ${{env.BUILD_TYPE}} -T test -j 4
-  sonarcloud:
-    name: SonarCloud
+      run: ctest -C ${{env.BUILD_TYPE}} -T test -j 2
 
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{secrets.SONAR_TOKEN}}
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}  # Needed to get PR information, if any
+        SONAR_TOKEN: ${{secrets.SONAR_TOKEN}}
