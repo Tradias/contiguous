@@ -14,6 +14,13 @@
 
 namespace cntgs::detail
 {
+enum class ParameterType
+{
+    PLAIN,
+    FIXED_SIZE,
+    VARYING_SIZE
+};
+
 template <class T>
 struct ParameterTraits : detail::ParameterTraits<cntgs::AlignAs<T, 0>>
 {
@@ -30,8 +37,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     using value_type = T;
     using iterator_type = PointerReturnType;
 
-    static constexpr bool IS_CONTIGUOUS = false;
-    static constexpr bool IS_FIXED_SIZE = false;
+    static constexpr auto TYPE = ParameterType::PLAIN;
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
@@ -164,8 +170,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     using value_type = T;
     using iterator_type = T*;
 
-    static constexpr bool IS_CONTIGUOUS = true;
-    static constexpr bool IS_FIXED_SIZE = false;
+    static constexpr auto TYPE = ParameterType::VARYING_SIZE;
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
@@ -212,8 +217,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     using value_type = T;
     using iterator_type = T*;
 
-    static constexpr bool IS_CONTIGUOUS = true;
-    static constexpr bool IS_FIXED_SIZE = true;
+    static constexpr auto TYPE = ParameterType::FIXED_SIZE;
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
@@ -248,7 +252,4 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
         }
     }
 };
-
-template <class T>
-static constexpr auto IS_CONTIGUOUS = detail::ParameterTraits<T>::IS_CONTIGUOUS;
 }  // namespace cntgs::detail

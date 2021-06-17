@@ -15,7 +15,7 @@ constexpr auto calculate_fixed_size_indices(detail::TypeList<T...>, std::index_s
     [[maybe_unused]] std::size_t index = 0;
     (
         [&] {
-            if constexpr (detail::ParameterTraits<T>::IS_FIXED_SIZE)
+            if constexpr (detail::ParameterTraits<T>::TYPE == detail::ParameterType::FIXED_SIZE)
             {
                 std::get<I>(fixed_size_indices) = index;
                 ++index;
