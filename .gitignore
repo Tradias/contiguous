@@ -63,3 +63,7 @@ cmake-variants.yaml
 
 # Build folders
 /*build*/
+
+# SonarQube
+sonar-cfamily-reproducer.zip
+.scannerwork
