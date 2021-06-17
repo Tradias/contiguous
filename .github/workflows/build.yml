@@ -22,7 +22,8 @@ jobs:
       uses: lukka/run-vcpkg@v7.3
       with:
         vcpkgDirectory: ${{github.workspace}}/vcpkg
-        vcpkgArguments: " "
+        vcpkgArguments: " " # workaround for: run-vcpkg action execution failed: Error: Input required and not supplied: vcpkgArguments
+        vcpkgGitCommitId: 5568f110b509a9fd90711978a7cb76bae75bb092 # 2021.05.12
     
     - uses: actions/checkout@v2
       with:
