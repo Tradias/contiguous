@@ -54,7 +54,7 @@ std::vector<std::string> get_disassembly_of_functions(const std::filesystem::pat
         }
         line.assign(MAX_LINE_SIZE, '\0');
     }
-    if (!current_string.empty())
+    if (!current_string.empty() && current_index != std::numeric_limits<int>::max())
     {
         result[current_index] = std::move(current_string);
     }

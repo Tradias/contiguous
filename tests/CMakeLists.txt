@@ -12,7 +12,7 @@ function(cntgs_disassemble_code_gen _cntgs_target)
     elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         add_custom_command(
             OUTPUT ${cntgs_disassembly_output_file}
-            COMMAND objdump --disassemble=.text -drwC -M intel -S $<TARGET_OBJECTS:${_cntgs_target}> >
+            COMMAND objdump --disassemble=.text -drwC -M intel $<TARGET_OBJECTS:${_cntgs_target}> >
                     ${cntgs_disassembly_output_file}
             DEPENDS ${_cntgs_target} $<TARGET_PROPERTY:${_cntgs_target},SOURCES> cntgs
                     $<TARGET_PROPERTY:cntgs,CNTGS_SOURCE_FILES>)
