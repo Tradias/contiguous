@@ -41,18 +41,18 @@ class ContiguousTuple
     }
 
     template <detail::ContiguousTupleQualifier TQualifier>
-    explicit constexpr ContiguousTuple(const ContiguousTuple<TQualifier, Types...>& other) : tuple(other.tuple)
+    /*implicit*/ constexpr ContiguousTuple(const ContiguousTuple<TQualifier, Types...>& other) : tuple(other.tuple)
     {
     }
 
-    explicit constexpr ContiguousTuple(const cntgs::ContiguousElement<Types...>& other) : tuple(other.tuple) {}
+    /*implicit*/ constexpr ContiguousTuple(const cntgs::ContiguousElement<Types...>& other) : tuple(other.tuple) {}
 
     template <detail::ContiguousTupleQualifier TQualifier>
-    explicit constexpr ContiguousTuple(ContiguousTuple<TQualifier, Types...>&& other) : tuple(std::move(other.tuple))
+    /*implicit*/ constexpr ContiguousTuple(ContiguousTuple<TQualifier, Types...>&& other) : tuple(std::move(other.tuple))
     {
     }
 
-    explicit constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple)) {}
+    /*implicit*/ constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple)) {}
 
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr ContiguousTuple& operator=(const ContiguousTuple<TQualifier, Types...>& other)

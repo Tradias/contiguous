@@ -34,14 +34,14 @@ class ContiguousElement
     ContiguousElement() = default;
 
     template <detail::ContiguousTupleQualifier Qualifier>
-    explicit constexpr ContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
+    /*implicit*/ constexpr ContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes())),
           tuple(this->store_and_load(other.tuple))
     {
     }
 
     template <detail::ContiguousTupleQualifier Qualifier>
-    explicit constexpr ContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other)
+    /*implicit*/ constexpr ContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes())),
           tuple(this->store_and_load(other.tuple))
     {

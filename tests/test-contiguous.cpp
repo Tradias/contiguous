@@ -236,7 +236,7 @@ TEST_CASE("ContiguousTest: std::string emplace_back with iterator")
 
 struct NotNothrowDestructible
 {
-    ~NotNothrowDestructible() noexcept(false) = default;
+    ~NotNothrowDestructible() noexcept(false) {};
 };
 
 TEST_CASE("ContiguousTest: ContiguousVector is conditionally nothrow destructible")
