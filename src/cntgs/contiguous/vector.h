@@ -45,8 +45,8 @@ class ContiguousVector
     using const_reference = typename Traits::ConstReferenceReturnType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
     using const_iterator = cntgs::ContiguousVectorIterator<std::add_const_t<Self>>;
-    using difference_type = typename Traits::DifferenceType;
-    using size_type = typename Traits::SizeType;
+    using difference_type = std::ptrdiff_t;
+    using size_type = std::size_t;
 
     size_type memory_size{};
     size_type max_element_count{};

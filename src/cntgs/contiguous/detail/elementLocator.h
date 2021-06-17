@@ -41,7 +41,6 @@ template <std::size_t... I, class... Types>
 struct BaseElementLocator<std::index_sequence<I...>, Types...>
 {
     using Traits = detail::ContiguousVectorTraits<Types...>;
-    using SizeType = typename Traits::SizeType;
 
     template <class T>
     using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
@@ -51,7 +50,7 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
 
     template <class NeedsAlignmentSelector, std::size_t N, class... Args>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_back(std::byte* CNTGS_RESTRICT last_element,
-                                                         const std::array<SizeType, N>& fixed_sizes, Args&&... args)
+                                                         const std::array<std::size_t, N>& fixed_sizes, Args&&... args)
     {
         ((last_element = detail::ParameterTraits<Types>::template store<NeedsAlignmentSelector::template VALUE<I>>(
               std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
@@ -60,7 +59,7 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
     }
 
     template <class NeedsAlignmentSelector, std::size_t N>
-    static auto load_element_at(std::byte* address, const std::array<SizeType, N>& fixed_sizes) noexcept
+    static auto load_element_at(std::byte* address, const std::array<std::size_t, N>& fixed_sizes) noexcept
     {
         typename Traits::PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =
@@ -71,9 +70,9 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
     }
 
     template <std::size_t N>
-    static constexpr auto calculate_element_size(const std::array<SizeType, N>& fixed_sizes) noexcept
+    static constexpr auto calculate_element_size(const std::array<std::size_t, N>& fixed_sizes) noexcept
     {
-        SizeType result{};
+        std::size_t result{};
         ((result +=
           detail::ParameterTraits<Types>::aligned_size_in_memory(FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
           alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
@@ -97,7 +96,6 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
   private:
     using Base = detail::BaseElementLocatorT<Types...>;
     using Traits = typename Base::Traits;
-    using SizeType = typename Base::SizeType;
 
     static constexpr auto RESERVED_BYTES_PER_ELEMENT = sizeof(std::byte*);
 
@@ -107,20 +105,20 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
   public:
     ElementLocator() = default;
 
-    ElementLocator(SizeType max_element_count, std::byte* memory_begin,
-                   const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&) noexcept
+    ElementLocator(std::size_t max_element_count, std::byte* memory_begin,
+                   const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&) noexcept
         : last_element_address(reinterpret_cast<std::byte**>(memory_begin)),
           last_element(detail::calculate_element_start<ElementLocator>(max_element_count, memory_begin))
     {
     }
 
-    ElementLocator(SizeType max_element_count, std::byte* memory_begin, ElementLocator& other,
-                   SizeType other_max_element_count, std::byte* other_memory_begin) noexcept
+    ElementLocator(std::size_t max_element_count, std::byte* memory_begin, ElementLocator& other,
+                   std::size_t other_max_element_count, std::byte* other_memory_begin) noexcept
     {
         this->copy_from(max_element_count, memory_begin, other, other_max_element_count, other_memory_begin);
     }
 
-    static constexpr auto reserved_bytes(SizeType element_count) noexcept
+    static constexpr auto reserved_bytes(std::size_t element_count) noexcept
     {
         return element_count * RESERVED_BYTES_PER_ELEMENT;
     }
@@ -130,13 +128,13 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
         return this->last_element_address == reinterpret_cast<std::byte**>(memory_begin);
     }
 
-    SizeType size(std::byte* memory_begin) const noexcept
+    std::size_t size(std::byte* memory_begin) const noexcept
     {
         return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
     }
 
     template <std::size_t N, class... Args>
-    void emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
+    void emplace_back(const std::array<std::size_t, N>& fixed_sizes, Args&&... args)
     {
         *this->last_element_address = last_element;
         ++this->last_element_address;
@@ -145,26 +143,27 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
     }
 
     template <std::size_t N>
-    auto load_element_at(SizeType i, std::byte* memory_begin, const std::array<SizeType, N>& fixed_sizes) const noexcept
+    auto load_element_at(std::size_t i, std::byte* memory_begin,
+                         const std::array<std::size_t, N>& fixed_sizes) const noexcept
     {
         return Base::template load_element_at<detail::DefaultAlignmentSelector>(this->at(memory_begin, i), fixed_sizes);
     }
 
-    auto at(std::byte* memory_begin, SizeType index) const noexcept
+    auto at(std::byte* memory_begin, std::size_t index) const noexcept
     {
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
         return element_addresses_begin[index];
     }
 
-    void copy_from(SizeType new_max_element_count, std::byte* new_memory_begin, SizeType old_max_element_count,
+    void copy_from(std::size_t new_max_element_count, std::byte* new_memory_begin, std::size_t old_max_element_count,
                    std::byte* old_memory_begin) noexcept
     {
         this->copy_from(new_max_element_count, new_memory_begin, *this, old_max_element_count, old_memory_begin);
     }
 
   private:
-    void copy_from(SizeType new_max_element_count, std::byte* new_memory_begin, ElementLocator& old_locator,
-                   SizeType old_max_element_count, std::byte* old_memory_begin) noexcept
+    void copy_from(std::size_t new_max_element_count, std::byte* new_memory_begin, ElementLocator& old_locator,
+                   std::size_t old_max_element_count, std::byte* old_memory_begin) noexcept
     {
         const auto new_start = detail::calculate_element_start<ElementLocator>(new_max_element_count, new_memory_begin);
         const auto old_start = detail::calculate_element_start<ElementLocator>(old_max_element_count, old_memory_begin);
@@ -194,37 +193,36 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
   private:
     using Base = detail::BaseElementLocatorT<Types...>;
     using Traits = typename Base::Traits;
-    using SizeType = typename Base::SizeType;
 
-    SizeType element_count{};
-    SizeType stride{};
+    std::size_t element_count{};
+    std::size_t stride{};
     std::byte* start{};
 
   public:
     AllFixedSizeElementLocator() = default;
 
-    AllFixedSizeElementLocator(SizeType, std::byte* memory_begin,
-                               const std::array<SizeType, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
+    AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin,
+                               const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
         : stride(Base::calculate_element_size(fixed_sizes)),
           start(detail::calculate_element_start<AllFixedSizeElementLocator>({}, memory_begin))
     {
     }
 
-    AllFixedSizeElementLocator(SizeType, std::byte* memory_begin, AllFixedSizeElementLocator& other, SizeType,
+    AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, AllFixedSizeElementLocator& other, std::size_t,
                                std::byte*) noexcept
         : element_count(other.element_count), stride(other.stride)
     {
         this->copy_from(memory_begin, other);
     }
 
-    static constexpr auto reserved_bytes(SizeType) noexcept { return SizeType{}; }
+    static constexpr auto reserved_bytes(std::size_t) noexcept { return std::size_t{}; }
 
-    constexpr bool empty(std::byte*) const noexcept { return this->element_count == SizeType{}; }
+    constexpr bool empty(std::byte*) const noexcept { return this->element_count == std::size_t{}; }
 
-    constexpr SizeType size(std::byte*) const noexcept { return this->element_count; }
+    constexpr std::size_t size(std::byte*) const noexcept { return this->element_count; }
 
     template <std::size_t N, class... Args>
-    void emplace_back(const std::array<SizeType, N>& fixed_sizes, Args&&... args)
+    void emplace_back(const std::array<std::size_t, N>& fixed_sizes, Args&&... args)
     {
         auto last_element = this->at(element_count);
         ++this->element_count;
@@ -233,14 +231,14 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
     }
 
     template <std::size_t N>
-    auto load_element_at(SizeType i, std::byte*, const std::array<SizeType, N>& fixed_sizes) const noexcept
+    auto load_element_at(std::size_t i, std::byte*, const std::array<std::size_t, N>& fixed_sizes) const noexcept
     {
         return Base::template load_element_at<detail::IgnoreFirstAlignmentSelector>(this->at(i), fixed_sizes);
     }
 
-    [[nodiscard]] constexpr auto at(SizeType index) const noexcept { return start + this->stride * index; }
+    [[nodiscard]] constexpr auto at(std::size_t index) const noexcept { return start + this->stride * index; }
 
-    void copy_from(SizeType, std::byte* new_memory_begin, SizeType, std::byte*) noexcept
+    void copy_from(std::size_t, std::byte* new_memory_begin, std::size_t, std::byte*) noexcept
     {
         this->copy_from(new_memory_begin, *this);
     }

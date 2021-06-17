@@ -41,19 +41,13 @@ struct FixedSizeGetterImplementation<cntgs::FixedSize<T>, detail::TypeList<Types
     }
 };
 
-struct BaseVectorTraits
-{
-    using DifferenceType = std::ptrdiff_t;
-    using SizeType = std::size_t;
-};
-
 template <class T>
-struct VectorTraits : BaseVectorTraits
+struct VectorTraits
 {
 };
 
 template <class... Types>
-struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
+struct VectorTraits<cntgs::ContiguousVector<Types...>>
 {
     using ValueReturnType = cntgs::ContiguousElement<Types...>;
     using ReferenceReturnType = cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::REFERENCE, Types...>;
@@ -67,9 +61,9 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>> : BaseVectorTraits
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
     static constexpr auto CONTIGUOUS_COUNT =
-        (SizeType{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
+        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
-        (SizeType{} + ... + (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE));
+        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE));
     static constexpr auto MAX_ALIGNMENT = detail::MAX_SIZE_T_OF<detail::ParameterTraits<Types>::ALIGNMENT...>;
 
     static constexpr auto IS_NOTHROW_DESTRUCTIBLE =

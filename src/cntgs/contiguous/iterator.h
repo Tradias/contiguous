@@ -11,12 +11,11 @@ namespace cntgs
 template <class Vector>
 class ContiguousVectorIterator
 {
-    static constexpr auto IS_CONST = std::is_const_v<Vector>;
-
   public:
     using value_type = typename Vector::value_type;
-    using reference = std::conditional_t<IS_CONST, typename Vector::const_reference, typename Vector::reference>;
-    using pointer = typename detail::VectorTraits<std::remove_const_t<Vector>>::PointerReturnType;
+    using reference =
+        std::conditional_t<std::is_const_v<Vector>, typename Vector::const_reference, typename Vector::reference>;
+    using pointer = reference;
     using difference_type = typename Vector::difference_type;
     using iterator_category = std::random_access_iterator_tag;
 

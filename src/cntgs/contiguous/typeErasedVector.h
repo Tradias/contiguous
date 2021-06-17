@@ -9,13 +9,12 @@ class TypeErasedVector
 {
   private:
     using Traits = detail::ContiguousVectorTraits<>;
-    using SizeType = Traits::SizeType;
 
   public:
-    SizeType memory_size;
-    SizeType max_element_count;
+    std::size_t memory_size;
+    std::size_t max_element_count;
     Traits::StorageType memory;
-    std::array<SizeType, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER> fixed_sizes;
+    std::array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER> fixed_sizes;
     detail::TypeErasedElementLocator locator;
 };
 }  // namespace cntgs
