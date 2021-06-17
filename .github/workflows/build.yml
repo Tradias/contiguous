@@ -22,7 +22,7 @@ jobs:
       uses: lukka/run-vcpkg@v7.3
       with:
         vcpkgDirectory: ${{github.workspace}}/vcpkg
-        vcpkgArguments: ""
+        vcpkgArguments: " "
     
     - uses: actions/checkout@v2
       with:
@@ -36,7 +36,7 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build/tests
-      run: ctest -C ${{env.BUILD_TYPE}} -T test -j 2
+      run: ctest -C ${{env.BUILD_TYPE}} -T test -j 2 --output-on-failure
 
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
