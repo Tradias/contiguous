@@ -30,7 +30,7 @@ constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
 template <class Locator>
 inline auto calculate_element_start(std::size_t max_element_count, std::byte* memory_begin) noexcept
 {
-    return reinterpret_cast<std::byte*>(detail::align<Locator::template ParameterTraitsAt<0>::ALIGNMENT>(
+    return static_cast<std::byte*>(detail::align<Locator::template ParameterTraitsAt<0>::ALIGNMENT>(
         memory_begin + Locator::reserved_bytes(max_element_count)));
 }
 
@@ -238,7 +238,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
         return Base::template load_element_at<detail::IgnoreFirstAlignmentSelector>(this->at(i), fixed_sizes);
     }
 
-    constexpr auto at(SizeType index) const noexcept { return start + this->stride * index; }
+    [[nodiscard]] constexpr auto at(SizeType index) const noexcept { return start + this->stride * index; }
 
     void copy_from(SizeType, std::byte* new_memory_begin, SizeType, std::byte*) noexcept
     {

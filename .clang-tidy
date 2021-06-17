@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,readability-*,modernize-*,performance-*,bugprone-*,cert-*,-readability-uppercase-literal-suffix,-readability-magic-numbers,-readability-avoid-const-params-in-decls,-readability-named-parameter,-modernize-use-trailing-return-type'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,readability-*,modernize-*,performance-*,bugprone-*,cert-*,-readability-uppercase-literal-suffix,-readability-magic-numbers,-readability-avoid-const-params-in-decls,-readability-named-parameter,-modernize-use-trailing-return-type,-modernize-avoid-c-arrays'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

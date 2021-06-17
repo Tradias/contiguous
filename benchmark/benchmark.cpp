@@ -60,7 +60,7 @@ void fill_vector(Target& target, const std::vector<std::vector<float>>& source)
 }
 
 template <class... T>
-auto iterate(const cntgs::ContiguousVector<T...>& vector, const size_t&)
+auto iterate(const cntgs::ContiguousVector<T...>& vector, size_t)
 {
     return [&] {
         for (auto&& [elem] : vector)
@@ -74,7 +74,7 @@ auto iterate(const cntgs::ContiguousVector<T...>& vector, const size_t&)
 }
 
 template <class... T>
-auto iterate(const std::vector<T...>& vector, const size_t&)
+auto iterate(const std::vector<T...>& vector, size_t)
 {
     return [&] {
         for (auto&& elem : vector)
@@ -129,6 +129,20 @@ static auto random_lookup(const VectorVector& vector, const std::vector<size_t>&
 }
 
 template <std::size_t N>
+auto random_lookup(const std::vector<std::array<float, N>>& vector, const std::vector<size_t>& indices)
+{
+    return [&] {
+        for (auto&& j : indices)
+        {
+            for (auto&& elem : vector[j])
+            {
+                work(elem);
+            }
+        }
+    };
+}
+
+template <std::size_t N>
 auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_size)
 {
     std::vector<std::vector<float>> input{elements};
@@ -146,14 +160,14 @@ auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_s
         elements * fixed_size * 16 * sizeof(float) * sizeof(std::pmr::vector<float>))};
     fill_vector(vector_vector.vector, input);
     FixedSizeVector fixed_size_vector{input.size(), {fixed_size}};
-    for (size_t i = 0; i < input.size(); i++)
+    for (auto& v : input)
     {
-        fixed_size_vector.emplace_back(input[i]);
+        fixed_size_vector.emplace_back(v);
     }
     VaryingSizeVector varying_size_vector{input.size(), input.size() * fixed_size * sizeof(float)};
-    for (size_t i = 0; i < input.size(); i++)
+    for (auto& v : input)
     {
-        varying_size_vector.emplace_back(input[i]);
+        varying_size_vector.emplace_back(v);
     }
     input.clear();
     input.shrink_to_fit();
@@ -191,27 +205,12 @@ void random_lookup(std::size_t elements, std::size_t fixed_size)
     std::vector<size_t> indices(1000000);
     std::generate(indices.begin(), indices.end(), [&] { return size_t_dist(gen); });
     ankerl::nanobench::Bench().run(
-        format("random_lookup: std::array<float, {}> elements: {} fixed_size: {}", N, elements, fixed_size), [&] {
-            for (auto&& j : indices)
-            {
-                for (auto&& elem : array_vector[j])
-                {
-                    work(elem);
-                }
-            }
-        });
+        format("random_lookup: std::array<float, {}> elements: {} fixed_size: {}", N, elements, fixed_size),
+        random_lookup(array_vector, indices));
     ankerl::nanobench::Bench().run(
         format("random_lookup: std::pmr::vector<std::pmr::vector<float>> elements: {} fixed_size: {}", elements,
                fixed_size),
-        [&] {
-            for (auto&& j : indices)
-            {
-                for (auto&& elem : vector_vector.vector[j])
-                {
-                    work(elem);
-                }
-            }
-        });
+        random_lookup(vector_vector, indices));
     ankerl::nanobench::Bench().run(
         format("random_lookup: ContiguousVector<FixedSize<float>> elements: {} fixed_size: {}", elements, fixed_size),
         random_lookup(fixed_size_vector, indices));
@@ -236,9 +235,9 @@ auto make_varying_since_input_vectors(std::size_t elements, uint32_t variance)
         total_size * sizeof(float) + elements * 16 * sizeof(std::pmr::vector<float>))};
     fill_vector(vector_vector.vector, input);
     VaryingSizeVector varying_size_vector{input.size(), total_size * sizeof(float)};
-    for (size_t i = 0; i < input.size(); i++)
+    for (auto& v : input)
     {
-        varying_size_vector.emplace_back(input[i]);
+        varying_size_vector.emplace_back(v);
     }
     input.clear();
     input.shrink_to_fit();
@@ -248,14 +247,13 @@ auto make_varying_since_input_vectors(std::size_t elements, uint32_t variance)
 void full_iteration_varying(std::size_t elements, std::uint32_t variance)
 {
     auto [vector_vector, varying_size_vector] = make_varying_since_input_vectors(elements, variance);
-    size_t dummy;
     ankerl::nanobench::Bench().run(
         format("full_iteration: std::pmr::vector<std::pmr::vector<float>> elements: {} variance: 0-{}", elements,
                variance),
-        iterate(vector_vector.vector, dummy));
+        iterate(vector_vector.vector, {}));
     ankerl::nanobench::Bench().run(
         format("full_iteration: ContiguousVector<VaryingSize<float>> elements: {} variance: 0-{}", elements, variance),
-        iterate(varying_size_vector, dummy));
+        iterate(varying_size_vector, {}));
 }
 
 void random_lookup_varying(std::size_t elements, std::uint32_t variance)
@@ -304,17 +302,17 @@ void full_iteration_two(std::size_t elements, std::size_t fixed_size)
     }
     cntgs::ContiguousVector<cntgs::FixedSize<float>, float, cntgs::FixedSize<float>> fixed_size_vector{
         input.size(), {fixed_size / 2, fixed_size / 2}};
-    for (size_t i = 0; i < input.size(); i++)
+    for (auto&& v : input)
     {
-        fixed_size_vector.emplace_back(input[i].begin(), input[i].front(), input[i].begin() + input[i].size() / 2);
+        fixed_size_vector.emplace_back(v.begin(), v.front(), v.begin() + v.size() / 2);
     }
     cntgs::ContiguousVector<cntgs::VaryingSize<float>, float, cntgs::VaryingSize<float>> varying_size_vector{
         input.size(), input.size() * fixed_size * sizeof(float)};
-    for (size_t i = 0; i < input.size(); i++)
+    for (auto&& v : input)
     {
-        std::vector<float> firsts{input[i].begin(), input[i].begin() + input[i].size() / 2};
-        std::vector<float> seconds{input[i].begin() + input[i].size() / 2, input[i].end()};
-        varying_size_vector.emplace_back(firsts, input[i].front(), seconds);
+        std::vector<float> firsts{v.begin(), v.begin() + v.size() / 2};
+        std::vector<float> seconds{v.begin() + v.size() / 2, v.end()};
+        varying_size_vector.emplace_back(firsts, v.front(), seconds);
     }
     input.clear();
     input.shrink_to_fit();

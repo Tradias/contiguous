@@ -5,6 +5,7 @@
 
 #include <any>
 #include <array>
+#include <iostream>
 #include <list>
 #include <optional>
 #include <string>
@@ -27,7 +28,7 @@ static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
 const std::list FLOATS_LIST{1.f, 2.f};
 
 template <class T>
-auto check_size1_and_capacity2(T&& v)
+auto check_size1_and_capacity2(T& v)
 {
     CHECK_EQ(1, v.size());
     CHECK_EQ(2, v.capacity());
@@ -90,7 +91,7 @@ TEST_CASE("ContiguousTest: TwoFixed get_fixed_size<I>()")
 }
 
 template <class Value>
-void check_const_and_non_const(Value&& value)
+void check_const_and_non_const(Value& value)
 {
     CHECK_EQ(10u, cntgs::get<0>(value));
     CHECK_EQ(10u, cntgs::get<0>(std::as_const(value)));
@@ -99,7 +100,7 @@ void check_const_and_non_const(Value&& value)
 }
 
 template <class Vector>
-void mutate_first_and_check(Vector&& vector)
+void mutate_first_and_check(Vector& vector)
 {
     using ValueType = typename std::decay_t<Vector>::value_type;
     ValueType value{vector[0]};
@@ -144,7 +145,7 @@ TEST_CASE("ContiguousTest: TwoFixed correct memory_consumption()")
     CHECK_EQ(expected, vector.memory_consumption());
 }
 
-TEST_CASE("ContiguousTest: TwoVarying emplace_back with arrays and subscript operator")
+TEST_CASE("ContiguousTest: TwoVarying emplace_back with arrays")
 {
     TwoVarying vector{1, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float)};
     vector.emplace_back(10u, FLOATS1, FLOATS2);
@@ -154,7 +155,7 @@ TEST_CASE("ContiguousTest: TwoVarying emplace_back with arrays and subscript ope
     CHECK(test::range_equal(FLOATS2, c));
 }
 
-TEST_CASE("ContiguousTest: OneVarying emplace_back with lists and subscript operator")
+TEST_CASE("ContiguousTest: OneVarying emplace_back with lists")
 {
     OneVarying vector{1, FLOATS_LIST.size() * sizeof(float)};
     vector.emplace_back(10u, FLOATS_LIST);
@@ -163,14 +164,14 @@ TEST_CASE("ContiguousTest: OneVarying emplace_back with lists and subscript oper
     CHECK(test::range_equal(FLOATS_LIST, b));
 }
 
-TEST_CASE("ContiguousTest: TwoFixed emplace_back with lists and subscript operator")
+TEST_CASE("ContiguousTest: TwoFixed emplace_back with lists")
 {
     TwoFixed vector{2, {FLOATS_LIST.size(), FLOATS1.size()}};
     vector.emplace_back(FLOATS_LIST, 10u, FLOATS1);
     vector.emplace_back(FLOATS_LIST, 10u, FLOATS1);
-    for (size_t i = 0; i < vector.size(); ++i)
+    for (auto&& element : vector)
     {
-        auto&& [a, b, c] = vector[i];
+        auto&& [a, b, c] = element;
         CHECK(test::range_equal(FLOATS_LIST, a));
         CHECK_EQ(10u, b);
         CHECK(test::range_equal(a, c));
@@ -206,7 +207,7 @@ TEST_CASE("ContiguousTest: OneVarying emplace_back c-style array")
     CHECK(test::range_equal(carray, array));
 }
 
-TEST_CASE("ContiguousTest: OneFixed emplace_back with iterator and subscript operator")
+TEST_CASE("ContiguousTest: OneFixed emplace_back with iterator")
 {
     std::vector expected_elements{1.f, 2.f};
     OneFixed vector{1, {expected_elements.size()}};
@@ -220,7 +221,7 @@ TEST_CASE("ContiguousTest: OneFixed emplace_back with iterator and subscript ope
 const std::string STRING1{"a very long test string"};
 const std::string STRING2{"another very long test string"};
 
-TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript operator")
+TEST_CASE("ContiguousTest: std::string emplace_back with iterator")
 {
     cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string, const std::string*> vector{1, {1}};
     std::vector v{STRING1};
@@ -235,7 +236,7 @@ TEST_CASE("ContiguousTest: std::string emplace_back with iterator and subscript 
 
 struct NotNothrowDestructible
 {
-    ~NotNothrowDestructible() noexcept(false) {}
+    ~NotNothrowDestructible() noexcept(false) = default;
 };
 
 TEST_CASE("ContiguousTest: ContiguousVector is conditionally nothrow destructible")
@@ -248,7 +249,7 @@ TEST_CASE("ContiguousTest: ContiguousVector is conditionally nothrow destructibl
 }
 
 template <class T>
-void check_iterator(T&& vector)
+void check_iterator(T& vector)
 {
     auto begin = vector.begin();
     using IterTraits = std::iterator_traits<decltype(begin)>;
@@ -272,14 +273,14 @@ TEST_CASE("ContiguousTest: OneFixed begin() end()")
     vector.emplace_back(20u, FLOATS1);
     SUBCASE("mutable")
     {
-        auto begin = vector.begin();
+        [[maybe_unused]] auto begin = vector.begin();
         CHECK(std::is_same_v<OneFixed::reference, decltype(*begin)>);
         CHECK(std::is_same_v<OneFixed::iterator, decltype(begin)>);
         check_iterator(vector);
     }
     SUBCASE("const")
     {
-        auto begin = std::as_const(vector).begin();
+        [[maybe_unused]] auto begin = std::as_const(vector).begin();
         CHECK(std::is_same_v<OneFixed::const_reference, decltype(*begin)>);
         CHECK(std::is_same_v<OneFixed::const_iterator, decltype(begin)>);
         check_iterator(std::as_const(vector));
@@ -313,6 +314,41 @@ auto array_two_unique_ptr(int v1 = 30, int v2 = 40)
     return std::array{std::make_unique<int>(v1), std::make_unique<int>(v2)};
 }
 
+TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy elements")
+{
+    auto floats2 = FLOATS1;
+    floats2.front() = 100.f;
+    OneVarying vector{2, FLOATS1.size() * sizeof(float) + floats2.size() * sizeof(float)};
+    vector.emplace_back(10u, FLOATS1);
+    vector.emplace_back(20u, floats2);
+    OneVarying::reference first = vector[0];
+    OneVarying::const_reference second = std::as_const(vector)[1];
+    first = second;
+    auto&& [a, b] = vector[0];
+    auto&& [c, d] = vector[1];
+    CHECK_EQ(20u, a);
+    CHECK(test::range_equal(floats2, b));
+    CHECK_EQ(20u, c);
+    CHECK(test::range_equal(floats2, d));
+}
+
+TEST_CASE("ContiguousTest: OneFixed::reference can be used to move elements")
+{
+    using Vector = cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::VaryingSize<std::unique_ptr<int>>>;
+    Vector vector{2, 6 * sizeof(std::unique_ptr<int>)};
+    vector.emplace_back(std::make_unique<int>(10), array_one_unique_ptr());
+    vector.emplace_back(std::make_unique<int>(20), array_two_unique_ptr());
+    Vector::reference first = vector[0];
+    Vector::reference second = vector[1];
+    first = std::move(second);
+    auto&& [a, b] = vector[0];
+    auto&& [c, d] = vector[1];
+    CHECK_EQ(20, *a);
+    CHECK_EQ(*array_two_unique_ptr().front(), *b.front());
+    CHECK_EQ(nullptr, c);
+    CHECK_EQ(nullptr, d.front());
+}
+
 TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of FixedSize std::unique_ptr")
 {
     cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>> vector{2, {1}};
@@ -341,7 +377,7 @@ TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of VaryingS
 TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
 {
     std::optional<OneFixed> vector;
-    const auto memory_size = 2 * (sizeof(uint32_t) * 2 * sizeof(float));
+    const auto memory_size = 2 * (sizeof(uint32_t) + 2 * sizeof(float));
     auto ptr = std::make_unique<std::byte[]>(memory_size);
     SUBCASE("unique_ptr") { vector.emplace(memory_size, std::move(ptr), 2, std::array{FLOATS1.size()}); }
     SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.get(), memory_size}, 2, std::array{FLOATS1.size()}); }
@@ -355,7 +391,7 @@ TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
 TEST_CASE("ContiguousTest: Plain construct with unique_ptr and span")
 {
     std::optional<Plain> vector;
-    const auto memory_size = 2 * (sizeof(uint32_t) * sizeof(float));
+    const auto memory_size = 2 * (sizeof(uint32_t) + sizeof(float));
     auto ptr = std::make_unique<std::byte[]>(memory_size);
     SUBCASE("unique_ptr") { vector.emplace(memory_size, std::move(ptr), 2); }
     SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.get(), memory_size}, 2); }
@@ -372,8 +408,8 @@ TEST_CASE("ContiguousTest: type_erase OneFixed and restore")
     vector.emplace_back(10u, FLOATS2);
     auto erased = cntgs::type_erase(std::move(vector));
     OneFixed restored;
-    SUBCASE("by move") { restored = OneFixed{std::move(erased)}; }
     SUBCASE("by lvalue reference") { restored = OneFixed{erased}; }
+    SUBCASE("by move") { restored = OneFixed{std::move(erased)}; }
     auto&& [i, e] = restored[0];
     CHECK_EQ(10u, i);
     CHECK(test::range_equal(FLOATS2, e));
@@ -532,14 +568,14 @@ TEST_CASE("ContiguousTest: OneFixedOneVaryingAligned size() and capacity()")
 template <std::size_t Alignment, class T>
 void check_alignment(T* t)
 {
-    void* ptr = reinterpret_cast<void*>(t);
+    auto* ptr = static_cast<void*>(t);
     auto size = std::numeric_limits<size_t>::max();
     std::align(Alignment, sizeof(uint32_t), ptr, size);
     CHECK_EQ(t, ptr);
 }
 
 template <std::size_t Alignment, class T>
-void check_alignment(T&& t)
+void check_alignment(T& t)
 {
     check_alignment<Alignment>(std::data(t));
 }

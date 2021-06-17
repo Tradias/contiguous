@@ -19,8 +19,7 @@ auto get_disassembly_of_functions(const std::vector<std::string>& function_names
 
 void check_code_gen_sizes(std::string reference, std::string contiguous, size_t size_deviation = 0)
 {
-    std::vector functions{reference, contiguous};
-    auto disassemblies = get_disassembly_of_functions(functions);
+    auto disassemblies = get_disassembly_of_functions({reference, contiguous});
     CAPTURE(disassemblies[0]);
     CAPTURE(disassemblies[1]);
     const auto reference_line_count = cntgs::test::count_lines(disassemblies[0]);

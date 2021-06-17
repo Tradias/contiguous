@@ -131,7 +131,7 @@ class ContiguousVector
     ContiguousVector& operator=(const ContiguousVector&) = default;
     ContiguousVector& operator=(ContiguousVector&&) = default;
 
-    ~ContiguousVector() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE) { destruct(); }
+    ~ContiguousVector() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE) { this->destruct(); }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -154,26 +154,26 @@ class ContiguousVector
     const_reference operator[](size_type i) const noexcept { return this->subscript_operator(i); }
 
     template <std::size_t I>
-    size_type get_fixed_size() const noexcept
+    [[nodiscard]] size_type get_fixed_size() const noexcept
     {
         return std::get<I>(this->fixed_sizes);
     }
 
-    bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
+    [[nodiscard]] bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
 
-    size_type size() const noexcept { return this->locator.size(this->memory.get()); }
+    [[nodiscard]] size_type size() const noexcept { return this->locator.size(this->memory.get()); }
 
-    constexpr size_type capacity() const noexcept { return this->max_element_count; }
+    [[nodiscard]] constexpr size_type capacity() const noexcept { return this->max_element_count; }
 
-    constexpr size_type memory_consumption() const noexcept { return this->memory_size; }
+    [[nodiscard]] constexpr size_type memory_consumption() const noexcept { return this->memory_size; }
 
-    constexpr iterator begin() noexcept { return iterator{*this}; }
+    [[nodiscard]] constexpr iterator begin() noexcept { return iterator{*this}; }
 
-    constexpr const_iterator begin() const noexcept { return const_iterator{*this}; }
+    [[nodiscard]] constexpr const_iterator begin() const noexcept { return const_iterator{*this}; }
 
-    constexpr iterator end() noexcept { return iterator{*this, this->size()}; }
+    [[nodiscard]] constexpr iterator end() noexcept { return iterator{*this, this->size()}; }
 
-    constexpr const_iterator end() const noexcept { return const_iterator{*this, this->size()}; }
+    [[nodiscard]] constexpr const_iterator end() const noexcept { return const_iterator{*this, this->size()}; }
 
     // private API
   private:
@@ -199,7 +199,7 @@ class ContiguousVector
     {
     }
 
-    static constexpr auto calculate_needed_memory_size(
+    [[nodiscard]] static constexpr auto calculate_needed_memory_size(
         size_type max_element_count, size_type varying_size_bytes,
         const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
     {
@@ -220,7 +220,7 @@ class ContiguousVector
         return this->subscript_operator<reference>(i, this->memory.get(), this->locator);
     }
 
-    auto subscript_operator(size_type i) const noexcept
+    [[nodiscard]] auto subscript_operator(size_type i) const noexcept
     {
         return this->subscript_operator<const_reference>(i, this->memory.get(), this->locator);
     }

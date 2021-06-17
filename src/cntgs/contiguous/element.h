@@ -34,16 +34,16 @@ class ContiguousElement
     ContiguousElement() = default;
 
     template <detail::ContiguousTupleQualifier Qualifier>
-    constexpr ContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
+    explicit constexpr ContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes())),
           tuple(this->store_and_load(other.tuple))
     {
     }
 
     template <detail::ContiguousTupleQualifier Qualifier>
-    constexpr ContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other)
+    explicit constexpr ContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes())),
-          tuple(this->store_and_load(std::move(other.tuple)))
+          tuple(this->store_and_load(other.tuple))
     {
     }
 
@@ -80,10 +80,9 @@ class ContiguousElement
 
   private:
     template <class Tuple>
-    constexpr auto store_and_load(Tuple&& tuple)
+    constexpr auto store_and_load(Tuple& source)
     {
-        return this->store_and_load(std::forward<Tuple>(tuple), this->memory_begin(),
-                                    std::make_index_sequence<Self::TYPE_COUNT>{});
+        return this->store_and_load(source, this->memory_begin(), std::make_index_sequence<Self::TYPE_COUNT>{});
     }
 
     template <class T>
@@ -99,11 +98,11 @@ class ContiguousElement
     }
 
     template <class Tuple, std::size_t... I>
-    static auto store_and_load(Tuple&& tuple, std::byte* CNTGS_RESTRICT address, std::index_sequence<I...>)
+    static auto store_and_load(Tuple& source, std::byte* CNTGS_RESTRICT address, std::index_sequence<I...>)
     {
         typename Traits::PointerReturnType tuple_of_pointer;
         ((address = Self::template store_and_load_one<detail::IgnoreFirstAlignmentSelector::template VALUE<I>, Types>(
-              std::get<I>(tuple_of_pointer), address, detail::extract<I>(tuple))),
+              std::get<I>(tuple_of_pointer), address, detail::extract<I>(source))),
          ...);
         return detail::convert_tuple_to<Tuple>(tuple_of_pointer);
     }
@@ -120,7 +119,7 @@ class ContiguousElement
         return address;
     }
 
-    constexpr auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
+    [[nodiscard]] auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
 
     template <std::size_t... I>
     void destruct(std::index_sequence<I...>) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)

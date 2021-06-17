@@ -40,7 +40,8 @@ find_package(doctest REQUIRED)
 function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
     add_executable(${_cntgs_name})
 
-    target_sources(${_cntgs_name} PRIVATE main.cpp ${_cntgs_disassembly_file} ${ARGN})
+    target_sources(${_cntgs_name} PRIVATE main.cpp ${_cntgs_disassembly_file}
+                                          $<TARGET_PROPERTY:cntgs,CNTGS_SOURCE_FILES> ${ARGN})
 
     target_compile_options(
         ${_cntgs_name}

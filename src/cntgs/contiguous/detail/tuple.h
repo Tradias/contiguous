@@ -65,7 +65,7 @@ constexpr decltype(auto) extract(const Tuple& tuple) noexcept
 }
 
 template <std::size_t I, class Tuple>
-constexpr decltype(auto) extract(Tuple& tuple) noexcept
+constexpr auto extract(Tuple& tuple) noexcept
 {
     return std::move(std::get<I>(tuple));
 }

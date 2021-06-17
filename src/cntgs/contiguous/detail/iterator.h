@@ -16,7 +16,7 @@ struct ArrowProxy
 };
 
 template <class I>
-static constexpr auto ContiguousIterator =
+static constexpr auto CONTIGUOUS_ITERATOR_V =
     detail::DerivedFrom<typename std::iterator_traits<I>::iterator_category, std::random_access_iterator_tag>&&
         std::is_lvalue_reference_v<typename std::iterator_traits<I>::reference>&&
             std::is_same_v<typename std::iterator_traits<I>::value_type,

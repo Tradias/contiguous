@@ -70,7 +70,8 @@ auto copy_ignore_aliasing(const Iterator& iterator, std::byte* CNTGS_RESTRICT ad
     {
         return detail::copy_using_memcpy(iterator, address, size);
     }
-    else if constexpr (detail::ContiguousIterator<Iterator> && detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
+    else if constexpr (detail::CONTIGUOUS_ITERATOR_V<Iterator> &&
+                       detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
         return detail::copy_using_memcpy(iterator.operator->(), address, size);
     }
@@ -141,7 +142,7 @@ struct MaybeOwnedPtr
 
     ~MaybeOwnedPtr() noexcept { release_if_not_owned(); }
 
-    decltype(auto) get() const noexcept { return this->ptr.get(); }
+    [[nodiscard]] decltype(auto) get() const noexcept { return this->ptr.get(); }
 
     explicit operator bool() const noexcept { return bool(this->ptr); }
 
