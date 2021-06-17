@@ -261,16 +261,13 @@ class ContiguousVector
                 (this->template uninitialized_move<Types>(cntgs::get<I>(source), std::get<I>(target)), ...);
             }
         }
-        if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
-        {
-            this->destruct();
-        }
+        this->destruct();
     }
 
     template <class Type, class Source, class Target>
     void uninitialized_move([[maybe_unused]] Source&& source, [[maybe_unused]] Target&& target)
     {
-        if constexpr (!detail::ParameterTraits<Type>::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE)
+        if constexpr (!std::is_trivially_move_constructible_v<typename detail::ParameterTraits<Type>::value_type>)
         {
             detail::ParameterTraits<Type>::uninitialized_move(source, target);
         }

@@ -35,9 +35,6 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = std::size_t{};
-    static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<value_type>;
-    static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE = std::is_trivially_destructible_v<value_type>;
-    static constexpr auto IS_TRIVIALLY_MOVE_CONSTRUCTIBLE = std::is_trivially_move_constructible_v<value_type>;
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = detail::MAX_SIZE_T_OF<VALUE_BYTES, ALIGNMENT>;
 
     template <bool NeedsAlignment>
@@ -95,16 +92,15 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         swap(lhs, rhs);
     }
 
-    static constexpr void destroy(ReferenceReturnType value) noexcept(IS_NOTHROW_DESTRUCTIBLE) { value.~value_type(); }
+    static constexpr void destroy(ReferenceReturnType value) noexcept(std::is_nothrow_destructible_v<value_type>)
+    {
+        value.~value_type();
+    }
 };
 
 template <class ValueType>
 struct BaseContiguousParameterTraits
 {
-    static constexpr auto IS_NOTHROW_DESTRUCTIBLE = std::is_nothrow_destructible_v<ValueType>;
-    static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE = std::is_trivially_destructible_v<ValueType>;
-    static constexpr auto IS_TRIVIALLY_MOVE_CONSTRUCTIBLE = std::is_trivially_move_constructible_v<ValueType>;
-
     template <class T>
     static auto start_address(const cntgs::Span<T>& value) noexcept
     {
