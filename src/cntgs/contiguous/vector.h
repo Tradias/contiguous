@@ -267,7 +267,7 @@ class ContiguousVector
     template <class Type, class Source, class Target>
     void uninitialized_move([[maybe_unused]] Source&& source, [[maybe_unused]] Target&& target)
     {
-        if constexpr (!std::is_trivially_move_constructible_v<typename detail::ParameterTraits<Type>::value_type>)
+        if constexpr (!std::is_trivially_move_constructible_v<typename detail::ParameterTraits<Type>::ValueType>)
         {
             detail::ParameterTraits<Type>::uninitialized_move(source, target);
         }

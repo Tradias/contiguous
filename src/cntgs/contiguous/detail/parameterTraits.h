@@ -30,17 +30,14 @@ template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 {
     using Type = T;
-    using ValueReturnType = T;
+    using ValueType = T;
     using PointerReturnType = std::add_pointer_t<T>;
     using ReferenceReturnType = std::add_lvalue_reference_t<T>;
     using ConstReferenceReturnType = std::add_lvalue_reference_t<std::add_const_t<T>>;
-    using value_type = T;
-    using iterator_type = PointerReturnType;
 
     static constexpr auto TYPE = ParameterType::PLAIN;
-    static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
-    static constexpr auto MEMORY_OVERHEAD = std::size_t{};
+    static constexpr auto VALUE_BYTES = sizeof(ValueType);
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = detail::MAX_SIZE_T_OF<VALUE_BYTES, ALIGNMENT>;
 
     template <bool NeedsAlignment>
@@ -55,7 +52,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     CNTGS_RESTRICT_RETURN static std::byte* store(Arg&& arg, std::byte* CNTGS_RESTRICT address, std::size_t)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        detail::construct_at(reinterpret_cast<value_type*>(address), std::forward<Arg>(arg));
+        detail::construct_at(reinterpret_cast<ValueType*>(address), std::forward<Arg>(arg));
         return address + ALIGNED_SIZE_IN_MEMORY;
     }
 
@@ -87,7 +84,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     }
 
     template <class Source>
-    static constexpr void uninitialized_move(Source&& source, value_type* target)
+    static constexpr void uninitialized_move(Source&& source, ValueType* target)
     {
         detail::construct_at(target, std::move(source));
     }
@@ -98,9 +95,9 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         swap(lhs, rhs);
     }
 
-    static constexpr void destroy(ReferenceReturnType value) noexcept(std::is_nothrow_destructible_v<value_type>)
+    static constexpr void destroy(ReferenceReturnType value) noexcept(std::is_nothrow_destructible_v<ValueType>)
     {
-        value.~value_type();
+        value.~ValueType();
     }
 };
 
@@ -163,15 +160,13 @@ template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T>
 {
     using Type = cntgs::VaryingSize<T>;
-    using ValueReturnType = cntgs::Span<T>;
+    using ValueType = T;
     using PointerReturnType = cntgs::Span<T>;
     using ReferenceReturnType = cntgs::Span<T>;
     using ConstReferenceReturnType = cntgs::Span<std::add_const_t<T>>;
-    using value_type = T;
-    using iterator_type = T*;
+    using IteratorType = T*;
 
     static constexpr auto TYPE = ParameterType::VARYING_SIZE;
-    static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = MEMORY_OVERHEAD + ALIGNMENT;
@@ -182,8 +177,8 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
         const auto size = *reinterpret_cast<std::size_t*>(address);
         address += MEMORY_OVERHEAD;
         const auto first_byte = static_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        const auto first = std::launder(reinterpret_cast<iterator_type>(first_byte));
-        const auto last = std::launder(reinterpret_cast<iterator_type>(first_byte + size));
+        const auto first = std::launder(reinterpret_cast<IteratorType>(first_byte));
+        const auto last = std::launder(reinterpret_cast<IteratorType>(first_byte + size));
         return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
@@ -193,7 +188,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
         const auto size = reinterpret_cast<std::size_t*>(address);
         address += MEMORY_OVERHEAD;
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        auto* new_address = detail::copy_range_ignore_aliasing<value_type>(std::forward<Range>(range), address);
+        auto* new_address = detail::copy_range_ignore_aliasing<ValueType>(std::forward<Range>(range), address);
         *size = new_address - address;
         return new_address;
     }
@@ -210,23 +205,21 @@ template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T>
 {
     using Type = cntgs::FixedSize<T>;
-    using ValueReturnType = cntgs::Span<T>;
+    using ValueType = T;
     using PointerReturnType = cntgs::Span<T>;
     using ReferenceReturnType = cntgs::Span<T>;
     using ConstReferenceReturnType = cntgs::Span<std::add_const_t<T>>;
-    using value_type = T;
-    using iterator_type = T*;
+    using IteratorType = T*;
 
     static constexpr auto TYPE = ParameterType::FIXED_SIZE;
-    static constexpr auto VALUE_BYTES = sizeof(value_type);
     static constexpr auto ALIGNMENT = Alignment;
-    static constexpr auto MEMORY_OVERHEAD = std::size_t{};
+    static constexpr auto VALUE_BYTES = sizeof(ValueType);
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t size) noexcept
     {
         const auto first =
-            std::launder(static_cast<iterator_type>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
+            std::launder(static_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
         const auto last = first + size;
         return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
@@ -236,8 +229,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
                                                   std::byte* CNTGS_RESTRICT address, std::size_t size)
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        return detail::copy_ignore_aliasing<value_type>(std::forward<RangeOrIterator>(range_or_iterator), address,
-                                                        size);
+        return detail::copy_ignore_aliasing<ValueType>(std::forward<RangeOrIterator>(range_or_iterator), address, size);
     }
 
     static constexpr auto aligned_size_in_memory(std::size_t fixed_size) noexcept

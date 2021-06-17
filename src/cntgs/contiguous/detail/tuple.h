@@ -22,12 +22,6 @@ struct TransformTuple<Transformer, std::tuple<T...>>
 };
 
 template <class T>
-using ToContiguousValue = typename detail::ParameterTraits<T>::ValueReturnType;
-
-template <class T>
-using ToContiguousTupleOfValueReturnType = typename detail::TransformTuple<ToContiguousValue, T>::Type;
-
-template <class T>
 using ToContiguousReference = typename detail::ParameterTraits<T>::ReferenceReturnType;
 
 template <class T>
