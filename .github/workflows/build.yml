@@ -18,6 +18,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
     - name: run-vcpkg
       uses: lukka/run-vcpkg@v7.3
       with:
@@ -25,10 +29,6 @@ jobs:
         vcpkgDirectory: ${{github.workspace}}/vcpkg
         vcpkgArguments: " " # workaround for: run-vcpkg action execution failed: Error: Input required and not supplied: vcpkgArguments
         vcpkgGitCommitId: 5568f110b509a9fd90711978a7cb76bae75bb092 # 2021.05.12
-    
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCNTGS_BUILD_TESTS=on -DCNTGS_DISCOVER_TESTS=on
