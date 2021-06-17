@@ -3,7 +3,6 @@
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
 
 #include <cstddef>
 #include <tuple>

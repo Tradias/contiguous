@@ -75,3 +75,19 @@ set_source_files_properties(
     test-code-gen.cpp
     PROPERTIES COMPILE_OPTIONS
                "$<$<CXX_COMPILER_ID:MSVC>:/EHs>;$<$<CXX_COMPILER_ID:MSVC>:/GR>;$<$<CXX_COMPILER_ID:GNU>:-fexceptions>")
+
+if(CNTGS_DISCOVER_TESTS)
+    enable_testing()
+    include(doctest)
+    doctest_discover_tests(
+        cntgs-test-cpp17 # workaround for regression in doctest 2.4.6
+        #
+        # if given arguments:
+        #
+        # "EQUAL" "1"
+        #
+        # Unknown arguments specified
+        ADD_LABELS
+        0)
+    doctest_discover_tests(cntgs-test-cpp20 ADD_LABELS 0)
+endif()

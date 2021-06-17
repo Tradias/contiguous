@@ -53,6 +53,6 @@ TEST_CASE("CodeGenTest: two FixedSize random lookup")
 
 TEST_CASE("CodeGenTest: two FixedSize reserve growth")
 {
-    check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth");
+    check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 4);
 }
 }  // namespace test_contiguous
