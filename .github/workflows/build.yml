@@ -34,8 +34,8 @@ jobs:
       run: cmake -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=on -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCNTGS_BUILD_TESTS=on -DCNTGS_DISCOVER_TESTS=on
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel 2
 
-    #- name: Test
-    #  working-directory: ${{github.workspace}}/build/tests
-    #  run: ctest -C ${{env.BUILD_TYPE}} -T test -j 2 --output-on-failure
+    - name: Test
+      working-directory: ${{github.workspace}}/build/tests
+      run: ctest -C ${{env.BUILD_TYPE}} -T test -j 2 --output-on-failure
