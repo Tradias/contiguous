@@ -47,24 +47,13 @@ function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
     target_sources(${_cntgs_name} PRIVATE main.cpp ${_cntgs_disassembly_file}
                                           $<TARGET_PROPERTY:cntgs,CNTGS_SOURCE_FILES> ${ARGN})
 
-    target_compile_options(
-        ${_cntgs_name}
-        PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4
-                /GR-
-                /EHsc->
-                $<$<CXX_COMPILER_ID:GNU>:-Wall
-                -Wextra
-                -pedantic-errors
-                -fno-exceptions
-                -fno-rtti>)
-
     if(CNTGS_TEST_COVERAGE)
         cntgs_add_coverage_flags(${_cntgs_name})
     endif()
 
     target_compile_definitions(${_cntgs_name} PRIVATE "CNTGS_CODE_GEN_DISASSEMBLY_FILE=\"${_cntgs_disassembly_file}\"")
 
-    target_link_libraries(${_cntgs_name} PRIVATE cntgs doctest::doctest cntgs-test-utils)
+    target_link_libraries(${_cntgs_name} PRIVATE cntgs-objects doctest::doctest cntgs-test-utils)
 
     target_include_directories(${_cntgs_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                                      $<INSTALL_INTERFACE:include>)

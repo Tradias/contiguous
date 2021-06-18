@@ -35,6 +35,27 @@ target_compile_features(cntgs INTERFACE cxx_std_17)
 
 target_include_directories(cntgs INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}> $<INSTALL_INTERFACE:include>)
 
+# cntgs objects
+if(CNTGS_BUILD_TESTS)
+    add_library(cntgs-objects OBJECT)
+
+    target_sources(cntgs-objects PRIVATE cntgs.cpp)
+
+    target_link_libraries(cntgs-objects PUBLIC cntgs)
+
+    target_compile_options(
+        cntgs-objects
+        PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4
+               /GR-
+               /EHsc->
+               $<$<CXX_COMPILER_ID:GNU>:-Wall
+               -Wextra
+               -pedantic-errors
+               -fno-exceptions
+               -fno-rtti>)
+endif()
+
+# installation
 if(NOT CNTGS_NO_INSTALL)
     include(CMakePackageConfigHelpers)
     write_basic_package_version_file(
