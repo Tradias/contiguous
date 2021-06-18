@@ -29,11 +29,6 @@ class ContiguousTuple
     {
     }
 
-    template <class Arg1, class Arg2>
-    constexpr ContiguousTuple(Arg1&& arg1, Arg2&& arg2) : tuple(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2))
-    {
-    }
-
     template <class Arg1, class Arg2, class... Args>
     constexpr ContiguousTuple(Arg1&& arg1, Arg2&& arg2, Args&&... args)
         : tuple(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Args>(args)...)
@@ -54,6 +49,15 @@ class ContiguousTuple
 
     /*implicit*/ constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple)) {}
 
+    constexpr ContiguousTuple& operator=(const ContiguousTuple& other)
+    {
+        if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
+        {
+            this->assign(other, std::make_index_sequence<sizeof...(Types)>{});
+        }
+        return *this;
+    }
+
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr ContiguousTuple& operator=(const ContiguousTuple<TQualifier, Types...>& other)
     {
@@ -67,6 +71,15 @@ class ContiguousTuple
     constexpr ContiguousTuple& operator=(const cntgs::ContiguousElement<Types...>& other)
     {
         this->assign(other.tuple, std::make_index_sequence<sizeof...(Types)>{});
+        return *this;
+    }
+
+    constexpr ContiguousTuple& operator=(ContiguousTuple&& other)
+    {
+        if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
+        {
+            this->assign(other, std::make_index_sequence<sizeof...(Types)>{});
+        }
         return *this;
     }
 

@@ -22,10 +22,22 @@ using TwoVarying = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<float>, 
 using OneFixed = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<float>>;
 using TwoFixed = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint32_t, cntgs::FixedSize<float>>;
 using OneFixedOneVarying = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint32_t, cntgs::VaryingSize<float>>;
+using OneFixedUniquePtr = cntgs::ContiguousVector<cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>>;
 
 static constexpr std::array FLOATS1{1.f, 2.f};
 static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
 const std::list FLOATS_LIST{1.f, 2.f};
+const std::string STRING1{"a very long test string"};
+const std::string STRING2{"another very long test string"};
+
+auto floats1(float one = 1.f, float two = 2.f) { return std::array{one, two}; }
+
+auto array_one_unique_ptr(int v1 = 10) { return std::array{std::make_unique<int>(v1)}; }
+
+auto array_two_unique_ptr(int v1 = 30, int v2 = 40)
+{
+    return std::array{std::make_unique<int>(v1), std::make_unique<int>(v2)};
+}
 
 template <class T>
 auto check_size1_and_capacity2(T& v)
@@ -128,6 +140,56 @@ TEST_CASE("ContiguousTest: OneFixed mutating value_type does not mutate underlyi
     mutate_first_and_check(vector);
 }
 
+TEST_CASE("ContiguousTest: value_type can be copy constructed")
+{
+    OneFixed vector{1, {FLOATS1.size()}};
+    vector.emplace_back(10u, FLOATS1);
+    OneFixed::value_type value1{vector[0]};
+    OneFixed::value_type value2{value1};
+    CHECK_EQ(10u, cntgs::get<0>(value2));
+    CHECK(test::range_equal(FLOATS1, cntgs::get<1>(value2)));
+}
+
+TEST_CASE("ContiguousTest: value_type can be copy assigned")
+{
+    using Vector = cntgs::ContiguousVector<std::string, cntgs::VaryingSize<std::string>>;
+    Vector vector{2, 6 * sizeof(std::string)};
+    vector.emplace_back(STRING1, std::array{STRING2});
+    vector.emplace_back(STRING2, std::array{STRING1, STRING2});
+    Vector::value_type value1{vector[0]};
+    Vector::value_type value2{vector[1]};
+    value2 = value1;
+    CHECK_EQ(STRING1, cntgs::get<0>(value2));
+    CHECK(test::range_equal(std::array{STRING2}, cntgs::get<1>(value2)));
+}
+
+auto fixed_vector_of_unique_ptrs()
+{
+    OneFixedUniquePtr vector{2, {1}};
+    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
+    return vector;
+}
+
+TEST_CASE("ContiguousTest: value_type can be move constructed")
+{
+    auto vector = fixed_vector_of_unique_ptrs();
+    OneFixedUniquePtr::value_type value1{vector[0]};
+    OneFixedUniquePtr::value_type value2{std::move(value1)};
+    CHECK_EQ(10, *cntgs::get<0>(value2).front());
+    CHECK_EQ(20, *cntgs::get<1>(value2));
+}
+
+TEST_CASE("ContiguousTest: value_type can be move assigned")
+{
+    auto vector = fixed_vector_of_unique_ptrs();
+    OneFixedUniquePtr::value_type value1{vector[0]};
+    OneFixedUniquePtr::value_type value2{vector[1]};
+    value1 = std::move(value2);
+    CHECK_EQ(30, *cntgs::get<0>(value1).front());
+    CHECK_EQ(40, *cntgs::get<1>(value1));
+}
+
 TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumption()")
 {
     using Vector = cntgs::ContiguousVector<cntgs::FixedSize<uint16_t>, uint32_t, cntgs::VaryingSize<float>>;
@@ -218,9 +280,6 @@ TEST_CASE("ContiguousTest: OneFixed emplace_back with iterator")
     CHECK(test::range_equal(expected_elements, elements));
 }
 
-const std::string STRING1{"a very long test string"};
-const std::string STRING2{"another very long test string"};
-
 TEST_CASE("ContiguousTest: std::string emplace_back with iterator")
 {
     cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string, const std::string*> vector{1, {1}};
@@ -297,13 +356,6 @@ TEST_CASE("ContiguousTest: swap and iter_swap with ContiguousVectorIterator of F
         CHECK_EQ(10, *a);
         CHECK_EQ(20, *b.front());
     }
-}
-
-auto array_one_unique_ptr(int v1 = 10) { return std::array{std::make_unique<int>(v1)}; }
-
-auto array_two_unique_ptr(int v1 = 30, int v2 = 40)
-{
-    return std::array{std::make_unique<int>(v1), std::make_unique<int>(v2)};
 }
 
 TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy elements")

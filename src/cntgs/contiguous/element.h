@@ -24,6 +24,7 @@ class ContiguousElement
     using StorageType = std::unique_ptr<detail::AlignedByteT<Traits::MAX_ALIGNMENT>[]>;
     using StorageElementType = typename StorageType::element_type;
     using Tuple = typename Traits::ReferenceReturnType;
+    using UnderlyingTuple = typename Tuple::Tuple;
     using Locator = detail::BaseElementLocatorT<Types...>;
 
     static constexpr auto TYPE_COUNT = sizeof...(Types);
@@ -35,31 +36,52 @@ class ContiguousElement
     ContiguousElement() = default;
 
     template <detail::ContiguousTupleQualifier Qualifier>
-    /*implicit*/ constexpr ContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
+    /*implicit*/ ContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes())),
           tuple(this->store_and_load(other.tuple))
     {
     }
 
     template <detail::ContiguousTupleQualifier Qualifier>
-    /*implicit*/ constexpr ContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other)
+    /*implicit*/ ContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes())),
           tuple(this->store_and_load(other.tuple))
     {
     }
 
-    ContiguousElement(const ContiguousElement&) = delete;
+    /*implicit*/ ContiguousElement(const ContiguousElement& other)
+        : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.tuple.size_in_bytes())),
+          tuple(this->store_and_load(other.tuple.tuple))
+    {
+    }
+
     ContiguousElement(ContiguousElement&&) = default;
 
-    ContiguousElement& operator=(const ContiguousElement&) = delete;
+    ContiguousElement& operator=(const ContiguousElement& other)
+    {
+        if (this != std::addressof(other))
+        {
+            this->destruct();
+            const auto current_memory_size = this->tuple.size_in_bytes();
+            const auto other_memory_size = other.tuple.size_in_bytes();
+            if (current_memory_size < other_memory_size)
+            {
+                this->memory = detail::make_unique_for_overwrite<StorageElementType[]>(other_memory_size);
+            }
+            detail::construct_at(&this->tuple, this->store_and_load(other.tuple.tuple));
+        }
+        return *this;
+    }
 
     ContiguousElement& operator=(ContiguousElement&& other) noexcept
     {
         if (this != std::addressof(other))
         {
             this->memory = std::move(other.memory);
-            this->tuple = std::move(other.tuple.tuple);
+            this->tuple.tuple.~UnderlyingTuple();
+            detail::construct_at(&this->tuple.tuple, std::move(other.tuple.tuple));
         }
+        return *this;
     }
 
     template <detail::ContiguousTupleQualifier Qualifier>
@@ -82,7 +104,7 @@ class ContiguousElement
         {
             if (this->memory)
             {
-                this->destruct(std::make_index_sequence<Self::TYPE_COUNT>{});
+                this->destruct();
             }
         }
     }
@@ -129,6 +151,8 @@ class ContiguousElement
     }
 
     [[nodiscard]] auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
+
+    void destruct() noexcept { this->destruct(std::make_index_sequence<Self::TYPE_COUNT>{}); }
 
     template <std::size_t... I>
     void destruct(std::index_sequence<I...>) noexcept
