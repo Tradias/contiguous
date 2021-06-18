@@ -22,7 +22,7 @@ jobs:
       with:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-    - name: run-vcpkg
+    - name: Install vcpkg
       uses: lukka/run-vcpkg@v7.3
       with:
         setupOnly: true

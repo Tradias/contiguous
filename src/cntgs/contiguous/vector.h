@@ -131,7 +131,7 @@ class ContiguousVector
     ContiguousVector& operator=(const ContiguousVector&) = default;
     ContiguousVector& operator=(ContiguousVector&&) = default;
 
-    ~ContiguousVector() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE) { this->destruct(); }
+    ~ContiguousVector() noexcept { this->destruct(); }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -146,8 +146,6 @@ class ContiguousVector
             this->grow(new_max_element_count, new_varying_size_bytes);
         }
     }
-
-    void shrink(size_type new_max_element_count) { this->shrink_and_destruct(new_max_element_count); }
 
     reference operator[](size_type i) noexcept { return this->subscript_operator(i); }
 
@@ -287,10 +285,9 @@ class ContiguousVector
         this->locator.resize(new_max_element_count, this->memory.get());
     }
 
-    void destruct() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE) { this->destruct(this->begin(), this->end()); }
+    void destruct() noexcept { this->destruct(this->begin(), this->end()); }
 
-    void destruct([[maybe_unused]] iterator first,
-                  [[maybe_unused]] iterator last) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
+    void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
     {
         if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
@@ -302,8 +299,7 @@ class ContiguousVector
     }
 
     template <std::size_t... I>
-    static void destruct(iterator first, iterator last,
-                         std::index_sequence<I...>) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
+    static void destruct(iterator first, iterator last, std::index_sequence<I...>) noexcept
     {
         std::for_each(first, last,
                       [](auto&& element) { (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...); });
@@ -311,7 +307,7 @@ class ContiguousVector
 };
 
 template <class... Types>
-auto type_erase(cntgs::ContiguousVector<Types...>&& vector)
+auto type_erase(cntgs::ContiguousVector<Types...>&& vector) noexcept
 {
     return cntgs::TypeErasedVector{
         vector.memory_size, vector.max_element_count, std::move(vector.memory),

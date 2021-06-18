@@ -10,6 +10,7 @@
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
 #include <cstddef>
+#include <memory>
 #include <tuple>
 
 namespace cntgs
@@ -51,7 +52,15 @@ class ContiguousElement
     ContiguousElement(ContiguousElement&&) = default;
 
     ContiguousElement& operator=(const ContiguousElement&) = delete;
-    ContiguousElement& operator=(ContiguousElement&&) = default;
+
+    ContiguousElement& operator=(ContiguousElement&& other) noexcept
+    {
+        if (this != std::addressof(other))
+        {
+            this->memory = std::move(other.memory);
+            this->tuple = std::move(other.tuple.tuple);
+        }
+    }
 
     template <detail::ContiguousTupleQualifier Qualifier>
     constexpr ContiguousElement& operator=(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
@@ -67,7 +76,7 @@ class ContiguousElement
         return *this;
     }
 
-    ~ContiguousElement() noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
+    ~ContiguousElement() noexcept
     {
         if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
@@ -122,7 +131,7 @@ class ContiguousElement
     [[nodiscard]] auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
 
     template <std::size_t... I>
-    void destruct(std::index_sequence<I...>) noexcept(Traits::IS_NOTHROW_DESTRUCTIBLE)
+    void destruct(std::index_sequence<I...>) noexcept
     {
         (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(this->tuple)), ...);
     }

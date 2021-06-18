@@ -75,30 +75,34 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         return start_address(return_type) + VALUE_BYTES;
     }
 
-    static constexpr void copy(ConstReferenceReturnType source, ReferenceReturnType target) { target = source; }
+    static constexpr void copy(ConstReferenceReturnType source,
+                               ReferenceReturnType target) noexcept(std::is_nothrow_copy_assignable_v<ValueType>)
+    {
+        target = source;
+    }
 
     template <class Source>
-    static constexpr void move(Source&& source, ReferenceReturnType target)
+    static constexpr void move(Source&& source,
+                               ReferenceReturnType target) noexcept(std::is_nothrow_move_assignable_v<ValueType>)
     {
         target = std::move(source);
     }
 
     template <class Source>
-    static constexpr void uninitialized_move(Source&& source, ValueType* target)
+    static constexpr void uninitialized_move(Source&& source, ValueType* target) noexcept(
+        std::is_nothrow_move_constructible_v<ValueType>)
     {
         detail::construct_at(target, std::move(source));
     }
 
-    static constexpr void swap(ReferenceReturnType lhs, ReferenceReturnType rhs)
+    static constexpr void swap(ReferenceReturnType lhs,
+                               ReferenceReturnType rhs) noexcept(std::is_nothrow_swappable_v<ValueType>)
     {
         using std::swap;
         swap(lhs, rhs);
     }
 
-    static constexpr void destroy(ReferenceReturnType value) noexcept(std::is_nothrow_destructible_v<ValueType>)
-    {
-        value.~ValueType();
-    }
+    static constexpr void destroy(ReferenceReturnType value) noexcept { value.~ValueType(); }
 };
 
 template <class ValueType>
@@ -117,35 +121,37 @@ struct BaseContiguousParameterTraits
     }
 
     template <class T, class U>
-    static void copy(const cntgs::Span<T>& source, cntgs::Span<U>& target)
+    static void copy(const cntgs::Span<T>& source,
+                     cntgs::Span<U>& target) noexcept(std::is_nothrow_copy_assignable_v<T>)
     {
         const auto size = std::min(std::size(source), std::size(target));
         std::copy_n(std::begin(source), size, std::begin(target));
     }
 
     template <class Source, class T>
-    static void move(Source&& source, cntgs::Span<T>& target)
+    static void move(Source&& source, cntgs::Span<T>& target) noexcept(std::is_nothrow_move_assignable_v<T>)
     {
         const auto size = std::min(std::size(source), std::size(target));
         std::copy_n(std::make_move_iterator(std::begin(source)), size, std::begin(target));
     }
 
     template <class Source, class T>
-    static void uninitialized_move(Source&& source, cntgs::Span<T>& target)
+    static void uninitialized_move(Source&& source,
+                                   cntgs::Span<T>& target) noexcept(std::is_nothrow_move_constructible_v<T>)
     {
         std::uninitialized_copy(std::make_move_iterator(std::begin(source)), std::make_move_iterator(std::end(source)),
                                 std::begin(target));
     }
 
     template <class T>
-    static void swap(cntgs::Span<T>& lhs, cntgs::Span<T>& rhs)
+    static void swap(cntgs::Span<T>& lhs, cntgs::Span<T>& rhs) noexcept(std::is_nothrow_swappable_v<T>)
     {
         const auto size = std::min(std::size(lhs), std::size(rhs));
         std::swap_ranges(std::begin(lhs), std::begin(lhs) + size, std::begin(rhs));
     }
 
     template <class T>
-    static void destroy(const cntgs::Span<T>& value) noexcept(std::is_nothrow_destructible_v<T>)
+    static void destroy(const cntgs::Span<T>& value) noexcept
     {
         std::destroy(std::begin(value), std::end(value));
     }

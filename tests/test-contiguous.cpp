@@ -234,18 +234,10 @@ TEST_CASE("ContiguousTest: std::string emplace_back with iterator")
     CHECK_EQ(STRING2, *string_ptr);
 }
 
-struct NotNothrowDestructible
+TEST_CASE("ContiguousTest: ContiguousVector::value_type is conditionally nothrow")
 {
-    ~NotNothrowDestructible() noexcept(false) {};
-};
-
-TEST_CASE("ContiguousTest: ContiguousVector is conditionally nothrow destructible")
-{
-    CHECK(!std::is_nothrow_destructible_v<
-          cntgs::ContiguousVector<cntgs::FixedSize<NotNothrowDestructible>, NotNothrowDestructible>>);
-    CHECK(!std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::VaryingSize<NotNothrowDestructible>>>);
-    CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::FixedSize<float>, float>>);
-    CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::VaryingSize<float>>>);
+    CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::FixedSize<float>, float>::value_type>);
+    CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::VaryingSize<float>>::value_type>);
 }
 
 template <class T>
