@@ -37,6 +37,10 @@ target_include_directories(cntgs-test-utils PUBLIC $<BUILD_INTERFACE:${CMAKE_CUR
 # tests
 find_package(doctest REQUIRED)
 
+if(CNTGS_TEST_COVERAGE)
+    include(CntgsCoverage)
+endif()
+
 function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
     add_executable(${_cntgs_name})
 
@@ -53,6 +57,10 @@ function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
                 -pedantic-errors
                 -fno-exceptions
                 -fno-rtti>)
+
+    if(CNTGS_TEST_COVERAGE)
+        cntgs_add_coverage_flags(${_cntgs_name})
+    endif()
 
     target_compile_definitions(${_cntgs_name} PRIVATE "CNTGS_CODE_GEN_DISASSEMBLY_FILE=\"${_cntgs_disassembly_file}\"")
 
@@ -90,4 +98,8 @@ if(CNTGS_DISCOVER_TESTS)
         ADD_LABELS
         0)
     doctest_discover_tests(cntgs-test-cpp20 ADD_LABELS 0)
+endif()
+
+if(CNTGS_TEST_COVERAGE)
+    cntgs_coverage_report_for_target(cntgs-test-cpp17 ${CMAKE_CURRENT_SOURCE_DIR}/test-contiguous.cpp)
 endif()

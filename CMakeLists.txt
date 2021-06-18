@@ -9,6 +9,10 @@ project(
 option(CNTGS_NO_INSTALL on)
 option(CNTGS_BUILD_TESTS off)
 option(CNTGS_DISCOVER_TESTS off)
+option(CNTGS_TEST_COVERAGE off)
+set(CNTGS_TEST_COVERAGE_OUTPUT_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/test-coverage"
+    CACHE PATH "Directory for test coverage reports")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
