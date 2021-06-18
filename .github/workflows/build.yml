@@ -46,8 +46,8 @@ jobs:
     - name: Prepare compile_commands.json for SonarCloud Scan
       run: cmake -DWORKSPACE_ROOT=${{github.workspace}} -P ${{github.workspace}}/cmake/CntgsPrepareCompileCommands.cmake
 
-    - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@master
-      env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}  # Needed to get PR information, if any
-        SONAR_TOKEN: ${{secrets.SONAR_TOKEN}}
+    #- name: SonarCloud Scan
+    #  uses: SonarSource/sonarcloud-github-action@master
+    #  env:
+    #    GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}  # Needed to get PR information, if any
+    #    SONAR_TOKEN: ${{secrets.SONAR_TOKEN}}
