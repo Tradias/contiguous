@@ -7,7 +7,7 @@ on:
     types: [opened, synchronize, reopened]
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
         vcpkgGitCommitId: 5568f110b509a9fd90711978a7cb76bae75bb092 # 2021.05.12
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=on -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCNTGS_BUILD_TESTS=on -DCNTGS_DISCOVER_TESTS=on
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=on -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCNTGS_BUILD_TESTS=on -DCNTGS_DISCOVER_TESTS=on -DCNTGS_TEST_COVERAGE=on
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel 2
@@ -39,3 +39,15 @@ jobs:
     - name: Test
       working-directory: ${{github.workspace}}/build/tests
       run: ctest -C ${{env.BUILD_TYPE}} -T test -j 2 --output-on-failure
+
+    - name: Code Coverage
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target cntgs-test-cpp17-coverage
+
+    - name: Prepare compile_commands.json for SonarCloud Scan
+      run: cmake -DWORKSPACE_ROOT=${{github.workspace}} -P ${{github.workspace}}/cmake/CntgsPrepareCompileCommands.cmake
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}  # Needed to get PR information, if any
+        SONAR_TOKEN: ${{secrets.SONAR_TOKEN}}
