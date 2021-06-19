@@ -112,7 +112,7 @@ void check_const_and_non_const(Value& value)
 }
 
 template <class Vector>
-void mutate_first_and_check(Vector& vector)
+auto mutate_first_and_check(Vector& vector)
 {
     using ValueType = typename std::decay_t<Vector>::value_type;
     ValueType value{vector[0]};
@@ -121,9 +121,7 @@ void mutate_first_and_check(Vector& vector)
     CHECK_EQ(1.f, cntgs::get<1>(vector[0]).front());
     ValueType value2{std::move(vector[0])};
     check_const_and_non_const(value2);
-    cntgs::get<1>(value2).front() = 12.f;
-    vector[0] = std::move(value2);
-    CHECK_EQ(12.f, cntgs::get<1>(vector[0]).front());
+    return value2;
 }
 
 TEST_CASE("ContiguousTest: OneVarying mutating value_type does not mutate underlying ContiguousVector")
@@ -137,7 +135,10 @@ TEST_CASE("ContiguousTest: OneFixed mutating value_type does not mutate underlyi
 {
     OneFixed vector{1, {FLOATS1.size()}};
     vector.emplace_back(10u, FLOATS1);
-    mutate_first_and_check(vector);
+    auto value = mutate_first_and_check(vector);
+    cntgs::get<1>(value).front() = 12.f;
+    vector[0] = std::move(value);
+    CHECK_EQ(12.f, cntgs::get<1>(vector[0]).front());
 }
 
 TEST_CASE("ContiguousTest: value_type can be copy constructed")
@@ -362,11 +363,11 @@ TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy element
 {
     auto floats2 = FLOATS1;
     floats2.front() = 100.f;
-    OneVarying vector{2, FLOATS1.size() * sizeof(float) + floats2.size() * sizeof(float)};
+    OneFixed vector{2, {FLOATS1.size()}};
     vector.emplace_back(10u, FLOATS1);
     vector.emplace_back(20u, floats2);
-    OneVarying::reference first = vector[0];
-    OneVarying::const_reference second = std::as_const(vector)[1];
+    OneFixed::reference first = vector[0];
+    OneFixed::const_reference second = std::as_const(vector)[1];
     first = second;
     auto&& [a, b] = vector[0];
     auto&& [c, d] = vector[1];
@@ -378,17 +379,17 @@ TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy element
 
 TEST_CASE("ContiguousTest: OneFixed::reference can be used to move elements")
 {
-    using Vector = cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::VaryingSize<std::unique_ptr<int>>>;
-    Vector vector{2, 6 * sizeof(std::unique_ptr<int>)};
-    vector.emplace_back(std::make_unique<int>(10), array_one_unique_ptr());
-    vector.emplace_back(std::make_unique<int>(20), array_two_unique_ptr());
+    using Vector = cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>>;
+    Vector vector{2, {1}};
+    vector.emplace_back(std::make_unique<int>(10), array_one_unique_ptr(20));
+    vector.emplace_back(std::make_unique<int>(30), array_one_unique_ptr(40));
     Vector::reference first = vector[0];
     Vector::reference second = vector[1];
     first = std::move(second);
     auto&& [a, b] = vector[0];
     auto&& [c, d] = vector[1];
-    CHECK_EQ(20, *a);
-    CHECK_EQ(*array_two_unique_ptr().front(), *b.front());
+    CHECK_EQ(30, *a);
+    CHECK_EQ(40, *b.front());
     CHECK_EQ(nullptr, c);
     CHECK_EQ(nullptr, d.front());
 }
@@ -403,19 +404,6 @@ TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of FixedSiz
     auto&& [a, b] = vector[0];
     CHECK_EQ(30, *a);
     CHECK_EQ(40, *b.front());
-}
-
-TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of VaryingSize std::unique_ptr")
-{
-    cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, cntgs::VaryingSize<std::unique_ptr<int>>> vector{
-        2, 6 * sizeof(std::unique_ptr<int>)};
-    vector.emplace_back(array_one_unique_ptr(), array_two_unique_ptr());
-    vector.emplace_back(array_two_unique_ptr(), array_one_unique_ptr());
-    std::iter_swap(vector.begin(), ++vector.begin());
-    auto&& [a, b] = vector[0];
-    CHECK_EQ(30, *a[0]);
-    CHECK_EQ(10, *b[0]);
-    CHECK_EQ(40, *b[1]);
 }
 
 TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
