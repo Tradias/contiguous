@@ -6,6 +6,7 @@
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 
 #include <cstddef>
+#include <cstring>
 #include <tuple>
 
 namespace cntgs
@@ -26,6 +27,7 @@ class ContiguousTuple
     Tuple tuple;
 
     ContiguousTuple() = default;
+    ~ContiguousTuple() = default;
 
     ContiguousTuple(const ContiguousTuple&) = default;
     ContiguousTuple(ContiguousTuple&&) = default;
@@ -42,23 +44,28 @@ class ContiguousTuple
     }
 
     template <detail::ContiguousTupleQualifier TQualifier>
-    /*implicit*/ constexpr ContiguousTuple(const ContiguousTuple<TQualifier, Types...>& other) : tuple(other.tuple)
+    /*implicit*/ constexpr ContiguousTuple(const ContiguousTuple<TQualifier, Types...>& other) noexcept
+        : tuple(other.tuple)
     {
     }
 
-    /*implicit*/ constexpr ContiguousTuple(const cntgs::ContiguousElement<Types...>& other) : tuple(other.tuple) {}
+    /*implicit*/ constexpr ContiguousTuple(const cntgs::ContiguousElement<Types...>& other) noexcept
+        : tuple(other.tuple)
+    {
+    }
 
     template <detail::ContiguousTupleQualifier TQualifier>
-    /*implicit*/ constexpr ContiguousTuple(ContiguousTuple<TQualifier, Types...>&& other)
+    /*implicit*/ constexpr ContiguousTuple(ContiguousTuple<TQualifier, Types...>&& other) noexcept
         : tuple(std::move(other.tuple))
     {
     }
 
-    /*implicit*/ constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple))
+    /*implicit*/ constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) noexcept
+        : tuple(std::move(other.tuple))
     {
     }
 
-    constexpr ContiguousTuple& operator=(const ContiguousTuple& other)
+    constexpr ContiguousTuple& operator=(const ContiguousTuple& other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
@@ -68,7 +75,8 @@ class ContiguousTuple
     }
 
     template <detail::ContiguousTupleQualifier TQualifier>
-    constexpr ContiguousTuple& operator=(const ContiguousTuple<TQualifier, Types...>& other)
+    constexpr ContiguousTuple& operator=(const ContiguousTuple<TQualifier, Types...>& other) noexcept(
+        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
@@ -77,13 +85,14 @@ class ContiguousTuple
         return *this;
     }
 
-    constexpr ContiguousTuple& operator=(const cntgs::ContiguousElement<Types...>& other)
+    constexpr ContiguousTuple& operator=(const cntgs::ContiguousElement<Types...>& other) noexcept(
+        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->assign(other.tuple, ListTraits::make_index_sequence());
         return *this;
     }
 
-    constexpr ContiguousTuple& operator=(ContiguousTuple&& other)
+    constexpr ContiguousTuple& operator=(ContiguousTuple&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
@@ -93,7 +102,9 @@ class ContiguousTuple
     }
 
     template <detail::ContiguousTupleQualifier TQualifier>
-    constexpr ContiguousTuple& operator=(ContiguousTuple<TQualifier, Types...>&& other)
+    constexpr ContiguousTuple& operator=(ContiguousTuple<TQualifier, Types...>&& other) noexcept(
+        ContiguousTuple<TQualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
+                                                        : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
@@ -102,16 +113,16 @@ class ContiguousTuple
         return *this;
     }
 
-    constexpr ContiguousTuple& operator=(cntgs::ContiguousElement<Types...>&& other)
+    constexpr ContiguousTuple& operator=(cntgs::ContiguousElement<Types...>&& other) noexcept(
+        ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
         this->assign(other.tuple, ListTraits::make_index_sequence());
         return *this;
     }
 
-    template <detail::ContiguousTupleQualifier TQualifier, std::size_t... I>
-    constexpr void swap(ContiguousTuple<TQualifier, Types...>& other, std::index_sequence<I...>)
+    constexpr void swap(const ContiguousTuple& other) const noexcept(ListTraits::IS_NOTHROW_SWAPPABLE)
     {
-        (detail::ParameterTraits<Types>::swap(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
+        this->swap(other, ListTraits::make_index_sequence());
     }
 
     [[nodiscard]] constexpr auto size_in_bytes() const noexcept { return this->end_address() - this->start_address(); }
@@ -129,22 +140,30 @@ class ContiguousTuple
 
   private:
     template <detail::ContiguousTupleQualifier TQualifier, std::size_t... I>
-    constexpr void assign(const ContiguousTuple<TQualifier, Types...>& other, std::index_sequence<I...>)
+    constexpr void assign(const ContiguousTuple<TQualifier, Types...>& other, std::index_sequence<I...>) const
     {
         (detail::ParameterTraits<Types>::copy(std::get<I>(other.tuple), std::get<I>(this->tuple)), ...);
     }
 
-    template <detail::ContiguousTupleQualifier TQualifier, std::size_t... I>
-    constexpr void assign(ContiguousTuple<TQualifier, Types...>& other, std::index_sequence<I...>)
+    template <std::size_t... I>
+    constexpr void assign(ContiguousTuple& other, std::index_sequence<I...>) const
     {
         (detail::ParameterTraits<Types>::move(std::get<I>(other.tuple), std::get<I>(this->tuple)), ...);
+    }
+
+    template <std::size_t... I>
+    constexpr void swap(const ContiguousTuple& other, std::index_sequence<I...>) const
+    {
+        (detail::ParameterTraits<Types>::swap(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
     }
 };
 
 template <detail::ContiguousTupleQualifier Qualifier, class... T>
-constexpr void swap(cntgs::ContiguousTuple<Qualifier, T...> lhs, cntgs::ContiguousTuple<Qualifier, T...> rhs)
+constexpr void swap(const cntgs::ContiguousTuple<Qualifier, T...>& lhs,
+                    const cntgs::ContiguousTuple<Qualifier, T...>&
+                        rhs) noexcept(detail::ParameterListTraits<T...>::IS_NOTHROW_SWAPPABLE)
 {
-    lhs.swap(rhs, std::make_index_sequence<sizeof...(T)>{});
+    lhs.swap(rhs);
 }
 
 template <std::size_t I, detail::ContiguousTupleQualifier Qualifier, class... Types>

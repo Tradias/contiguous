@@ -2,7 +2,6 @@
 
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
-#include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/utility.h"
 
 #include <tuple>
@@ -49,18 +48,6 @@ constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer, std::i
 template <class Result, class... T>
 constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexcept
 {
-    return convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
-}
-
-template <std::size_t I, class Tuple>
-constexpr decltype(auto) extract(const Tuple& tuple) noexcept
-{
-    return std::get<I>(tuple);
-}
-
-template <std::size_t I, class Tuple>
-constexpr auto extract(Tuple& tuple) noexcept
-{
-    return std::move(std::get<I>(tuple));
+    return detail::convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
 }
 }  // namespace cntgs::detail

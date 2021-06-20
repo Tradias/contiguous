@@ -58,7 +58,7 @@ class ContiguousElement
 
     ContiguousElement(ContiguousElement&&) = default;
 
-    ContiguousElement& operator=(const ContiguousElement& other)
+    ContiguousElement& operator=(const ContiguousElement& other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         if (this != std::addressof(other))
         {
@@ -67,7 +67,7 @@ class ContiguousElement
         return *this;
     }
 
-    ContiguousElement& operator=(ContiguousElement&& other) noexcept
+    ContiguousElement& operator=(ContiguousElement&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
         if (this != std::addressof(other))
         {
@@ -77,14 +77,17 @@ class ContiguousElement
     }
 
     template <detail::ContiguousTupleQualifier Qualifier>
-    constexpr ContiguousElement& operator=(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
+    constexpr ContiguousElement& operator=(const cntgs::ContiguousTuple<Qualifier, Types...>& other) noexcept(
+        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->tuple = other;
         return *this;
     }
 
     template <detail::ContiguousTupleQualifier Qualifier>
-    constexpr ContiguousElement& operator=(cntgs::ContiguousTuple<Qualifier, Types...>&& other)
+    constexpr ContiguousElement& operator=(cntgs::ContiguousTuple<Qualifier, Types...>&& other) noexcept(
+        ContiguousTuple<Qualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
+                                                       : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->tuple = std::move(other);
         return *this;
@@ -125,7 +128,8 @@ class ContiguousElement
     }
 
     template <std::size_t... I>
-    static auto load(std::byte* CNTGS_RESTRICT address, const UnderlyingTuple& tuple, std::index_sequence<I...>)
+    static auto load(std::byte* CNTGS_RESTRICT address, const UnderlyingTuple& tuple,
+                     std::index_sequence<I...>) noexcept
     {
         typename VectorTraits::PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =
@@ -147,7 +151,7 @@ class ContiguousElement
 };
 
 template <class... T>
-constexpr void swap(cntgs::ContiguousElement<T...>& lhs, cntgs::ContiguousElement<T...>& rhs)
+constexpr void swap(cntgs::ContiguousElement<T...>& lhs, cntgs::ContiguousElement<T...>& rhs) noexcept
 {
     std::swap(lhs.memory, rhs.memory);
     std::swap(lhs.tuple.tuple, rhs.tuple.tuple);

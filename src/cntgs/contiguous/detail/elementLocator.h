@@ -99,8 +99,8 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
     }
 
     template <bool UseMove, detail::ContiguousTupleQualifier Qualifier>
-    static void construct_if_non_trivial([[maybe_unused]] const cntgs::ContiguousTuple<Qualifier, Types...>& source,
-                                         [[maybe_unused]] const PointerReturnType& target)
+    static constexpr void construct_if_non_trivial(const cntgs::ContiguousTuple<Qualifier, Types...>& source,
+                                                   const PointerReturnType& target)
     {
         (detail::construct_one_if_non_trivial<UseMove, Types>(cntgs::get<I>(source), std::get<I>(target)), ...);
     }
@@ -192,7 +192,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
         const auto size_diff = std::distance(new_memory_begin, new_start) - std::distance(old_memory_begin, old_start);
         auto new_last_element_address = reinterpret_cast<std::byte**>(new_memory_begin);
         std::for_each(
-            reinterpret_cast<std::byte**>(old_memory_begin), old_locator.last_element_address, [&](auto&& element) {
+            reinterpret_cast<std::byte**>(old_memory_begin), old_locator.last_element_address, [&](std::byte* element) {
                 *new_last_element_address = new_memory_begin + std::distance(old_memory_begin, element) + size_diff;
                 ++new_last_element_address;
             });

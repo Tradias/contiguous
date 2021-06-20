@@ -150,7 +150,7 @@ class ContiguousVector
     const_reference operator[](size_type i) const noexcept { return this->subscript_operator(i); }
 
     template <std::size_t I>
-    [[nodiscard]] size_type get_fixed_size() const noexcept
+    [[nodiscard]] constexpr size_type get_fixed_size() const noexcept
     {
         return std::get<I>(this->fixed_sizes);
     }

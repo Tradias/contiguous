@@ -36,6 +36,13 @@ struct ParameterListTraits
 
     static constexpr auto IS_NOTHROW_DESTRUCTIBLE =
         (std::is_nothrow_destructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTHROW_COPY_ASSIGNABLE =
+        (std::is_nothrow_copy_assignable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTHROW_MOVE_ASSIGNABLE =
+        (std::is_nothrow_move_assignable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTHROW_SWAPPABLE =
+        (std::is_nothrow_swappable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+
     static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE =
         (std::is_trivially_destructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_TRIVIALLY_COPY_CONSTRUCTIBLE =

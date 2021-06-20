@@ -52,17 +52,22 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 
     static constexpr auto aligned_size_in_memory(std::size_t) noexcept { return ALIGNED_SIZE_IN_MEMORY; }
 
-    static constexpr auto start_address(PointerReturnType return_type) noexcept
-    {
-        return reinterpret_cast<std::byte*>(return_type);
-    }
-
     static auto start_address(ConstReferenceReturnType return_type) noexcept
     {
-        return const_cast<std::byte*>(reinterpret_cast<const std::byte*>(std::addressof(return_type)));
+        return reinterpret_cast<const std::byte*>(std::addressof(return_type));
+    }
+
+    static auto start_address(ReferenceReturnType return_type) noexcept
+    {
+        return reinterpret_cast<std::byte*>(std::addressof(return_type));
     }
 
     static auto end_address(ConstReferenceReturnType return_type) noexcept
+    {
+        return start_address(return_type) + VALUE_BYTES;
+    }
+
+    static auto end_address(ReferenceReturnType return_type) noexcept
     {
         return start_address(return_type) + VALUE_BYTES;
     }
@@ -109,9 +114,19 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 template <class T>
 struct BaseContiguousParameterTraits
 {
+    static auto start_address(const cntgs::Span<std::add_const_t<T>>& value) noexcept
+    {
+        return reinterpret_cast<const std::byte*>(value.data());
+    }
+
     static auto start_address(const cntgs::Span<T>& value) noexcept
     {
         return reinterpret_cast<std::byte*>(value.data());
+    }
+
+    static auto end_address(const cntgs::Span<std::add_const_t<T>>& value) noexcept
+    {
+        return reinterpret_cast<const std::byte*>(value.data() + value.size());
     }
 
     static auto end_address(const cntgs::Span<T>& value) noexcept
