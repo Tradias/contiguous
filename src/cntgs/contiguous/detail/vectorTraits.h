@@ -4,7 +4,6 @@
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/vector.h"
-#include "cntgs/contiguous/tuple.h"
 
 #include <tuple>
 #include <utility>
@@ -70,6 +69,8 @@ struct VectorTraits<cntgs::ContiguousVector<Types...>>
         (std::is_nothrow_destructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE =
         (std::is_trivially_destructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_TRIVIALLY_COPY_CONSTRUCTIBLE =
+        (std::is_trivially_copy_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_TRIVIALLY_MOVE_CONSTRUCTIBLE =
         (std::is_trivially_move_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
 

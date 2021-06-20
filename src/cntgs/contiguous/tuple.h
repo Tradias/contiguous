@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
@@ -12,10 +13,17 @@ namespace cntgs
 template <detail::ContiguousTupleQualifier Qualifier, class... Types>
 class ContiguousTuple
 {
+  private:
+    using Locator = detail::BaseElementLocatorT<Types...>;
+
+    static constexpr auto TYPE_COUNT = sizeof...(Types);
+
   public:
     using Tuple = std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
                                      detail::ToContiguousTupleOfReferenceReturnType<std::tuple<Types...>>,
                                      detail::ToContiguousTupleOfConstReferenceReturnType<std::tuple<Types...>>>;
+
+    static constexpr auto IS_CONST = detail::ContiguousTupleQualifier::CONST_REFERENCE == Qualifier;
 
     Tuple tuple;
 
@@ -43,17 +51,20 @@ class ContiguousTuple
     /*implicit*/ constexpr ContiguousTuple(const cntgs::ContiguousElement<Types...>& other) : tuple(other.tuple) {}
 
     template <detail::ContiguousTupleQualifier TQualifier>
-    /*implicit*/ constexpr ContiguousTuple(ContiguousTuple<TQualifier, Types...>&& other) : tuple(std::move(other.tuple))
+    /*implicit*/ constexpr ContiguousTuple(ContiguousTuple<TQualifier, Types...>&& other)
+        : tuple(std::move(other.tuple))
     {
     }
 
-    /*implicit*/ constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple)) {}
+    /*implicit*/ constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) : tuple(std::move(other.tuple))
+    {
+    }
 
     constexpr ContiguousTuple& operator=(const ContiguousTuple& other)
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
-            this->assign(other, std::make_index_sequence<sizeof...(Types)>{});
+            this->assign(other, std::make_index_sequence<TYPE_COUNT>{});
         }
         return *this;
     }
@@ -63,14 +74,14 @@ class ContiguousTuple
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
-            this->assign(other, std::make_index_sequence<sizeof...(Types)>{});
+            this->assign(other, std::make_index_sequence<TYPE_COUNT>{});
         }
         return *this;
     }
 
     constexpr ContiguousTuple& operator=(const cntgs::ContiguousElement<Types...>& other)
     {
-        this->assign(other.tuple, std::make_index_sequence<sizeof...(Types)>{});
+        this->assign(other.tuple, std::make_index_sequence<TYPE_COUNT>{});
         return *this;
     }
 
@@ -78,7 +89,7 @@ class ContiguousTuple
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
-            this->assign(other, std::make_index_sequence<sizeof...(Types)>{});
+            this->assign(other, std::make_index_sequence<TYPE_COUNT>{});
         }
         return *this;
     }
@@ -88,14 +99,14 @@ class ContiguousTuple
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
-            this->assign(other, std::make_index_sequence<sizeof...(Types)>{});
+            this->assign(other, std::make_index_sequence<TYPE_COUNT>{});
         }
         return *this;
     }
 
     constexpr ContiguousTuple& operator=(cntgs::ContiguousElement<Types...>&& other)
     {
-        this->assign(other.tuple, std::make_index_sequence<sizeof...(Types)>{});
+        this->assign(other.tuple, std::make_index_sequence<TYPE_COUNT>{});
         return *this;
     }
 
@@ -105,12 +116,16 @@ class ContiguousTuple
         (detail::ParameterTraits<Types>::swap(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
     }
 
-    [[nodiscard]] constexpr auto size_in_bytes() const noexcept
+    [[nodiscard]] constexpr auto size_in_bytes() const noexcept { return this->end_address() - this->start_address(); }
+
+    [[nodiscard]] constexpr auto start_address() const noexcept
     {
-        using TraitsOfFirst = detail::ParameterTraits<std::tuple_element_t<0, std::tuple<Types...>>>;
-        using TraitsOfLast = detail::ParameterTraits<std::tuple_element_t<sizeof...(Types) - 1, std::tuple<Types...>>>;
-        return TraitsOfLast::end_address(std::get<sizeof...(Types) - 1>(this->tuple)) -
-               TraitsOfFirst::start_address(std::get<0>(this->tuple));
+        return Locator::template ParameterTraitsAt<0>::start_address(std::get<0>(this->tuple));
+    }
+
+    [[nodiscard]] constexpr auto end_address() const noexcept
+    {
+        return Locator::template ParameterTraitsAt<TYPE_COUNT - 1>::end_address(std::get<TYPE_COUNT - 1>(this->tuple));
     }
 
   private:

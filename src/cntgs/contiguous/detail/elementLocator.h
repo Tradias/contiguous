@@ -5,6 +5,7 @@
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
+#include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
@@ -41,6 +42,7 @@ template <std::size_t... I, class... Types>
 struct BaseElementLocator<std::index_sequence<I...>, Types...>
 {
     using Traits = detail::ContiguousVectorTraits<Types...>;
+    using PointerReturnType = typename Traits::PointerReturnType;
 
     template <class T>
     using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
@@ -61,7 +63,7 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
     template <class NeedsAlignmentSelector, std::size_t N>
     static auto load_element_at(std::byte* address, const std::array<std::size_t, N>& fixed_sizes) noexcept
     {
-        typename Traits::PointerReturnType result;
+        PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =
               detail::ParameterTraits<Types>::template load<NeedsAlignmentSelector::template VALUE<I>>(
                   address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
@@ -78,6 +80,27 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
           alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
          ...);
         return result + alignment_offset<ParameterTraitsAt<0>::ALIGNMENT>(result);
+    }
+
+    template <bool UseMove, detail::ContiguousTupleQualifier Qualifier>
+    static void construct_if_non_trivial([[maybe_unused]] const cntgs::ContiguousTuple<Qualifier, Types...>& source,
+                                         [[maybe_unused]] const PointerReturnType& target)
+    {
+        (construct_one_if_non_trivial<UseMove, Types>(get<I>(source), std::get<I>(target)), ...);
+    }
+
+    template <bool UseMove, class Type, class Source, class Target>
+    static void construct_one_if_non_trivial([[maybe_unused]] Source& source, [[maybe_unused]] const Target& target)
+    {
+        using ValueType = typename detail::ParameterTraits<Type>::ValueType;
+        if constexpr (UseMove && !std::is_trivially_move_constructible_v<ValueType>)
+        {
+            detail::ParameterTraits<Type>::uninitialized_move(source, target);
+        }
+        else if constexpr (!UseMove && !std::is_trivially_copy_constructible_v<ValueType>)
+        {
+            detail::ParameterTraits<Type>::uninitialized_copy(source, target);
+        }
     }
 };
 

@@ -8,8 +8,10 @@
 #include "cntgs/contiguous/detail/utility.h"
 #include "cntgs/contiguous/detail/vector.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
+#include "cntgs/contiguous/tuple.h"
 
 #include <cstddef>
+#include <cstring>
 #include <memory>
 #include <tuple>
 
@@ -38,20 +40,20 @@ class ContiguousElement
     template <detail::ContiguousTupleQualifier Qualifier>
     /*implicit*/ ContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes())),
-          tuple(this->store_and_load(other.tuple))
+          tuple(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     template <detail::ContiguousTupleQualifier Qualifier>
     /*implicit*/ ContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes())),
-          tuple(this->store_and_load(other.tuple))
+          tuple(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     /*implicit*/ ContiguousElement(const ContiguousElement& other)
         : memory(detail::make_unique_for_overwrite<StorageElementType[]>(other.tuple.size_in_bytes())),
-          tuple(this->store_and_load(other.tuple.tuple))
+          tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
     {
     }
 
@@ -61,14 +63,7 @@ class ContiguousElement
     {
         if (this != std::addressof(other))
         {
-            this->destruct();
-            const auto current_memory_size = this->tuple.size_in_bytes();
-            const auto other_memory_size = other.tuple.size_in_bytes();
-            if (current_memory_size < other_memory_size)
-            {
-                this->memory = detail::make_unique_for_overwrite<StorageElementType[]>(other_memory_size);
-            }
-            detail::construct_at(&this->tuple, this->store_and_load(other.tuple.tuple));
+            this->tuple = other.tuple;
         }
         return *this;
     }
@@ -77,9 +72,7 @@ class ContiguousElement
     {
         if (this != std::addressof(other))
         {
-            this->memory = std::move(other.memory);
-            this->tuple.tuple.~UnderlyingTuple();
-            detail::construct_at(&this->tuple.tuple, std::move(other.tuple.tuple));
+            this->tuple = std::move(other.tuple);
         }
         return *this;
     }
@@ -111,9 +104,13 @@ class ContiguousElement
 
   private:
     template <class Tuple>
-    constexpr auto store_and_load(Tuple& source)
+    auto store_and_load(Tuple& source, std::size_t memory_size)
     {
-        return this->store_and_load(source, this->memory_begin(), std::make_index_sequence<Self::TYPE_COUNT>{});
+        static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
+        std::memcpy(this->memory_begin(), source.start_address(), memory_size);
+        auto target = this->load(this->memory_begin(), source.tuple, std::make_index_sequence<Self::TYPE_COUNT>{});
+        Locator::template construct_if_non_trivial<USE_MOVE>(source, target);
+        return detail::convert_tuple_to<Tuple>(target);
     }
 
     template <class T>
@@ -128,26 +125,15 @@ class ContiguousElement
         return std::size_t{};
     }
 
-    template <class Tuple, std::size_t... I>
-    static auto store_and_load(Tuple& source, std::byte* CNTGS_RESTRICT address, std::index_sequence<I...>)
+    template <std::size_t... I>
+    static auto load(std::byte* CNTGS_RESTRICT address, const UnderlyingTuple& tuple, std::index_sequence<I...>)
     {
-        typename Traits::PointerReturnType tuple_of_pointer;
-        ((address = Self::template store_and_load_one<detail::IgnoreFirstAlignmentSelector::template VALUE<I>, Types>(
-              std::get<I>(tuple_of_pointer), address, detail::extract<I>(source))),
+        typename Traits::PointerReturnType result;
+        ((std::tie(std::get<I>(result), address) =
+              detail::ParameterTraits<Types>::template load<detail::IgnoreFirstAlignmentSelector::template VALUE<I>>(
+                  address, get_size(std::get<I>(tuple)))),
          ...);
-        return detail::convert_tuple_to<Tuple>(tuple_of_pointer);
-    }
-
-    template <bool NeedsAlignment, class Type, class Result, class Arg>
-    CNTGS_RESTRICT_RETURN static std::byte* store_and_load_one(Result& CNTGS_RESTRICT result,
-                                                               std::byte* CNTGS_RESTRICT address, Arg&& arg)
-    {
-        using ParameterTraits = detail::ParameterTraits<Type>;
-        const auto fixed_size = Self::get_size(arg);
-        const auto address_before_store = address;
-        address = ParameterTraits::template store<NeedsAlignment>(std::forward<Arg>(arg), address, fixed_size);
-        result = std::get<0>(ParameterTraits::template load<NeedsAlignment>(address_before_store, fixed_size));
-        return address;
+        return result;
     }
 
     [[nodiscard]] auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }

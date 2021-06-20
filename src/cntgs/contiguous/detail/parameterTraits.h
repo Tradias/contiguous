@@ -90,9 +90,10 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         target = std::move(source);
     }
 
-    static constexpr void uninitialized_move(T&& source, T* target) noexcept(std::is_nothrow_move_constructible_v<T>)
+    static constexpr void uninitialized_copy(ConstReferenceReturnType source,
+                                             T* target) noexcept(std::is_nothrow_copy_constructible_v<T>)
     {
-        detail::construct_at(target, std::move(source));
+        detail::construct_at(target, source);
     }
 
     static constexpr void uninitialized_move(ReferenceReturnType source,
@@ -111,21 +112,31 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr void destroy(ReferenceReturnType value) noexcept { value.~T(); }
 };
 
+template <class T>
 struct BaseContiguousParameterTraits
 {
-    template <class T>
     static auto start_address(const cntgs::Span<T>& value) noexcept
     {
         return reinterpret_cast<std::byte*>(value.data());
     }
 
-    template <class T>
     static auto end_address(const cntgs::Span<T>& value) noexcept
     {
         return reinterpret_cast<std::byte*>(value.data() + value.size());
     }
 
-    template <class T>
+    static void uninitialized_copy(const cntgs::Span<std::add_const_t<T>>& source,
+                                   const cntgs::Span<T>& target) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    {
+        std::uninitialized_copy(std::begin(source), std::end(source), std::begin(target));
+    }
+
+    static void uninitialized_copy(const cntgs::Span<T>& source,
+                                   const cntgs::Span<T>& target) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    {
+        std::uninitialized_copy(std::begin(source), std::end(source), std::begin(target));
+    }
+
     static void uninitialized_move(const cntgs::Span<T>& source,
                                    const cntgs::Span<T>& target) noexcept(std::is_nothrow_move_constructible_v<T>)
     {
@@ -133,11 +144,7 @@ struct BaseContiguousParameterTraits
                                 std::begin(target));
     }
 
-    template <class T>
-    static void destroy(const cntgs::Span<T>& value) noexcept
-    {
-        std::destroy(std::begin(value), std::end(value));
-    }
+    static void destroy(const cntgs::Span<T>& value) noexcept { std::destroy(std::begin(value), std::end(value)); }
 };
 
 template <class T>
@@ -146,7 +153,7 @@ struct ParameterTraits<cntgs::VaryingSize<T>> : ParameterTraits<cntgs::VaryingSi
 };
 
 template <class T, std::size_t Alignment>
-struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits
+struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T>
 {
     using Type = cntgs::VaryingSize<T>;
     using ValueType = T;
@@ -191,7 +198,7 @@ struct ParameterTraits<cntgs::FixedSize<T>> : ParameterTraits<cntgs::FixedSize<c
 };
 
 template <class T, std::size_t Alignment>
-struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits
+struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T>
 {
     using Type = cntgs::FixedSize<T>;
     using ValueType = T;

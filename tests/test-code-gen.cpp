@@ -48,11 +48,11 @@ TEST_CASE("CodeGenTest: two FixedSize emplace")
 
 TEST_CASE("CodeGenTest: two FixedSize random lookup")
 {
-    check_code_gen_sizes("reference_two_fixed_random_lookup", "contiguous_two_fixed_random_lookup");
+    check_code_gen_sizes("reference_two_fixed_random_lookup", "contiguous_two_fixed_random_lookup", 1);
 }
 
 TEST_CASE("CodeGenTest: two FixedSize reserve growth")
 {
-    check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 4);
+    check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 11);
 }
 }  // namespace test_contiguous

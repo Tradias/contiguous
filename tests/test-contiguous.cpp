@@ -153,10 +153,10 @@ TEST_CASE("ContiguousTest: value_type can be copy constructed")
 
 TEST_CASE("ContiguousTest: value_type can be copy assigned")
 {
-    using Vector = cntgs::ContiguousVector<std::string, cntgs::VaryingSize<std::string>>;
-    Vector vector{2, 6 * sizeof(std::string)};
+    using Vector = cntgs::ContiguousVector<std::string, cntgs::FixedSize<std::string>>;
+    Vector vector{2, {1}};
     vector.emplace_back(STRING1, std::array{STRING2});
-    vector.emplace_back(STRING2, std::array{STRING1, STRING2});
+    vector.emplace_back(STRING2, std::array{STRING1});
     Vector::value_type value1{vector[0]};
     Vector::value_type value2{vector[1]};
     value2 = value1;

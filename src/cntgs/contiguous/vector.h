@@ -256,19 +256,10 @@ class ContiguousVector
             {
                 auto&& source = this->subscript_operator(i);
                 auto&& target = new_locator.load_element_at(i, new_memory, this->fixed_sizes);
-                (this->template uninitialized_move<Types>(cntgs::get<I>(source), std::get<I>(target)), ...);
+                ElementLocator::template construct_if_non_trivial<true>(source, target);
             }
         }
         this->destruct();
-    }
-
-    template <class Type, class Source, class Target>
-    void uninitialized_move([[maybe_unused]] Source&& source, [[maybe_unused]] Target&& target)
-    {
-        if constexpr (!std::is_trivially_move_constructible_v<typename detail::ParameterTraits<Type>::ValueType>)
-        {
-            detail::ParameterTraits<Type>::uninitialized_move(source, target);
-        }
     }
 
     void grow()
