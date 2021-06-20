@@ -3,10 +3,10 @@
 #include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/forward.h"
+#include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/utility.h"
-#include "cntgs/contiguous/detail/vector.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 #include "cntgs/contiguous/tuple.h"
 
@@ -22,14 +22,13 @@ class ContiguousElement
 {
   private:
     using Self = cntgs::ContiguousElement<Types...>;
-    using Traits = detail::ContiguousVectorTraits<Types...>;
-    using StorageType = std::unique_ptr<detail::AlignedByteT<Traits::MAX_ALIGNMENT>[]>;
+    using ListTraits = detail::ParameterListTraits<Types...>;
+    using VectorTraits = detail::ContiguousVectorTraits<Types...>;
+    using StorageType = std::unique_ptr<detail::AlignedByteT<ListTraits::MAX_ALIGNMENT>[]>;
     using StorageElementType = typename StorageType::element_type;
-    using Tuple = typename Traits::ReferenceReturnType;
+    using Tuple = typename VectorTraits::ReferenceReturnType;
     using UnderlyingTuple = typename Tuple::Tuple;
     using Locator = detail::BaseElementLocatorT<Types...>;
-
-    static constexpr auto TYPE_COUNT = sizeof...(Types);
 
   public:
     StorageType memory;
@@ -93,7 +92,7 @@ class ContiguousElement
 
     ~ContiguousElement() noexcept
     {
-        if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
+        if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
             if (this->memory)
             {
@@ -108,7 +107,7 @@ class ContiguousElement
     {
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
         std::memcpy(this->memory_begin(), source.start_address(), memory_size);
-        auto target = this->load(this->memory_begin(), source.tuple, std::make_index_sequence<Self::TYPE_COUNT>{});
+        auto target = this->load(this->memory_begin(), source.tuple, ListTraits::make_index_sequence());
         Locator::template construct_if_non_trivial<USE_MOVE>(source, target);
         return detail::convert_tuple_to<Tuple>(target);
     }
@@ -128,7 +127,7 @@ class ContiguousElement
     template <std::size_t... I>
     static auto load(std::byte* CNTGS_RESTRICT address, const UnderlyingTuple& tuple, std::index_sequence<I...>)
     {
-        typename Traits::PointerReturnType result;
+        typename VectorTraits::PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =
               detail::ParameterTraits<Types>::template load<detail::IgnoreFirstAlignmentSelector::template VALUE<I>>(
                   address, get_size(std::get<I>(tuple)))),
@@ -138,7 +137,7 @@ class ContiguousElement
 
     [[nodiscard]] auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
 
-    void destruct() noexcept { this->destruct(std::make_index_sequence<Self::TYPE_COUNT>{}); }
+    void destruct() noexcept { this->destruct(ListTraits::make_index_sequence()); }
 
     template <std::size_t... I>
     void destruct(std::index_sequence<I...>) noexcept

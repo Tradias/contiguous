@@ -4,10 +4,12 @@
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/memory.h"
+#include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
+#include "cntgs/contiguous/tuple.h"
 
 #include <algorithm>
 #include <array>
@@ -29,10 +31,24 @@ constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
 }
 
 template <class Locator>
-inline auto calculate_element_start(std::size_t max_element_count, std::byte* memory_begin) noexcept
+auto calculate_element_start(std::size_t max_element_count, std::byte* memory_begin) noexcept
 {
     return static_cast<std::byte*>(detail::align<Locator::template ParameterTraitsAt<0>::ALIGNMENT>(
         memory_begin + Locator::reserved_bytes(max_element_count)));
+}
+
+template <bool UseMove, class Type, class Source, class Target>
+constexpr void construct_one_if_non_trivial([[maybe_unused]] Source& source, [[maybe_unused]] const Target& target)
+{
+    using ValueType = typename detail::ParameterTraits<Type>::ValueType;
+    if constexpr (UseMove && !std::is_trivially_move_constructible_v<ValueType>)
+    {
+        detail::ParameterTraits<Type>::uninitialized_move(source, target);
+    }
+    else if constexpr (!UseMove && !std::is_trivially_copy_constructible_v<ValueType>)
+    {
+        detail::ParameterTraits<Type>::uninitialized_copy(source, target);
+    }
 }
 
 template <class, class...>
@@ -41,18 +57,19 @@ struct BaseElementLocator;
 template <std::size_t... I, class... Types>
 struct BaseElementLocator<std::index_sequence<I...>, Types...>
 {
-    using Traits = detail::ContiguousVectorTraits<Types...>;
-    using PointerReturnType = typename Traits::PointerReturnType;
+    using ListTraits = detail::ParameterListTraits<Types...>;
+    using FixedSizes = typename ListTraits::FixedSizes;
+    using PointerReturnType = typename detail::ContiguousVectorTraits<Types...>::PointerReturnType;
 
     template <class T>
-    using FixedSizeGetter = typename Traits::template FixedSizeGetter<T>;
+    using FixedSizeGetter = typename ListTraits::template FixedSizeGetter<T>;
 
     template <std::size_t K>
-    using ParameterTraitsAt = detail::ParameterTraits<std::tuple_element_t<K, std::tuple<Types...>>>;
+    using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
 
-    template <class NeedsAlignmentSelector, std::size_t N, class... Args>
+    template <class NeedsAlignmentSelector, class... Args>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_back(std::byte* CNTGS_RESTRICT last_element,
-                                                         const std::array<std::size_t, N>& fixed_sizes, Args&&... args)
+                                                         const FixedSizes& fixed_sizes, Args&&... args)
     {
         ((last_element = detail::ParameterTraits<Types>::template store<NeedsAlignmentSelector::template VALUE<I>>(
               std::forward<Args>(args), last_element, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
@@ -60,8 +77,8 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
         return last_element;
     }
 
-    template <class NeedsAlignmentSelector, std::size_t N>
-    static auto load_element_at(std::byte* address, const std::array<std::size_t, N>& fixed_sizes) noexcept
+    template <class NeedsAlignmentSelector>
+    static auto load_element_at(std::byte* address, const FixedSizes& fixed_sizes) noexcept
     {
         PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =
@@ -71,8 +88,7 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
         return result;
     }
 
-    template <std::size_t N>
-    static constexpr auto calculate_element_size(const std::array<std::size_t, N>& fixed_sizes) noexcept
+    static constexpr auto calculate_element_size(const FixedSizes& fixed_sizes) noexcept
     {
         std::size_t result{};
         ((result +=
@@ -86,21 +102,7 @@ struct BaseElementLocator<std::index_sequence<I...>, Types...>
     static void construct_if_non_trivial([[maybe_unused]] const cntgs::ContiguousTuple<Qualifier, Types...>& source,
                                          [[maybe_unused]] const PointerReturnType& target)
     {
-        (construct_one_if_non_trivial<UseMove, Types>(get<I>(source), std::get<I>(target)), ...);
-    }
-
-    template <bool UseMove, class Type, class Source, class Target>
-    static void construct_one_if_non_trivial([[maybe_unused]] Source& source, [[maybe_unused]] const Target& target)
-    {
-        using ValueType = typename detail::ParameterTraits<Type>::ValueType;
-        if constexpr (UseMove && !std::is_trivially_move_constructible_v<ValueType>)
-        {
-            detail::ParameterTraits<Type>::uninitialized_move(source, target);
-        }
-        else if constexpr (!UseMove && !std::is_trivially_copy_constructible_v<ValueType>)
-        {
-            detail::ParameterTraits<Type>::uninitialized_copy(source, target);
-        }
+        (detail::construct_one_if_non_trivial<UseMove, Types>(cntgs::get<I>(source), std::get<I>(target)), ...);
     }
 };
 
@@ -118,7 +120,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
 {
   private:
     using Base = detail::BaseElementLocatorT<Types...>;
-    using Traits = typename Base::Traits;
+    using FixedSizes = typename Base::FixedSizes;
 
     static constexpr auto RESERVED_BYTES_PER_ELEMENT = sizeof(std::byte*);
 
@@ -128,8 +130,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
   public:
     ElementLocator() = default;
 
-    ElementLocator(std::size_t max_element_count, std::byte* memory_begin,
-                   const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>&) noexcept
+    ElementLocator(std::size_t max_element_count, std::byte* memory_begin, const FixedSizes&) noexcept
         : last_element_address(reinterpret_cast<std::byte**>(memory_begin)),
           last_element(detail::calculate_element_start<ElementLocator>(max_element_count, memory_begin))
     {
@@ -156,8 +157,8 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
         return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
     }
 
-    template <std::size_t N, class... Args>
-    void emplace_back(const std::array<std::size_t, N>& fixed_sizes, Args&&... args)
+    template <class... Args>
+    void emplace_back(const FixedSizes& fixed_sizes, Args&&... args)
     {
         *this->last_element_address = last_element;
         ++this->last_element_address;
@@ -165,9 +166,7 @@ class ElementLocator : public detail::BaseElementLocatorT<Types...>
                                                                                      std::forward<Args>(args)...);
     }
 
-    template <std::size_t N>
-    auto load_element_at(std::size_t i, std::byte* memory_begin,
-                         const std::array<std::size_t, N>& fixed_sizes) const noexcept
+    auto load_element_at(std::size_t i, std::byte* memory_begin, const FixedSizes& fixed_sizes) const noexcept
     {
         return Base::template load_element_at<detail::DefaultAlignmentSelector>(this->at(memory_begin, i), fixed_sizes);
     }
@@ -215,7 +214,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
 {
   private:
     using Base = detail::BaseElementLocatorT<Types...>;
-    using Traits = typename Base::Traits;
+    using FixedSizes = typename Base::FixedSizes;
 
     std::size_t element_count{};
     std::size_t stride{};
@@ -224,8 +223,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
   public:
     AllFixedSizeElementLocator() = default;
 
-    AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin,
-                               const std::array<std::size_t, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
+    AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, const FixedSizes& fixed_sizes) noexcept
         : stride(Base::calculate_element_size(fixed_sizes)),
           start(detail::calculate_element_start<AllFixedSizeElementLocator>({}, memory_begin))
     {
@@ -244,8 +242,8 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
 
     constexpr std::size_t size(std::byte*) const noexcept { return this->element_count; }
 
-    template <std::size_t N, class... Args>
-    void emplace_back(const std::array<std::size_t, N>& fixed_sizes, Args&&... args)
+    template <class... Args>
+    void emplace_back(const FixedSizes& fixed_sizes, Args&&... args)
     {
         auto last_element = this->at(element_count);
         ++this->element_count;
@@ -253,8 +251,7 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
                                                                           std::forward<Args>(args)...);
     }
 
-    template <std::size_t N>
-    auto load_element_at(std::size_t i, std::byte*, const std::array<std::size_t, N>& fixed_sizes) const noexcept
+    auto load_element_at(std::size_t i, std::byte*, const FixedSizes& fixed_sizes) const noexcept
     {
         return Base::template load_element_at<detail::IgnoreFirstAlignmentSelector>(this->at(i), fixed_sizes);
     }
@@ -277,8 +274,8 @@ class AllFixedSizeElementLocator : public detail::BaseElementLocatorT<Types...>
 
 template <class... Types>
 using ElementLocatorT =
-    std::conditional_t<detail::ContiguousVectorTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
-                           detail::ContiguousVectorTraits<Types...>::CONTIGUOUS_COUNT,
+    std::conditional_t<detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
+                           detail::ParameterListTraits<Types...>::CONTIGUOUS_COUNT,
                        detail::AllFixedSizeElementLocator<Types...>, detail::ElementLocator<Types...>>;
 
 using TypeErasedElementLocator = std::aligned_storage_t<

@@ -2,6 +2,7 @@
 
 #include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/memory.h"
+#include "cntgs/contiguous/detail/parameterType.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/parameter.h"
 #include "cntgs/contiguous/span.h"
@@ -14,13 +15,6 @@
 
 namespace cntgs::detail
 {
-enum class ParameterType
-{
-    PLAIN,
-    FIXED_SIZE,
-    VARYING_SIZE
-};
-
 template <class T>
 struct ParameterTraits : detail::ParameterTraits<cntgs::AlignAs<T, 0>>
 {
@@ -35,7 +29,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     using ReferenceReturnType = std::add_lvalue_reference_t<T>;
     using ConstReferenceReturnType = std::add_lvalue_reference_t<std::add_const_t<T>>;
 
-    static constexpr auto TYPE = ParameterType::PLAIN;
+    static constexpr auto TYPE = detail::ParameterType::PLAIN;
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto VALUE_BYTES = sizeof(T);
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = detail::MAX_SIZE_T_OF<VALUE_BYTES, ALIGNMENT>;
@@ -162,7 +156,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     using ConstReferenceReturnType = cntgs::Span<std::add_const_t<T>>;
     using IteratorType = T*;
 
-    static constexpr auto TYPE = ParameterType::VARYING_SIZE;
+    static constexpr auto TYPE = detail::ParameterType::VARYING_SIZE;
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = MEMORY_OVERHEAD + ALIGNMENT;
@@ -207,7 +201,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     using ConstReferenceReturnType = cntgs::Span<std::add_const_t<T>>;
     using IteratorType = T*;
 
-    static constexpr auto TYPE = ParameterType::FIXED_SIZE;
+    static constexpr auto TYPE = detail::ParameterType::FIXED_SIZE;
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto VALUE_BYTES = sizeof(T);
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/forward.h"
+#include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 
@@ -14,9 +14,7 @@ template <detail::ContiguousTupleQualifier Qualifier, class... Types>
 class ContiguousTuple
 {
   private:
-    using Locator = detail::BaseElementLocatorT<Types...>;
-
-    static constexpr auto TYPE_COUNT = sizeof...(Types);
+    using ListTraits = detail::ParameterListTraits<Types...>;
 
   public:
     using Tuple = std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
@@ -64,7 +62,7 @@ class ContiguousTuple
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
-            this->assign(other, std::make_index_sequence<TYPE_COUNT>{});
+            this->assign(other, ListTraits::make_index_sequence());
         }
         return *this;
     }
@@ -74,14 +72,14 @@ class ContiguousTuple
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
-            this->assign(other, std::make_index_sequence<TYPE_COUNT>{});
+            this->assign(other, ListTraits::make_index_sequence());
         }
         return *this;
     }
 
     constexpr ContiguousTuple& operator=(const cntgs::ContiguousElement<Types...>& other)
     {
-        this->assign(other.tuple, std::make_index_sequence<TYPE_COUNT>{});
+        this->assign(other.tuple, ListTraits::make_index_sequence());
         return *this;
     }
 
@@ -89,7 +87,7 @@ class ContiguousTuple
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
-            this->assign(other, std::make_index_sequence<TYPE_COUNT>{});
+            this->assign(other, ListTraits::make_index_sequence());
         }
         return *this;
     }
@@ -99,14 +97,14 @@ class ContiguousTuple
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
         {
-            this->assign(other, std::make_index_sequence<TYPE_COUNT>{});
+            this->assign(other, ListTraits::make_index_sequence());
         }
         return *this;
     }
 
     constexpr ContiguousTuple& operator=(cntgs::ContiguousElement<Types...>&& other)
     {
-        this->assign(other.tuple, std::make_index_sequence<TYPE_COUNT>{});
+        this->assign(other.tuple, ListTraits::make_index_sequence());
         return *this;
     }
 
@@ -120,12 +118,13 @@ class ContiguousTuple
 
     [[nodiscard]] constexpr auto start_address() const noexcept
     {
-        return Locator::template ParameterTraitsAt<0>::start_address(std::get<0>(this->tuple));
+        return ListTraits::template ParameterTraitsAt<0>::start_address(std::get<0>(this->tuple));
     }
 
     [[nodiscard]] constexpr auto end_address() const noexcept
     {
-        return Locator::template ParameterTraitsAt<TYPE_COUNT - 1>::end_address(std::get<TYPE_COUNT - 1>(this->tuple));
+        return ListTraits::template ParameterTraitsAt<sizeof...(Types) - 1>::end_address(
+            std::get<sizeof...(Types) - 1>(this->tuple));
     }
 
   private:

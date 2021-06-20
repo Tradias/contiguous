@@ -3,10 +3,10 @@
 #include "cntgs/contiguous/detail/array.h"
 #include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/memory.h"
+#include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/utility.h"
-#include "cntgs/contiguous/detail/vector.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 #include "cntgs/contiguous/iterator.h"
 #include "cntgs/contiguous/parameter.h"
@@ -29,20 +29,22 @@ class ContiguousVector
 {
   private:
     using Self = cntgs::ContiguousVector<Types...>;
-    using Traits = detail::VectorTraits<Self>;
+    using ListTraits = detail::ParameterListTraits<Types...>;
+    using VectorTraits = detail::VectorTraits<Self>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
-    using StorageType = typename Traits::StorageType;
+    using StorageType = typename VectorTraits::StorageType;
+    using FixedSizes = typename ListTraits::FixedSizes;
 
     static constexpr std::size_t GROWTH_FACTOR = 2;
-    static constexpr bool IS_MIXED = Traits::IS_MIXED;
-    static constexpr bool IS_ALL_FIXED_SIZE = Traits::IS_ALL_FIXED_SIZE;
-    static constexpr bool IS_ALL_VARYING_SIZE = Traits::IS_ALL_VARYING_SIZE;
-    static constexpr bool IS_NONE_SPECIAL = Traits::IS_NONE_SPECIAL;
+    static constexpr bool IS_MIXED = ListTraits::IS_MIXED;
+    static constexpr bool IS_ALL_FIXED_SIZE = ListTraits::IS_ALL_FIXED_SIZE;
+    static constexpr bool IS_ALL_VARYING_SIZE = ListTraits::IS_ALL_VARYING_SIZE;
+    static constexpr bool IS_NONE_SPECIAL = ListTraits::IS_NONE_SPECIAL;
 
   public:
-    using value_type = typename Traits::ValueReturnType;
-    using reference = typename Traits::ReferenceReturnType;
-    using const_reference = typename Traits::ConstReferenceReturnType;
+    using value_type = typename VectorTraits::ValueReturnType;
+    using reference = typename VectorTraits::ReferenceReturnType;
+    using const_reference = typename VectorTraits::ConstReferenceReturnType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
     using const_iterator = cntgs::ContiguousVectorIterator<std::add_const_t<Self>>;
     using difference_type = std::ptrdiff_t;
@@ -51,7 +53,7 @@ class ContiguousVector
     size_type memory_size{};
     size_type max_element_count{};
     StorageType memory{};
-    std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT> fixed_sizes{};
+    FixedSizes fixed_sizes{};
     ElementLocator locator;
 
     ContiguousVector() = default;
@@ -67,16 +69,14 @@ class ContiguousVector
     }
 
     template <bool IsMixed = IS_MIXED>
-    ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
-                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+    ContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
                      std::enable_if_t<IsMixed>* = nullptr)
         : ContiguousVector({}, {}, max_element_count, varying_size_bytes, fixed_sizes)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    ContiguousVector(size_type max_element_count,
-                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+    ContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
                      std::enable_if_t<IsAllFixedSize>* = nullptr)
         : ContiguousVector({}, {}, max_element_count, {}, fixed_sizes)
     {
@@ -84,16 +84,14 @@ class ContiguousVector
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
     ContiguousVector(size_type memory_size, std::unique_ptr<std::byte[]>&& transferred_ownership,
-                     size_type max_element_count,
-                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+                     size_type max_element_count, const FixedSizes& fixed_sizes,
                      std::enable_if_t<IsAllFixedSize>* = nullptr)
         : ContiguousVector(memory_size, {std::move(transferred_ownership)}, max_element_count, {}, fixed_sizes)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    ContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes,
+    ContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count, const FixedSizes& fixed_sizes,
                      std::enable_if_t<IsAllFixedSize>* = nullptr)
         : ContiguousVector(mutable_view.size(), {mutable_view}, max_element_count, {}, fixed_sizes)
     {
@@ -176,8 +174,7 @@ class ContiguousVector
     // private API
   private:
     ContiguousVector(size_type memory_size, StorageType&& storage, size_type max_element_count,
-                     size_type varying_size_bytes,
-                     const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes)
+                     size_type varying_size_bytes, const FixedSizes& fixed_sizes)
         : memory_size(memory_size > 0
                           ? memory_size
                           : this->calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes)),
@@ -192,16 +189,16 @@ class ContiguousVector
         : memory_size(vector.memory_size),
           max_element_count(vector.max_element_count),
           memory(std::move(storage)),
-          fixed_sizes(detail::convert_array_to_size<Traits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
+          fixed_sizes(detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
           locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)))
     {
     }
 
-    [[nodiscard]] static constexpr auto calculate_needed_memory_size(
-        size_type max_element_count, size_type varying_size_bytes,
-        const std::array<size_type, Traits::CONTIGUOUS_FIXED_SIZE_COUNT>& fixed_sizes) noexcept
+    [[nodiscard]] static constexpr auto calculate_needed_memory_size(size_type max_element_count,
+                                                                     size_type varying_size_bytes,
+                                                                     const FixedSizes& fixed_sizes) noexcept
     {
-        constexpr auto ALIGNMENT_OVERHEAD = Traits::MAX_ALIGNMENT > 0 ? Traits::MAX_ALIGNMENT - 1 : size_type{};
+        constexpr auto ALIGNMENT_OVERHEAD = ListTraits::MAX_ALIGNMENT > 0 ? ListTraits::MAX_ALIGNMENT - 1 : size_type{};
         return varying_size_bytes + ElementLocator::calculate_element_size(fixed_sizes) * max_element_count +
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
@@ -229,7 +226,7 @@ class ContiguousVector
         const auto new_memory_size =
             this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
         auto new_memory = detail::make_unique_for_overwrite<StorageElementType[]>(new_memory_size);
-        if constexpr (Traits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && Traits::IS_TRIVIALLY_DESTRUCTIBLE)
+        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
             this->locator.copy_from(new_max_element_count, new_memory.get(), this->max_element_count,
                                     this->memory.get());
@@ -238,7 +235,7 @@ class ContiguousVector
         {
             ElementLocator new_locator{new_max_element_count, new_memory.get(), this->locator, this->max_element_count,
                                        this->memory.get()};
-            this->uninitialized_move(new_memory.get(), new_locator, std::make_index_sequence<sizeof...(Types)>{});
+            this->uninitialized_move(new_memory.get(), new_locator, ListTraits::make_index_sequence());
             this->locator = std::move(new_locator);
         }
         this->memory_size = new_memory_size;
@@ -250,7 +247,7 @@ class ContiguousVector
     void uninitialized_move([[maybe_unused]] std::byte* new_memory, [[maybe_unused]] ElementLocator& new_locator,
                             std::index_sequence<I...>)
     {
-        if constexpr (!Traits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE)
+        if constexpr (!ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE)
         {
             for (size_type i{}; i < this->size(); ++i)
             {
@@ -280,11 +277,11 @@ class ContiguousVector
 
     void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
     {
-        if constexpr (!Traits::IS_TRIVIALLY_DESTRUCTIBLE)
+        if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
             if (this->memory && this->memory.is_owned)
             {
-                destruct(first, last, std::make_index_sequence<sizeof...(Types)>{});
+                destruct(first, last, ListTraits::make_index_sequence());
             }
         }
     }

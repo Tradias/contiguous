@@ -1,8 +1,6 @@
 #pragma once
 
-#include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/iterator.h"
-#include "cntgs/contiguous/detail/vectorTraits.h"
 
 #include <iterator>
 
