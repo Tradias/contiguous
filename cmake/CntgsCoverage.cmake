@@ -12,7 +12,7 @@ function(cntgs_coverage_report_for_target _cntgs_target _cntgs_source)
     add_custom_command(
         TARGET ${_cntgs_target}-coverage
         COMMAND
-            gcov --relative-only --demangled-names -o
+            gcov --relative-only --demangled-names --preserve-paths -o
             $<TARGET_FILE_DIR:${_cntgs_target}>/CMakeFiles/${_cntgs_target}.dir/${_cntgs_source_name}.gcda
             "${_cntgs_source}"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

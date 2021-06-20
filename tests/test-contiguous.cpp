@@ -306,12 +306,12 @@ void check_iterator(T& vector)
     auto begin = vector.begin();
     using IterTraits = std::iterator_traits<decltype(begin)>;
     CHECK(std::is_same_v<std::random_access_iterator_tag, typename IterTraits::iterator_category>);
-    std::for_each(vector.begin()++, ++vector.begin(), [&](auto&& elem) {
+    std::for_each((vector.begin()++)--, --(++(++vector.begin())), [&](auto&& elem) {
         auto&& [uinteger, floats] = vector[0];
         CHECK_EQ(uinteger, cntgs::get<0>(elem));
         CHECK(test::range_equal(cntgs::get<1>(elem), floats));
     });
-    std::for_each(vector.begin() + 1, vector.end(), [&](auto&& elem) {
+    std::for_each(((vector.begin() + 2) - 1), vector.end(), [&](auto&& elem) {
         auto&& [uinteger, floats] = vector[1];
         CHECK_EQ(uinteger, cntgs::get<0>(elem));
         CHECK(test::range_equal(cntgs::get<1>(elem), floats));
