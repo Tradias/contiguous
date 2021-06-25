@@ -1,7 +1,6 @@
 #pragma once
 
-#include "cntgs/contiguous/detail/math.h"
-
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <utility>
@@ -17,6 +16,6 @@ constexpr auto convert_array_to_size(const std::array<T, K>& array, std::index_s
 template <std::size_t N, class T, std::size_t K>
 constexpr auto convert_array_to_size(const std::array<T, K>& array)
 {
-    return detail::convert_array_to_size<N>(array, std::make_index_sequence<detail::MIN_SIZE_T_OF<N, K>>{});
+    return detail::convert_array_to_size<N>(array, std::make_index_sequence<std::min(N, K)>{});
 }
 }  // namespace cntgs::detail

@@ -32,7 +32,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto TYPE = detail::ParameterType::PLAIN;
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto VALUE_BYTES = sizeof(T);
-    static constexpr auto ALIGNED_SIZE_IN_MEMORY = detail::MAX_SIZE_T_OF<VALUE_BYTES, ALIGNMENT>;
+    static constexpr auto ALIGNED_SIZE_IN_MEMORY = std::max(VALUE_BYTES, ALIGNMENT);
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
