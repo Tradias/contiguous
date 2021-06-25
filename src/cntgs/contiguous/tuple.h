@@ -137,27 +137,7 @@ class ContiguousTuple
             return;
         }
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
-        if constexpr ((USE_MOVE && ListTraits::IS_TRIVIALLY_MOVE_ASSIGNABLE) ||
-                      (!USE_MOVE && ListTraits::IS_TRIVIALLY_COPY_ASSIGNABLE))
-        {
-            std::memcpy(this_start_address, other_start_address, other.size_in_bytes());
-        }
-        else
-        {
-            this->assign(other, ListTraits::make_index_sequence());
-        }
-    }
-
-    template <detail::ContiguousTupleQualifier TQualifier, std::size_t... I>
-    constexpr void assign(const ContiguousTuple<TQualifier, Types...>& other, std::index_sequence<I...>) const
-    {
-        (detail::ParameterTraits<Types>::copy(std::get<I>(other.tuple), std::get<I>(this->tuple)), ...);
-    }
-
-    template <std::size_t... I>
-    constexpr void assign(ContiguousTuple& other, std::index_sequence<I...>) const
-    {
-        (detail::ParameterTraits<Types>::move(std::get<I>(other.tuple), std::get<I>(this->tuple)), ...);
+        ListTraits::template assign<USE_MOVE>(other.tuple, this->tuple, ListTraits::make_index_sequence());
     }
 
     template <std::size_t... I>

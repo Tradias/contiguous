@@ -380,19 +380,21 @@ TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy element
 
 TEST_CASE("ContiguousTest: OneFixed::reference can be used to move elements")
 {
-    using Vector = cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>>;
+    using Vector = cntgs::ContiguousVector<int, std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>>;
     Vector vector{2, {1}};
-    vector.emplace_back(std::make_unique<int>(10), array_one_unique_ptr(20));
-    vector.emplace_back(std::make_unique<int>(30), array_one_unique_ptr(40));
+    vector.emplace_back(1, std::make_unique<int>(10), array_one_unique_ptr(20));
+    vector.emplace_back(2, std::make_unique<int>(30), array_one_unique_ptr(40));
     Vector::reference first = vector[0];
     Vector::reference second = vector[1];
     first = std::move(second);
-    auto&& [a, b] = vector[0];
-    auto&& [c, d] = vector[1];
-    CHECK_EQ(30, *a);
-    CHECK_EQ(40, *b.front());
-    CHECK_EQ(nullptr, c);
-    CHECK_EQ(nullptr, d.front());
+    auto&& [a, b, c] = vector[0];
+    auto&& [d, e, f] = vector[1];
+    CHECK_EQ(2, a);
+    CHECK_EQ(30, *b);
+    CHECK_EQ(40, *c.front());
+    CHECK_EQ(2, d);
+    CHECK_EQ(nullptr, e);
+    CHECK_EQ(nullptr, f.front());
 }
 
 TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of FixedSize std::unique_ptr")

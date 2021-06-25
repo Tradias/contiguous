@@ -4,6 +4,7 @@
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/parameterType.h"
+#include "cntgs/contiguous/detail/utility.h"
 
 #include <array>
 #include <cstddef>
@@ -67,5 +68,66 @@ struct ParameterListTraits
                   "to a higher limit.");
 
     static constexpr auto make_index_sequence() noexcept { return std::make_index_sequence<sizeof...(Types)>{}; }
+
+    static constexpr auto SKIP_ASSIGNMENT = std::numeric_limits<std::size_t>::max();
+    static constexpr auto REQUIRES_INDIVIDUAL_ASSIGNMENT = SKIP_ASSIGNMENT - 1;
+
+    template <template <class> class Predicate, std::size_t... I>
+    static constexpr auto calculate_consecutive_indices(std::index_sequence<I...>) noexcept
+    {
+        std::array<std::size_t, sizeof...(Types)> consecutive_indices{((void)I, SKIP_ASSIGNMENT)...};
+        std::size_t index = 0;
+        (
+            [&] {
+                if constexpr (Predicate<typename detail::ParameterTraits<Types>::ValueType>{})
+                {
+                    consecutive_indices[index] = I;
+                }
+                else
+                {
+                    index = I + 1;
+                    consecutive_indices[I] = REQUIRES_INDIVIDUAL_ASSIGNMENT;
+                }
+            }(),
+            ...);
+        return consecutive_indices;
+    }
+
+    static constexpr auto CONSECUTIVE_TRIVIALLY_COPY_ASSIGNABLE_INDICES =
+        calculate_consecutive_indices<std::is_trivially_copy_assignable>(make_index_sequence());
+    static constexpr auto CONSECUTIVE_TRIVIALLY_MOVE_ASSIGNABLE_INDICES =
+        calculate_consecutive_indices<std::is_trivially_move_assignable>(make_index_sequence());
+    static constexpr std::array CONSECUTIVE_TRIVIALLY_ASSIGNABLE_INDICES{CONSECUTIVE_TRIVIALLY_COPY_ASSIGNABLE_INDICES,
+                                                                         CONSECUTIVE_TRIVIALLY_MOVE_ASSIGNABLE_INDICES};
+
+    template <bool UseMove, std::size_t I, class SourceTuple, class TargetTuple>
+    static void assign(const SourceTuple& source, const TargetTuple& target)
+    {
+        static constexpr auto INDEX = std::get<I>(std::get<UseMove>(CONSECUTIVE_TRIVIALLY_ASSIGNABLE_INDICES));
+        if constexpr (INDEX < REQUIRES_INDIVIDUAL_ASSIGNMENT)
+        {
+            const auto target_start = ParameterTraitsAt<I>::start_address(std::get<I>(target));
+            const auto source_start = ParameterTraitsAt<I>::start_address(std::get<I>(source));
+            const auto source_end = ParameterTraitsAt<INDEX>::end_address(std::get<INDEX>(source));
+            std::memcpy(target_start, source_start, source_end - source_start);
+        }
+        else if constexpr (INDEX == REQUIRES_INDIVIDUAL_ASSIGNMENT)
+        {
+            if constexpr (UseMove)
+            {
+                ParameterTraitsAt<I>::move(std::get<I>(source), std::get<I>(target));
+            }
+            else
+            {
+                ParameterTraitsAt<I>::copy(std::get<I>(source), std::get<I>(target));
+            }
+        }
+    }
+
+    template <bool UseMove, class SourceTuple, class TargetTuple, std::size_t... I>
+    static void assign(const SourceTuple& source, const TargetTuple& target, std::index_sequence<I...>)
+    {
+        (assign<UseMove, I>(source, target), ...);
+    }
 };
 }  // namespace cntgs::detail
