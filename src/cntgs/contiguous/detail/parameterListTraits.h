@@ -4,10 +4,9 @@
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/parameterType.h"
-#include "cntgs/contiguous/detail/tuple.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
 
 #include <array>
+#include <cstddef>
 #include <tuple>
 #include <type_traits>
 
@@ -49,6 +48,10 @@ struct ParameterListTraits
         (std::is_trivially_copy_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_TRIVIALLY_MOVE_CONSTRUCTIBLE =
         (std::is_trivially_move_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_TRIVIALLY_COPY_ASSIGNABLE =
+        (std::is_trivially_copy_assignable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_TRIVIALLY_MOVE_ASSIGNABLE =
+        (std::is_trivially_move_assignable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
 
     static constexpr bool IS_MIXED =
         CONTIGUOUS_FIXED_SIZE_COUNT != 0 && CONTIGUOUS_FIXED_SIZE_COUNT != CONTIGUOUS_COUNT;

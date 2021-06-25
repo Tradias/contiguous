@@ -67,10 +67,7 @@ class ContiguousTuple
 
     constexpr ContiguousTuple& operator=(const ContiguousTuple& other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
-        {
-            this->assign(other, ListTraits::make_index_sequence());
-        }
+        this->assign(other);
         return *this;
     }
 
@@ -78,26 +75,20 @@ class ContiguousTuple
     constexpr ContiguousTuple& operator=(const ContiguousTuple<TQualifier, Types...>& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
-        {
-            this->assign(other, ListTraits::make_index_sequence());
-        }
+        this->assign(other);
         return *this;
     }
 
     constexpr ContiguousTuple& operator=(const cntgs::ContiguousElement<Types...>& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->assign(other.tuple, ListTraits::make_index_sequence());
+        this->assign(other.tuple);
         return *this;
     }
 
     constexpr ContiguousTuple& operator=(ContiguousTuple&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
-        {
-            this->assign(other, ListTraits::make_index_sequence());
-        }
+        this->assign(other);
         return *this;
     }
 
@@ -106,17 +97,14 @@ class ContiguousTuple
         ContiguousTuple<TQualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
                                                         : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(std::addressof(other)))
-        {
-            this->assign(other, ListTraits::make_index_sequence());
-        }
+        this->assign(other);
         return *this;
     }
 
     constexpr ContiguousTuple& operator=(cntgs::ContiguousElement<Types...>&& other) noexcept(
         ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        this->assign(other.tuple, ListTraits::make_index_sequence());
+        this->assign(other.tuple);
         return *this;
     }
 
@@ -139,6 +127,27 @@ class ContiguousTuple
     }
 
   private:
+    template <class Tuple>
+    void assign(Tuple& other)
+    {
+        const auto this_start_address = this->start_address();
+        const auto other_start_address = other.start_address();
+        if (this_start_address == other_start_address)
+        {
+            return;
+        }
+        static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
+        if constexpr ((USE_MOVE && ListTraits::IS_TRIVIALLY_MOVE_ASSIGNABLE) ||
+                      (!USE_MOVE && ListTraits::IS_TRIVIALLY_COPY_ASSIGNABLE))
+        {
+            std::memcpy(this_start_address, other_start_address, other.size_in_bytes());
+        }
+        else
+        {
+            this->assign(other, ListTraits::make_index_sequence());
+        }
+    }
+
     template <detail::ContiguousTupleQualifier TQualifier, std::size_t... I>
     constexpr void assign(const ContiguousTuple<TQualifier, Types...>& other, std::index_sequence<I...>) const
     {

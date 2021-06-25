@@ -60,19 +60,13 @@ class ContiguousElement
 
     ContiguousElement& operator=(const ContiguousElement& other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        if (this != std::addressof(other))
-        {
-            this->tuple = other.tuple;
-        }
+        this->tuple = other.tuple;
         return *this;
     }
 
     ContiguousElement& operator=(ContiguousElement&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        if (this != std::addressof(other))
-        {
-            this->tuple = std::move(other.tuple);
-        }
+        this->tuple = std::move(other.tuple);
         return *this;
     }
 

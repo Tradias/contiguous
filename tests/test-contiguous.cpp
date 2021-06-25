@@ -160,6 +160,7 @@ TEST_CASE("ContiguousTest: value_type can be copy assigned")
     Vector::value_type value1{vector[0]};
     Vector::value_type value2{vector[1]};
     value2 = value1;
+    value2 = value2;
     CHECK_EQ(STRING1, cntgs::get<0>(value2));
     CHECK(test::range_equal(std::array{STRING2}, cntgs::get<1>(value2)));
 }
