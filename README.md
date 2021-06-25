@@ -1,5 +1,7 @@
 # contiguous
 
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Tradias_contiguous&metric=coverage)](https://sonarcloud.io/dashboard?id=Tradias_contiguous)
+
 A C++ library for storing structs in contiguous memory. Header-only, zero dependencies, no exceptions, no rtti, C++17
 
 # Installation
