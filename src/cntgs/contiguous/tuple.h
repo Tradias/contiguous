@@ -17,6 +17,7 @@ class ContiguousTuple
 {
   private:
     using ListTraits = detail::ParameterListTraits<Types...>;
+    using ElementTraits = detail::ElementTraitsT<Types...>;
 
   public:
     using Tuple = std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
@@ -118,12 +119,12 @@ class ContiguousTuple
 
     [[nodiscard]] constexpr auto start_address() const noexcept
     {
-        return ListTraits::template ParameterTraitsAt<0>::start_address(std::get<0>(this->tuple));
+        return ElementTraits::template ParameterTraitsAt<0>::start_address(std::get<0>(this->tuple));
     }
 
     [[nodiscard]] constexpr auto end_address() const noexcept
     {
-        return ListTraits::template ParameterTraitsAt<sizeof...(Types) - 1>::end_address(
+        return ElementTraits::template ParameterTraitsAt<sizeof...(Types) - 1>::end_address(
             std::get<sizeof...(Types) - 1>(this->tuple));
     }
 
@@ -136,7 +137,7 @@ class ContiguousTuple
             return;
         }
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
-        detail::ElementTraitsT<Types...>::template assign<USE_MOVE>(other.tuple, this->tuple);
+        ElementTraits::template assign<USE_MOVE>(other.tuple, this->tuple);
     }
 
     template <std::size_t... I>

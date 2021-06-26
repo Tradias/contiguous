@@ -1,14 +1,11 @@
 #pragma once
 
-#include "cntgs/contiguous/detail/fixedSizeGetter.h"
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/parameterType.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
 
 #include <array>
 #include <cstddef>
-#include <tuple>
 #include <type_traits>
 
 namespace cntgs::detail
@@ -22,12 +19,6 @@ static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 15;
 template <class... Types>
 struct ParameterListTraits
 {
-    template <class T>
-    using FixedSizeGetter = detail::FixedSizeGetter<T, detail::TypeList<Types...>>;
-
-    template <std::size_t I>
-    using ParameterTraitsAt = detail::ParameterTraits<std::tuple_element_t<I, std::tuple<Types...>>>;
-
     static constexpr auto CONTIGUOUS_COUNT =
         (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =

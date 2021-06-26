@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/attributes.h"
+#include "cntgs/contiguous/detail/fixedSizeGetter.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
@@ -60,7 +61,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     using PointerReturnType = typename detail::ContiguousVectorTraits<Types...>::PointerReturnType;
 
     template <class T>
-    using FixedSizeGetter = typename ListTraits::template FixedSizeGetter<T>;
+    using FixedSizeGetter = detail::FixedSizeGetter<T, detail::TypeList<Types...>>;
 
     static constexpr auto SKIP_ASSIGNMENT = std::numeric_limits<std::size_t>::max();
     static constexpr auto REQUIRES_INDIVIDUAL_ASSIGNMENT = SKIP_ASSIGNMENT - 1;
@@ -95,7 +96,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
   public:
     template <std::size_t K>
-    using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
+    using ParameterTraitsAt = detail::ParameterTraits<std::tuple_element_t<K, std::tuple<Types...>>>;
 
     template <class NeedsAlignmentSelector, class... Args>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_back(std::byte* CNTGS_RESTRICT last_element,
