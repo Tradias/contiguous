@@ -96,7 +96,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
   public:
     template <std::size_t K>
-    using ParameterTraitsAt = detail::ParameterTraits<std::tuple_element_t<K, std::tuple<Types...>>>;
+    using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
 
     template <class NeedsAlignmentSelector, class... Args>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_back(std::byte* CNTGS_RESTRICT last_element,
@@ -122,10 +122,20 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto calculate_element_size(const FixedSizes& fixed_sizes) noexcept
     {
         std::size_t result{};
-        ((result +=
-          detail::ParameterTraits<Types>::aligned_size_in_memory(FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
-          alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
-         ...);
+        if constexpr (ListTraits::IS_ALL_FIXED_SIZE)
+        {
+            ((result += detail::ParameterTraits<Types>::guaranteed_size_in_memory(
+                            FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
+                        alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
+             ...);
+        }
+        else
+        {
+            ((result += detail::ParameterTraits<Types>::aligned_size_in_memory(
+                            FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
+                        alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
+             ...);
+        }
         return result + alignment_offset<ParameterTraitsAt<0>::ALIGNMENT>(result);
     }
 

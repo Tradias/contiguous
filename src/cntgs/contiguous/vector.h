@@ -198,7 +198,9 @@ class ContiguousVector
                                                                      size_type varying_size_bytes,
                                                                      const FixedSizes& fixed_sizes) noexcept
     {
-        constexpr auto ALIGNMENT_OVERHEAD = ListTraits::MAX_ALIGNMENT > 0 ? ListTraits::MAX_ALIGNMENT - 1 : size_type{};
+        constexpr auto ALIGNMENT_OVERHEAD = ListTraits::template ParameterTraitsAt<0>::ALIGNMENT > 0
+                                                ? ListTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1
+                                                : size_type{};
         return varying_size_bytes + ElementLocator::calculate_element_size(fixed_sizes) * max_element_count +
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }

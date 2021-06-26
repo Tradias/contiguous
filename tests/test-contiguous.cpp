@@ -196,9 +196,9 @@ TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumptio
 {
     using Vector = cntgs::ContiguousVector<cntgs::FixedSize<uint16_t>, uint32_t, cntgs::VaryingSize<float>>;
     const auto varying_byte_count = 6 * sizeof(float);
-    Vector vector{2, varying_byte_count, {1}};
+    Vector vector{2, varying_byte_count, {3}};
     const auto expected =
-        2 * (1 * sizeof(uint16_t) + sizeof(float*) + sizeof(std::byte*) + sizeof(uint32_t)) + varying_byte_count;
+        2 * (3 * sizeof(uint16_t) + sizeof(std::size_t) + sizeof(std::byte*) + sizeof(uint32_t)) + varying_byte_count;
     CHECK_EQ(expected, vector.memory_consumption());
 }
 
@@ -579,11 +579,12 @@ TEST_CASE("ContiguousTest: TwoVaryingAligned size() and capacity()")
     check_size1_and_capacity2(v);
 }
 
-TEST_CASE("ContiguousTest: OneFixedAligned size() and capacity()")
+TEST_CASE("ContiguousTest: OneFixedAligned size(), capacity() and memory_consumption()")
 {
     OneFixedAligned v{2, {FLOATS1.size()}};
     v.emplace_back(10u, FLOATS1);
     check_size1_and_capacity2(v);
+    CHECK_EQ(2 * (32 + FLOATS1.size() * sizeof(float)), v.memory_consumption());
 }
 
 TEST_CASE("ContiguousTest: TwoFixedAligned size() and capacity()")
@@ -591,6 +592,8 @@ TEST_CASE("ContiguousTest: TwoFixedAligned size() and capacity()")
     TwoFixedAligned v{2, {FLOATS1.size(), FLOATS2.size()}};
     v.emplace_back(FLOATS1, 10u, FLOATS2);
     check_size1_and_capacity2(v);
+    const auto size = (FLOATS1.size() * sizeof(float) + 8 + sizeof(uint32_t) + FLOATS2.size() * sizeof(float));
+    CHECK_EQ(2 * (size + size % 8) + 7, v.memory_consumption());
 }
 
 TEST_CASE("ContiguousTest: OneFixedOneVaryingAligned size() and capacity()")

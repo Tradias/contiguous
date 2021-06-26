@@ -39,7 +39,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     {
         address = static_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         auto result = std::launder(reinterpret_cast<PointerReturnType>(address));
-        return std::pair{result, address + ALIGNED_SIZE_IN_MEMORY};
+        return std::pair{result, address + VALUE_BYTES};
     }
 
     template <bool NeedsAlignment, class Arg>
@@ -47,10 +47,12 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     {
         address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         detail::construct_at(reinterpret_cast<T*>(address), std::forward<Arg>(arg));
-        return address + ALIGNED_SIZE_IN_MEMORY;
+        return address + VALUE_BYTES;
     }
 
     static constexpr auto aligned_size_in_memory(std::size_t) noexcept { return ALIGNED_SIZE_IN_MEMORY; }
+
+    static constexpr auto guaranteed_size_in_memory(std::size_t) noexcept { return VALUE_BYTES; }
 
     static auto start_address(ConstReferenceReturnType return_type) noexcept
     {
@@ -174,7 +176,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     static constexpr auto TYPE = detail::ParameterType::VARYING_SIZE;
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
-    static constexpr auto ALIGNED_SIZE_IN_MEMORY = MEMORY_OVERHEAD + ALIGNMENT;
+    static constexpr auto ALIGNED_SIZE_IN_MEMORY = MEMORY_OVERHEAD + (ALIGNMENT > 0 ? ALIGNMENT - 1 : 0);
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
@@ -247,6 +249,11 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
         {
             return std::max(fixed_size * VALUE_BYTES, ALIGNMENT);
         }
+    }
+
+    static constexpr auto guaranteed_size_in_memory(std::size_t fixed_size) noexcept
+    {
+        return fixed_size * VALUE_BYTES;
     }
 
     static void copy(const cntgs::Span<std::add_const_t<T>>& source,

@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstddef>
+#include <tuple>
 #include <type_traits>
 
 namespace cntgs::detail
@@ -19,6 +20,9 @@ static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 15;
 template <class... Types>
 struct ParameterListTraits
 {
+    template <std::size_t K>
+    using ParameterTraitsAt = detail::ParameterTraits<std::tuple_element_t<K, std::tuple<Types...>>>;
+
     static constexpr auto CONTIGUOUS_COUNT =
         (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
