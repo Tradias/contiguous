@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/elementTraits.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/tuple.h"
@@ -130,14 +131,12 @@ class ContiguousTuple
     template <class Tuple>
     void assign(Tuple& other)
     {
-        const auto this_start_address = this->start_address();
-        const auto other_start_address = other.start_address();
-        if (this_start_address == other_start_address)
+        if (this->start_address() == other.start_address())
         {
             return;
         }
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
-        ListTraits::template assign<USE_MOVE>(other.tuple, this->tuple, ListTraits::make_index_sequence());
+        detail::ElementTraitsT<Types...>::template assign<USE_MOVE>(other.tuple, this->tuple);
     }
 
     template <std::size_t... I>

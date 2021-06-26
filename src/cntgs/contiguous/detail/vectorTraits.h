@@ -1,8 +1,8 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/memory.h"
-#include "cntgs/contiguous/element.h"
-#include "cntgs/contiguous/tuple.h"
+#include "cntgs/contiguous/detail/tuple.h"
 
 #include <tuple>
 

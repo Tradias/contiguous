@@ -28,7 +28,7 @@ class ContiguousElement
     using StorageElementType = typename StorageType::element_type;
     using Tuple = typename VectorTraits::ReferenceReturnType;
     using UnderlyingTuple = typename Tuple::Tuple;
-    using Locator = detail::BaseElementLocatorT<Types...>;
+    using Locator = detail::ElementTraitsT<Types...>;
 
   public:
     StorageType memory;
