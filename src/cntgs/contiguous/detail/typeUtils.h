@@ -36,4 +36,22 @@ struct RemoveCvref
 template <class T>
 using RemoveCvrefT = typename RemoveCvref<T>::Type;
 #endif
+
+template <class T, class U, bool B>
+struct EqualSizeof;
+
+template <class T, class U>
+struct EqualSizeof<T, U, true>
+{
+    static constexpr auto VALUE = false;
+};
+
+template <class T, class U>
+struct EqualSizeof<T, U, false>
+{
+    static constexpr auto VALUE = sizeof(T) == sizeof(U);
+};
+
+template <class T, class U>
+static constexpr auto EQUAL_SIZEOF = EqualSizeof<T, U, (std::is_same_v<void, T> || std::is_same_v<void, U>)>::VALUE;
 }  // namespace cntgs::detail

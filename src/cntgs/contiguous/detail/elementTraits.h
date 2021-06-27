@@ -70,7 +70,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto calculate_consecutive_indices() noexcept
     {
         std::array<std::size_t, sizeof...(Types)> consecutive_indices{((void)I, SKIP_ASSIGNMENT)...};
-        std::size_t index = 0;
+        [[maybe_unused]] std::size_t index = 0;
         (
             [&] {
                 if constexpr (Predicate<typename detail::ParameterTraits<Types>::ValueType>::value)

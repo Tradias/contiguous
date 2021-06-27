@@ -3,6 +3,7 @@
 #include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/iterator.h"
 #include "cntgs/contiguous/detail/range.h"
+#include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/span.h"
 
 #include <algorithm>
@@ -17,8 +18,8 @@ namespace cntgs::detail
 {
 template <class T, class U>
 static constexpr auto MEMCPY_COMPATIBLE =
-    sizeof(T) == sizeof(U) && std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<
-                                  U>&& std::is_floating_point_v<T> == std::is_floating_point_v<U>;
+    detail::EQUAL_SIZEOF<T, U>&& std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<U>&&
+        std::is_floating_point_v<T> == std::is_floating_point_v<U>;
 
 template <class T>
 auto copy_using_memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept

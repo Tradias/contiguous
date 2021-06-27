@@ -12,6 +12,10 @@
 #include <vector>
 #include <version>
 
+#ifdef __cpp_lib_ranges
+#include <ranges>
+#endif
+
 namespace test_contiguous
 {
 using namespace cntgs;
@@ -270,6 +274,28 @@ TEST_CASE("ContiguousTest: OneVarying emplace_back c-style array")
     CHECK_EQ(10u, i);
     CHECK(test::range_equal(carray, array));
 }
+
+#ifdef __cpp_lib_ranges
+TEST_CASE("ContiguousTest: OneVarying emplace_back std::views::iota")
+{
+    auto iota = std::views::iota(0, 10) | std::views::transform([](auto i) { return float(i); });
+    OneVarying vector{1, std::ranges::size(iota) * sizeof(float)};
+    vector.emplace_back(10, iota);
+    auto&& [i, array] = vector[0];
+    CHECK_EQ(10u, i);
+    CHECK(test::range_equal(iota, array));
+}
+
+TEST_CASE("ContiguousTest: OneFixed emplace_back std::views::iota")
+{
+    auto iota = std::views::iota(0, 10) | std::views::transform([](auto i) { return float(i); });
+    OneFixed vector{1, {std::ranges::size(iota)}};
+    vector.emplace_back(10, iota);
+    auto&& [i, array] = vector[0];
+    CHECK_EQ(10u, i);
+    CHECK(test::range_equal(iota, array));
+}
+#endif
 
 TEST_CASE("ContiguousTest: OneFixed emplace_back with iterator")
 {
