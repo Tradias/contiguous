@@ -2,6 +2,7 @@
 
 #include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/elementLocator.h"
+#include "cntgs/contiguous/detail/fixedSizeGetter.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/tuple.h"
@@ -28,7 +29,7 @@ class ContiguousElement
     using StorageElementType = typename StorageType::element_type;
     using Tuple = typename VectorTraits::ReferenceReturnType;
     using UnderlyingTuple = typename Tuple::Tuple;
-    using Locator = detail::ElementTraitsT<Types...>;
+    using ElementTraits = detail::ElementTraitsT<Types...>;
 
   public:
     StorageType memory;
@@ -104,33 +105,11 @@ class ContiguousElement
     {
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
         std::memcpy(this->memory_begin(), source.start_address(), memory_size);
-        auto target = this->load(this->memory_begin(), source.tuple, ListTraits::make_index_sequence());
-        Locator::template construct_if_non_trivial<USE_MOVE>(source, target);
+        auto target = ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentSelector,
+                                                              detail::ContiguousReturnTypeSizeGetter>(
+            this->memory_begin(), source.tuple);
+        ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
         return Tuple{detail::convert_tuple_to<typename Tuple::Tuple>(target)};
-    }
-
-    template <class T>
-    static constexpr std::size_t get_size(const cntgs::Span<T>& span) noexcept
-    {
-        return span.size();
-    }
-
-    template <class T>
-    static constexpr std::size_t get_size(const T&) noexcept
-    {
-        return std::size_t{};
-    }
-
-    template <std::size_t... I>
-    static auto load(std::byte* CNTGS_RESTRICT address, const UnderlyingTuple& tuple,
-                     std::index_sequence<I...>) noexcept
-    {
-        typename VectorTraits::PointerReturnType result;
-        ((std::tie(std::get<I>(result), address) =
-              detail::ParameterTraits<Types>::template load<detail::IgnoreFirstAlignmentSelector::template VALUE<I>>(
-                  address, get_size(std::get<I>(tuple)))),
-         ...);
-        return result;
     }
 
     [[nodiscard]] auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }

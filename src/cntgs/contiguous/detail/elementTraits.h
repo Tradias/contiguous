@@ -123,13 +123,14 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         return last_element;
     }
 
-    template <class NeedsAlignmentSelector = AlignmentSelector>
-    static auto load_element_at(std::byte* address, const FixedSizes& fixed_sizes) noexcept
+    template <class NeedsAlignmentSelector = AlignmentSelector,
+              template <class> class FixedSizeGetterType = FixedSizeGetter, class FixedSizesType = FixedSizes>
+    static auto load_element_at(std::byte* address, const FixedSizesType& fixed_sizes) noexcept
     {
         PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =
               detail::ParameterTraits<Types>::template load<NeedsAlignmentSelector::template VALUE<I>>(
-                  address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+                  address, FixedSizeGetterType<Types>::template get<I>(fixed_sizes))),
          ...);
         return result;
     }

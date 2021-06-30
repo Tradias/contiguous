@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstddef>
+#include <tuple>
 
 namespace cntgs::detail
 {
@@ -46,6 +47,26 @@ struct FixedSizeGetter<cntgs::FixedSize<T>, detail::TypeList<Types...>>
     static constexpr auto get(const std::array<std::size_t, N>& fixed_sizes) noexcept
     {
         return std::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
+    }
+};
+
+template <class T>
+struct ContiguousReturnTypeSizeGetter
+{
+    template <std::size_t I, class... U>
+    static constexpr auto get(const std::tuple<U...>&) noexcept
+    {
+        return std::size_t{};
+    }
+};
+
+template <class T>
+struct ContiguousReturnTypeSizeGetter<cntgs::FixedSize<T>>
+{
+    template <std::size_t I, class... U>
+    static constexpr auto get(const std::tuple<U...>& tuple) noexcept
+    {
+        return std::get<I>(tuple).size();
     }
 };
 }  // namespace cntgs::detail
