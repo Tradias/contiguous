@@ -205,21 +205,14 @@ class ContiguousVector
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
-    template <class ReturnType>
-    auto subscript_operator(size_type i, std::byte* memory_begin, const ElementLocator& element_locator) const noexcept
-    {
-        const auto tuple_of_pointer = element_locator.load_element_at(i, memory_begin, this->fixed_sizes);
-        return detail::convert_tuple_to<ReturnType>(tuple_of_pointer);
-    }
-
     auto subscript_operator(size_type i) noexcept
     {
-        return this->subscript_operator<reference>(i, this->memory.get(), this->locator);
+        return reference{this->locator.element_address(i, this->memory.get()), fixed_sizes};
     }
 
     [[nodiscard]] auto subscript_operator(size_type i) const noexcept
     {
-        return this->subscript_operator<const_reference>(i, this->memory.get(), this->locator);
+        return const_reference{this->locator.element_address(i, this->memory.get()), fixed_sizes};
     }
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
@@ -254,7 +247,8 @@ class ContiguousVector
             for (size_type i{}; i < this->size(); ++i)
             {
                 auto&& source = this->subscript_operator(i);
-                auto&& target = new_locator.load_element_at(i, new_memory, this->fixed_sizes);
+                auto&& target =
+                    ElementLocator::load_element_at(new_locator.element_address(i, new_memory), this->fixed_sizes);
                 ElementLocator::template construct_if_non_trivial<true>(source, target);
             }
         }

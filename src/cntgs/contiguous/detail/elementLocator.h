@@ -11,18 +11,13 @@
 
 namespace cntgs::detail
 {
-struct DefaultAlignmentSelector
-{
-    template <std::size_t>
-    static constexpr auto VALUE = true;
-};
-
 template <class... Types>
 class ElementLocator : public detail::ElementTraitsT<Types...>
 {
   private:
     using Base = detail::ElementTraitsT<Types...>;
     using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
+    using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
 
     static constexpr auto RESERVED_BYTES_PER_ELEMENT = sizeof(std::byte*);
 
@@ -64,16 +59,11 @@ class ElementLocator : public detail::ElementTraitsT<Types...>
     {
         *this->last_element_address = last_element;
         ++this->last_element_address;
-        last_element = Base::template emplace_back<detail::DefaultAlignmentSelector>(last_element, fixed_sizes,
-                                                                                     std::forward<Args>(args)...);
+        last_element =
+            Base::template emplace_back<AlignmentSelector>(last_element, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    auto load_element_at(std::size_t i, std::byte* memory_begin, const FixedSizes& fixed_sizes) const noexcept
-    {
-        return Base::template load_element_at<detail::DefaultAlignmentSelector>(this->at(memory_begin, i), fixed_sizes);
-    }
-
-    auto at(std::byte* memory_begin, std::size_t index) const noexcept
+    [[nodiscard]] auto element_address(std::size_t index, std::byte* memory_begin) const noexcept
     {
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
         return element_addresses_begin[index];
@@ -105,18 +95,13 @@ class ElementLocator : public detail::ElementTraitsT<Types...>
     }
 };
 
-struct IgnoreFirstAlignmentSelector
-{
-    template <std::size_t I>
-    static constexpr auto VALUE = I != 0;
-};
-
 template <class... Types>
 class AllFixedSizeElementLocator : public detail::ElementTraitsT<Types...>
 {
   private:
     using Base = detail::ElementTraitsT<Types...>;
     using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
+    using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
 
     std::size_t element_count{};
     std::size_t stride{};
@@ -147,18 +132,15 @@ class AllFixedSizeElementLocator : public detail::ElementTraitsT<Types...>
     template <class... Args>
     void emplace_back(const FixedSizes& fixed_sizes, Args&&... args)
     {
-        auto last_element = this->at(element_count);
+        auto last_element = this->element_address(element_count, {});
         ++this->element_count;
-        Base::template emplace_back<detail::IgnoreFirstAlignmentSelector>(last_element, fixed_sizes,
-                                                                          std::forward<Args>(args)...);
+        Base::template emplace_back<AlignmentSelector>(last_element, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    auto load_element_at(std::size_t i, std::byte*, const FixedSizes& fixed_sizes) const noexcept
+    [[nodiscard]] constexpr auto element_address(std::size_t index, std::byte*) const noexcept
     {
-        return Base::template load_element_at<detail::IgnoreFirstAlignmentSelector>(this->at(i), fixed_sizes);
+        return start + this->stride * index;
     }
-
-    [[nodiscard]] constexpr auto at(std::size_t index) const noexcept { return start + this->stride * index; }
 
     void copy_from(std::size_t, std::byte* new_memory_begin, std::size_t, std::byte*) noexcept
     {

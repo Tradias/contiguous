@@ -18,6 +18,7 @@ class ContiguousTuple
   private:
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
+    using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
 
   public:
     using Tuple = std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
@@ -34,14 +35,18 @@ class ContiguousTuple
     ContiguousTuple(const ContiguousTuple&) = default;
     ContiguousTuple(ContiguousTuple&&) = default;
 
-    template <class Arg>
-    explicit constexpr ContiguousTuple(Arg&& arg) : tuple(std::forward<Arg>(arg))
+    constexpr ContiguousTuple(std::byte* address, const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
+        : tuple(detail::convert_tuple_to<Tuple>(
+              ElementTraits::template load_element_at<AlignmentSelector>(address, fixed_sizes)))
     {
     }
 
-    template <class Arg1, class Arg2, class... Args>
-    constexpr ContiguousTuple(Arg1&& arg1, Arg2&& arg2, Args&&... args)
-        : tuple(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Args>(args)...)
+    explicit constexpr ContiguousTuple(const Tuple& tuple) noexcept : tuple(tuple) {}
+
+    explicit constexpr ContiguousTuple(Tuple&& tuple) noexcept : tuple(std::move(tuple)) {}
+
+    template <class... Args>
+    constexpr ContiguousTuple(std::in_place_t, Args&&... args) noexcept : tuple(std::forward<Args>(args)...)
     {
     }
 

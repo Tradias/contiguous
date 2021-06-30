@@ -15,6 +15,23 @@
 
 namespace cntgs::detail
 {
+struct DefaultAlignmentSelector
+{
+    template <std::size_t>
+    static constexpr auto VALUE = true;
+};
+
+struct IgnoreFirstAlignmentSelector
+{
+    template <std::size_t I>
+    static constexpr auto VALUE = I != 0;
+};
+
+template <class... Types>
+using AlignmentSelectorT = std::conditional_t<(detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
+                                               detail::ParameterListTraits<Types...>::CONTIGUOUS_COUNT),
+                                              detail::IgnoreFirstAlignmentSelector, detail::DefaultAlignmentSelector>;
+
 template <std::size_t Alignment>
 constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
 {
@@ -59,6 +76,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     using ListTraits = detail::ParameterListTraits<Types...>;
     using FixedSizes = typename ListTraits::FixedSizes;
     using PointerReturnType = typename detail::ContiguousVectorTraits<Types...>::PointerReturnType;
+    using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
 
     template <class T>
     using FixedSizeGetter = detail::FixedSizeGetter<T, detail::TypeList<Types...>>;
@@ -87,12 +105,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         return consecutive_indices;
     }
 
-    static constexpr auto CONSECUTIVE_TRIVIALLY_COPY_ASSIGNABLE_INDICES =
-        calculate_consecutive_indices<std::is_trivially_copy_assignable>();
-    static constexpr auto CONSECUTIVE_TRIVIALLY_MOVE_ASSIGNABLE_INDICES =
-        calculate_consecutive_indices<std::is_trivially_move_assignable>();
-    static constexpr std::array CONSECUTIVE_TRIVIALLY_ASSIGNABLE_INDICES{CONSECUTIVE_TRIVIALLY_COPY_ASSIGNABLE_INDICES,
-                                                                         CONSECUTIVE_TRIVIALLY_MOVE_ASSIGNABLE_INDICES};
+    static constexpr std::array CONSECUTIVE_TRIVIALLY_ASSIGNABLE_INDICES{
+        calculate_consecutive_indices<std::is_trivially_copy_assignable>(),
+        calculate_consecutive_indices<std::is_trivially_move_assignable>()};
 
   public:
     template <std::size_t K>
@@ -108,7 +123,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         return last_element;
     }
 
-    template <class NeedsAlignmentSelector>
+    template <class NeedsAlignmentSelector = AlignmentSelector>
     static auto load_element_at(std::byte* address, const FixedSizes& fixed_sizes) noexcept
     {
         PointerReturnType result;

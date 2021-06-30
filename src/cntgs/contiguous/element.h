@@ -106,7 +106,7 @@ class ContiguousElement
         std::memcpy(this->memory_begin(), source.start_address(), memory_size);
         auto target = this->load(this->memory_begin(), source.tuple, ListTraits::make_index_sequence());
         Locator::template construct_if_non_trivial<USE_MOVE>(source, target);
-        return detail::convert_tuple_to<Tuple>(target);
+        return Tuple{detail::convert_tuple_to<typename Tuple::Tuple>(target)};
     }
 
     template <class T>
