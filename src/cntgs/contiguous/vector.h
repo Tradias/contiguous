@@ -139,7 +139,7 @@ class ContiguousVector
 
     void pop_back()
     {
-        destruct(this->back(), ListTraits::make_index_sequence());
+        ElementLocator::destruct(this->back());
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
     }
 
@@ -149,6 +149,14 @@ class ContiguousVector
         {
             this->grow(new_max_element_count, new_varying_size_bytes);
         }
+    }
+
+    void erase(const_iterator position)
+    {
+        iterator it{*this, position.index()};
+        ElementLocator::destruct(*it);
+        this->move_elements_forward_to(it);
+        this->locator.resize(this->size() - size_type{1}, this->memory.get());
     }
 
     reference operator[](size_type i) noexcept { return this->subscript_operator(i); }
@@ -181,9 +189,13 @@ class ContiguousVector
 
     [[nodiscard]] constexpr const_iterator begin() const noexcept { return const_iterator{*this}; }
 
+    [[nodiscard]] constexpr const_iterator cbegin() const noexcept { return this->begin(); }
+
     [[nodiscard]] constexpr iterator end() noexcept { return iterator{*this, this->size()}; }
 
     [[nodiscard]] constexpr const_iterator end() const noexcept { return const_iterator{*this, this->size()}; }
+
+    [[nodiscard]] constexpr const_iterator cend() const noexcept { return this->end(); }
 
     // private API
   private:
@@ -276,11 +288,30 @@ class ContiguousVector
         this->grow(new_max_element_count, {});
     }
 
-    void shrink_and_destruct(size_type new_max_element_count)
+    void move_elements_forward_to(iterator position)
     {
-        this->destruct(this->begin() + std::min(new_max_element_count, this->size()), this->end());
-        this->max_element_count = new_max_element_count;
-        this->locator.resize(new_max_element_count, this->memory.get());
+        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
+                      (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL))
+        {
+            std::memmove(position->start_address(), position->end_address(),
+                         (this->memory.get() + this->memory_size) - position->end_address());
+        }
+        else
+        {
+            auto i = static_cast<size_type>(std::distance(this->begin(), position));
+            ++position;
+            for (; position != this->end(); ++i, ++position)
+            {
+                this->emplace_at(i, *position, ListTraits::make_index_sequence());
+            }
+        }
+    }
+
+    template <std::size_t... I>
+    void emplace_at(std::size_t i, const reference& element, std::index_sequence<I...>)
+    {
+        this->locator.emplace_at(i, this->memory.get(), this->fixed_sizes, std::move(cntgs::get<I>(element))...);
+        ElementLocator::destruct(element);
     }
 
     void destruct() noexcept { this->destruct(this->begin(), this->end()); }
@@ -299,13 +330,7 @@ class ContiguousVector
     template <std::size_t... I>
     static void destruct(iterator first, iterator last, std::index_sequence<I...>) noexcept
     {
-        std::for_each(first, last, [](auto&& element) { destruct(element, ListTraits::make_index_sequence()); });
-    }
-
-    template <std::size_t... I>
-    static void destruct(const reference& element, std::index_sequence<I...>) noexcept
-    {
-        (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...);
+        std::for_each(first, last, [](auto&& element) { ElementLocator::destruct(element); });
     }
 };
 

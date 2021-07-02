@@ -54,4 +54,7 @@ struct EqualSizeof<T, U, false>
 
 template <class T, class U>
 static constexpr auto EQUAL_SIZEOF = EqualSizeof<T, U, (std::is_same_v<void, T> || std::is_same_v<void, U>)>::VALUE;
+
+template<class...>
+static constexpr auto FALSE_V = false;
 }  // namespace cntgs::detail

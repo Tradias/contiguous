@@ -33,6 +33,7 @@ using OneVaryingUniquePtr = cntgs::ContiguousVector<cntgs::VaryingSize<std::uniq
 static constexpr std::array FLOATS1{1.f, 2.f};
 static constexpr std::array FLOATS1_ALT{11.f, 22.f};
 static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
+static constexpr std::array FLOATS2_ALT{-33.f, -44.f, -55.f};
 const std::list FLOATS_LIST{1.f, 2.f};
 const std::string STRING1{"a very long test string"};
 const std::string STRING2{"another very long test string"};
@@ -463,6 +464,43 @@ TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of FixedSiz
     auto&& [a, b] = vector[0];
     CHECK_EQ(30, *a);
     CHECK_EQ(40, *b.front());
+}
+
+TEST_CASE("ContiguousTest: OneFixedUniquePtr erase(Iterator)")
+{
+    OneFixedUniquePtr vector{2, {1}};
+    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
+    vector.erase(vector.begin());
+    CHECK_EQ(1, vector.size());
+    auto&& [a, b] = vector.front();
+    CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
+    CHECK_EQ(40, *b);
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr erase(Iterator)")
+{
+    OneVaryingUniquePtr vector{2, 2 * (2 * sizeof(std::unique_ptr<int>))};
+    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(array_two_unique_ptr(30, 40), std::make_unique<int>(50));
+    vector.erase(vector.begin());
+    CHECK_EQ(1, vector.size());
+    auto&& [a, b] = vector.front();
+    CHECK(test::range_equal(array_two_unique_ptr(30, 40), a, test::DereferenceEqual{}));
+    CHECK_EQ(50, *b);
+}
+
+TEST_CASE("ContiguousTest: TwoVarying erase(Iterator)")
+{
+    TwoFixed vector{2, {FLOATS2.size(), FLOATS2_ALT.size()}};
+    vector.emplace_back(FLOATS2, 10u, FLOATS2);
+    vector.emplace_back(FLOATS2_ALT, 20u, FLOATS2);
+    vector.erase(vector.begin());
+    CHECK_EQ(1, vector.size());
+    auto&& [a, b, c] = vector.front();
+    CHECK(test::range_equal(FLOATS2_ALT, a));
+    CHECK_EQ(20u, b);
+    CHECK(test::range_equal(FLOATS2, c));
 }
 
 TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")

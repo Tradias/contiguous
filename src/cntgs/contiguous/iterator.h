@@ -20,15 +20,15 @@ class ContiguousVectorIterator
     ContiguousVectorIterator() = default;
 
     constexpr ContiguousVectorIterator(Vector& vector, typename Vector::size_type index) noexcept
-        : vector(std::addressof(vector)), index(index)
+        : vector(std::addressof(vector)), i(index)
     {
     }
 
     explicit constexpr ContiguousVectorIterator(Vector& vector) noexcept : ContiguousVectorIterator(vector, {}) {}
 
     template <class TVector>
-    constexpr ContiguousVectorIterator(const ContiguousVectorIterator<TVector>& other) noexcept
-        : vector(other.vector), index(index)
+    /*implicit*/ constexpr ContiguousVectorIterator(const ContiguousVectorIterator<TVector>& other) noexcept
+        : vector(other.vector), i(other.i)
     {
     }
 
@@ -39,21 +39,21 @@ class ContiguousVectorIterator
     constexpr ContiguousVectorIterator& operator=(const ContiguousVectorIterator<TVector>& other) noexcept
     {
         this->vector = other.vector;
-        this->index = other.index;
+        this->i = other.i;
     }
 
     ContiguousVectorIterator& operator=(const ContiguousVectorIterator&) = default;
     ContiguousVectorIterator& operator=(ContiguousVectorIterator&&) = default;
 
-    [[nodiscard]] constexpr reference operator*() const noexcept { return (*vector)[index]; }
+    [[nodiscard]] constexpr reference operator*() const noexcept { return (*this->vector)[this->i]; }
 
-    [[nodiscard]] constexpr reference operator*() noexcept { return (*vector)[index]; }
+    [[nodiscard]] constexpr reference operator*() noexcept { return (*this->vector)[this->i]; }
 
     [[nodiscard]] constexpr detail::ArrowProxy<reference> operator->() const noexcept { return {*(*this)}; }
 
     constexpr ContiguousVectorIterator& operator++() noexcept
     {
-        ++index;
+        ++this->i;
         return *this;
     }
 
@@ -66,7 +66,7 @@ class ContiguousVectorIterator
 
     constexpr ContiguousVectorIterator& operator--() noexcept
     {
-        --index;
+        --this->i;
         return *this;
     }
 
@@ -80,36 +80,36 @@ class ContiguousVectorIterator
     [[nodiscard]] constexpr ContiguousVectorIterator operator+(difference_type diff) const noexcept
     {
         auto copy{*this};
-        copy.index += diff;
+        copy.i += diff;
         return copy;
     }
 
     [[nodiscard]] constexpr difference_type operator+(ContiguousVectorIterator it) const noexcept
     {
-        return this->index + it.index;
+        return this->i + it.i;
     }
 
     constexpr ContiguousVectorIterator& operator+=(difference_type diff) noexcept
     {
-        index += diff;
+        this->i += diff;
         return *this;
     }
 
     [[nodiscard]] constexpr ContiguousVectorIterator operator-(difference_type diff) const noexcept
     {
         auto copy{*this};
-        copy.index -= diff;
+        copy.i -= diff;
         return copy;
     }
 
     [[nodiscard]] constexpr difference_type operator-(ContiguousVectorIterator it) const noexcept
     {
-        return this->index - it.index;
+        return this->i - it.i;
     }
 
     constexpr ContiguousVectorIterator& operator-=(difference_type diff) noexcept
     {
-        this->index -= diff;
+        this->i -= diff;
         return *this;
     }
 
@@ -117,7 +117,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr bool operator==(const ContiguousVectorIterator& other) const noexcept
     {
-        return this->index == other.index && this->vector == other.vector;
+        return this->i == other.i && this->vector == other.vector;
     }
 
     [[nodiscard]] constexpr bool operator!=(const ContiguousVectorIterator& other) const noexcept
@@ -127,7 +127,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr bool operator<(const ContiguousVectorIterator& other) const noexcept
     {
-        return this->index < other.index && this->vector == other.vector;
+        return this->i < other.i && this->vector == other.vector;
     }
 
     [[nodiscard]] constexpr bool operator>(const ContiguousVectorIterator& other) const noexcept
@@ -145,8 +145,13 @@ class ContiguousVectorIterator
         return !(*this < other);
     }
 
+    [[nodiscard]] constexpr auto index() const noexcept { return this->i; }
+
   private:
+    template <class TVector>
+    friend class ContiguousVectorIterator;
+
     Vector* vector{};
-    typename Vector::size_type index{};
+    typename Vector::size_type i{};
 };
 }  // namespace cntgs

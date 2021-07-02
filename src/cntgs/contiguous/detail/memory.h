@@ -28,11 +28,11 @@ auto copy_using_memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT
     return target + size * sizeof(T);
 }
 
-template <class TargetType, class Range>
-auto copy_range_ignore_aliasing(Range&& range, std::byte* CNTGS_RESTRICT address)
+template <class TargetType, bool IgnoreAliasing, class Range>
+auto uninitialized_range_construct(Range&& range, std::byte* CNTGS_RESTRICT address)
 {
     using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
-    if constexpr (detail::HasDataAndSize<std::decay_t<Range>>{} &&
+    if constexpr (IgnoreAliasing && detail::HasDataAndSize<std::decay_t<Range>>{} &&
                   detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
         const auto size = std::size(range);
@@ -55,23 +55,24 @@ auto copy_range_ignore_aliasing(Range&& range, std::byte* CNTGS_RESTRICT address
     }
 }
 
-template <class TargetType, class Range>
-auto copy_ignore_aliasing(Range&& range, std::byte* CNTGS_RESTRICT address, std::size_t)
+template <class TargetType, bool IgnoreAliasing, class Range>
+auto uninitialized_construct(Range&& range, std::byte* CNTGS_RESTRICT address, std::size_t)
     -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
 {
-    return copy_range_ignore_aliasing<TargetType>(std::forward<Range>(range), address);
+    return uninitialized_range_construct<TargetType, IgnoreAliasing>(std::forward<Range>(range), address);
 }
 
-template <class TargetType, class Iterator>
-auto copy_ignore_aliasing(const Iterator& iterator, std::byte* CNTGS_RESTRICT address, std::size_t size)
+template <class TargetType, bool IgnoreAliasing, class Iterator>
+auto uninitialized_construct(const Iterator& iterator, std::byte* CNTGS_RESTRICT address, std::size_t size)
     -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
-    if constexpr (std::is_pointer_v<Iterator> && detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
+    if constexpr (IgnoreAliasing && std::is_pointer_v<Iterator> &&
+                  detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
         return detail::copy_using_memcpy(iterator, address, size);
     }
-    else if constexpr (detail::CONTIGUOUS_ITERATOR_V<Iterator> &&
+    else if constexpr (IgnoreAliasing && detail::CONTIGUOUS_ITERATOR_V<Iterator> &&
                        detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
         return detail::copy_using_memcpy(iterator.operator->(), address, size);
