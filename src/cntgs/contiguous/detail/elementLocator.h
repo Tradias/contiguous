@@ -54,6 +54,12 @@ class ElementLocator : public detail::ElementTraitsT<Types...>
         return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
     }
 
+    void resize(std::size_t new_size, std::byte* memory_begin) noexcept
+    {
+        this->last_element = this->element_address(new_size, memory_begin);
+        this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
+    }
+
     template <class... Args>
     void emplace_back(const FixedSizes& fixed_sizes, Args&&... args)
     {
@@ -128,6 +134,8 @@ class AllFixedSizeElementLocator : public detail::ElementTraitsT<Types...>
     constexpr bool empty(std::byte*) const noexcept { return this->element_count == std::size_t{}; }
 
     constexpr std::size_t size(std::byte*) const noexcept { return this->element_count; }
+
+    constexpr void resize(std::size_t new_size, std::byte*) noexcept { this->element_count = new_size; }
 
     template <class... Args>
     void emplace_back(const FixedSizes& fixed_sizes, Args&&... args)

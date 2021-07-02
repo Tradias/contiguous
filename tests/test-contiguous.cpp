@@ -1,4 +1,5 @@
 #include "cntgs/contiguous.h"
+#include "utils/functional.h"
 #include "utils/range.h"
 
 #include <doctest/doctest.h>
@@ -27,8 +28,10 @@ using OneFixed = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<float>>;
 using TwoFixed = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint32_t, cntgs::FixedSize<float>>;
 using OneFixedOneVarying = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint32_t, cntgs::VaryingSize<float>>;
 using OneFixedUniquePtr = cntgs::ContiguousVector<cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>>;
+using OneVaryingUniquePtr = cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>>;
 
 static constexpr std::array FLOATS1{1.f, 2.f};
+static constexpr std::array FLOATS1_ALT{11.f, 22.f};
 static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
 const std::list FLOATS_LIST{1.f, 2.f};
 const std::string STRING1{"a very long test string"};
@@ -242,8 +245,35 @@ TEST_CASE("ContiguousTest: TwoFixed emplace_back with lists")
         auto&& [a, b, c] = element;
         CHECK(test::range_equal(FLOATS_LIST, a));
         CHECK_EQ(10u, b);
-        CHECK(test::range_equal(a, c));
+        CHECK(test::range_equal(FLOATS1, c));
     }
+}
+
+template <class Vector>
+void check_pop_back(Vector&& vector)
+{
+    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
+    vector.pop_back();
+    CHECK_EQ(1, vector.size());
+    {
+        auto&& [a, b] = vector.back();
+        CHECK(test::range_equal(array_one_unique_ptr(10), a, test::DereferenceEqual{}));
+        CHECK_EQ(20, *b);
+    }
+    vector.emplace_back(array_one_unique_ptr(50), std::make_unique<int>(60));
+    CHECK_EQ(2, vector.size());
+    {
+        auto&& [a, b] = vector.back();
+        CHECK(test::range_equal(array_one_unique_ptr(50), a, test::DereferenceEqual{}));
+        CHECK_EQ(60, *b);
+    }
+}
+
+TEST_CASE("ContiguousTest: pop_back")
+{
+    check_pop_back(OneFixedUniquePtr{2, {1}});
+    check_pop_back(OneVaryingUniquePtr{2, 2 * (2 * sizeof(std::unique_ptr<int>))});
 }
 
 TEST_CASE("ContiguousTest: OneVarying subscript operator returns a reference")

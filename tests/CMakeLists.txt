@@ -2,7 +2,7 @@ add_subdirectory(codeGen)
 
 # disassemble code-gen
 function(cntgs_disassemble_code_gen _cntgs_target)
-    set(cntgs_disassembly_output_file ${CMAKE_CURRENT_BINARY_DIR}/${_cntgs_target}.asm)
+    set(cntgs_disassembly_output_file "${CMAKE_CURRENT_BINARY_DIR}/${_cntgs_target}.asm")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         add_custom_command(
             OUTPUT ${cntgs_disassembly_output_file}
@@ -24,7 +24,8 @@ cntgs_disassemble_code_gen(cntgs-code-gen-objects-cpp20)
 
 add_library(cntgs-test-utils OBJECT)
 
-target_sources(cntgs-test-utils PRIVATE utils/codeGenParser.h utils/codeGenParser.cpp utils/string.h utils/string.cpp)
+target_sources(cntgs-test-utils PRIVATE "utils/codeGenParser.h" "utils/codeGenParser.cpp" "utils/string.h"
+                                        "utils/string.cpp" "utils/range.h" "utils/functional.h")
 
 target_compile_options(cntgs-test-utils PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra
                                                 -pedantic-errors>)
@@ -59,11 +60,13 @@ function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
                                                      $<INSTALL_INTERFACE:include>)
 endfunction()
 
-set(CNTGS_TEST_SOURCE_FILES test-contiguous.cpp test-code-gen.cpp)
+set(CNTGS_TEST_SOURCE_FILES "test-contiguous.cpp" "test-code-gen.cpp")
 
-cntgs_add_test(cntgs-test-cpp17 ${CMAKE_CURRENT_BINARY_DIR}/cntgs-code-gen-objects-cpp17.asm ${CNTGS_TEST_SOURCE_FILES})
+cntgs_add_test(cntgs-test-cpp17 "${CMAKE_CURRENT_BINARY_DIR}/cntgs-code-gen-objects-cpp17.asm"
+               ${CNTGS_TEST_SOURCE_FILES})
 
-cntgs_add_test(cntgs-test-cpp20 ${CMAKE_CURRENT_BINARY_DIR}/cntgs-code-gen-objects-cpp20.asm ${CNTGS_TEST_SOURCE_FILES})
+cntgs_add_test(cntgs-test-cpp20 "${CMAKE_CURRENT_BINARY_DIR}/cntgs-code-gen-objects-cpp20.asm"
+               ${CNTGS_TEST_SOURCE_FILES})
 target_compile_features(cntgs-test-cpp20 PRIVATE cxx_std_20)
 
 unset(CNTGS_TEST_SOURCE_FILES)

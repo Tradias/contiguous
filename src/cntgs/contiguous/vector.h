@@ -137,6 +137,12 @@ class ContiguousVector
         this->locator.emplace_back(this->fixed_sizes, std::forward<Args>(args)...);
     }
 
+    void pop_back()
+    {
+        destruct(this->back(), ListTraits::make_index_sequence());
+        this->locator.resize(this->size() - size_type{1}, this->memory.get());
+    }
+
     void reserve(size_type new_max_element_count, size_type new_varying_size_bytes = {})
     {
         if (this->max_element_count < new_max_element_count)
@@ -148,6 +154,14 @@ class ContiguousVector
     reference operator[](size_type i) noexcept { return this->subscript_operator(i); }
 
     const_reference operator[](size_type i) const noexcept { return this->subscript_operator(i); }
+
+    reference front() noexcept { return this->subscript_operator({}); }
+
+    const_reference front() const noexcept { return this->subscript_operator({}); }
+
+    reference back() noexcept { return this->subscript_operator(this->size() - size_type{1}); }
+
+    const_reference back() const noexcept { return this->subscript_operator(this->size() - size_type{1}); }
 
     template <std::size_t I>
     [[nodiscard]] constexpr size_type get_fixed_size() const noexcept
@@ -285,8 +299,13 @@ class ContiguousVector
     template <std::size_t... I>
     static void destruct(iterator first, iterator last, std::index_sequence<I...>) noexcept
     {
-        std::for_each(first, last,
-                      [](auto&& element) { (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...); });
+        std::for_each(first, last, [](auto&& element) { destruct(element, ListTraits::make_index_sequence()); });
+    }
+
+    template <std::size_t... I>
+    static void destruct(const reference& element, std::index_sequence<I...>) noexcept
+    {
+        (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(element)), ...);
     }
 };
 
