@@ -309,7 +309,11 @@ TEST_CASE("ContiguousTest: OneVarying emplace_back c-style array")
 #ifdef __cpp_lib_ranges
 TEST_CASE("ContiguousTest: OneVarying emplace_back std::views::iota")
 {
-    auto iota = std::views::iota(0, 10) | std::views::transform([](auto i) { return float(i); });
+    auto iota = std::views::iota(0, 10) | std::views::transform(
+                                              [](auto i)
+                                              {
+                                                  return float(i);
+                                              });
     OneVarying vector{1, std::ranges::size(iota) * sizeof(float)};
     vector.emplace_back(10, iota);
     auto&& [i, array] = vector[0];
@@ -319,7 +323,11 @@ TEST_CASE("ContiguousTest: OneVarying emplace_back std::views::iota")
 
 TEST_CASE("ContiguousTest: OneFixed emplace_back std::views::iota")
 {
-    auto iota = std::views::iota(0, 10) | std::views::transform([](auto i) { return float(i); });
+    auto iota = std::views::iota(0, 10) | std::views::transform(
+                                              [](auto i)
+                                              {
+                                                  return float(i);
+                                              });
     OneFixed vector{1, {std::ranges::size(iota)}};
     vector.emplace_back(10, iota);
     auto&& [i, array] = vector[0];
@@ -512,14 +520,18 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr erase(Iterator)")
 
 TEST_CASE("ContiguousTest: OneVaryingUniquePtr erase(Iterator)")
 {
-    OneVaryingUniquePtr vector{2, 2 * (2 * sizeof(std::unique_ptr<int>))};
+    OneVaryingUniquePtr vector{3, 3 * (2 * sizeof(std::unique_ptr<int>))};
     vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
     vector.emplace_back(array_two_unique_ptr(30, 40), std::make_unique<int>(50));
+    vector.emplace_back(array_two_unique_ptr(60, 70), std::make_unique<int>(80));
     vector.erase(vector.begin());
-    CHECK_EQ(1, vector.size());
+    CHECK_EQ(2, vector.size());
     auto&& [a, b] = vector.front();
     CHECK(test::range_equal(array_two_unique_ptr(30, 40), a, test::DereferenceEqual{}));
     CHECK_EQ(50, *b);
+    auto&& [c, e] = vector.back();
+    CHECK(test::range_equal(array_two_unique_ptr(60, 70), c, test::DereferenceEqual{}));
+    CHECK_EQ(80, *e);
 }
 
 TEST_CASE("ContiguousTest: TwoVarying erase(Iterator)")

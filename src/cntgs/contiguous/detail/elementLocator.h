@@ -72,8 +72,9 @@ class ElementLocator : public detail::ElementTraitsT<Types...>
     template <class... Args>
     void emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizes& fixed_sizes, Args&&... args)
     {
-        Base::template emplace_at_aliased<AlignmentSelector>(this->element_address(index, memory_begin), fixed_sizes,
-                                                             std::forward<Args>(args)...);
+        const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
+        element_addresses_begin[index + 1] = Base::template emplace_at_aliased<AlignmentSelector>(
+            element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
     }
 
     [[nodiscard]] auto element_address(std::size_t index, std::byte* memory_begin) const noexcept
