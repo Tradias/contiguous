@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 #include <version>
 
 #ifdef __cpp_lib_concepts
@@ -55,6 +56,27 @@ struct EqualSizeof<T, U, false>
 template <class T, class U>
 static constexpr auto EQUAL_SIZEOF = EqualSizeof<T, U, (std::is_same_v<void, T> || std::is_same_v<void, U>)>::VALUE;
 
-template<class...>
+template <class...>
 static constexpr auto FALSE_V = false;
+
+namespace has_ADL_swap_detail
+{
+void swap();  // undefined (deliberate shadowing)
+
+template <class, class = void>
+struct HasADLSwap : std::false_type
+{
+};
+template <class T>
+struct HasADLSwap<T, std::void_t<decltype(swap(std::declval<T&>(), std::declval<T&>()))>> : std::true_type
+{
+};
+}  // namespace has_ADL_swap_detail
+using has_ADL_swap_detail::HasADLSwap;
+
+// Implementation taken from MSVC _Is_trivially_swappable
+template <class T>
+using IsTriviallySwappable =
+    std::conjunction<std::is_trivially_destructible<T>, std::is_trivially_move_constructible<T>,
+                     std::is_trivially_move_assignable<T>, std::negation<HasADLSwap<T>>>;
 }  // namespace cntgs::detail

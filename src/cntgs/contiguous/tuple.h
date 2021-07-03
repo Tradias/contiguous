@@ -135,20 +135,20 @@ class ContiguousTuple
 
   private:
     template <class Tuple>
-    void assign(Tuple& other)
+    void assign(Tuple& other) const
     {
         if (this->start_address() == other.start_address())
         {
             return;
         }
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
-        ElementTraits::template assign<USE_MOVE>(other.tuple, this->tuple);
+        ElementTraits::template assign<USE_MOVE>(other, *this);
     }
 
     template <std::size_t... I>
     constexpr void swap(const ContiguousTuple& other, std::index_sequence<I...>) const
     {
-        (detail::ParameterTraits<Types>::swap(std::get<I>(this->tuple), std::get<I>(other.tuple)), ...);
+        ElementTraits::swap(other, *this);
     }
 };
 

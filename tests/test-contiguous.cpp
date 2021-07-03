@@ -364,16 +364,20 @@ void check_iterator(T& vector)
     auto begin = vector.begin();
     using IterTraits = std::iterator_traits<decltype(begin)>;
     CHECK(std::is_same_v<std::random_access_iterator_tag, typename IterTraits::iterator_category>);
-    std::for_each((vector.begin()++)--, --(++(++vector.begin())), [&](auto&& elem) {
-        auto&& [uinteger, floats] = vector[0];
-        CHECK_EQ(uinteger, cntgs::get<0>(elem));
-        CHECK(test::range_equal(cntgs::get<1>(elem), floats));
-    });
-    std::for_each(((vector.begin() + 2) - 1), vector.end(), [&](auto&& elem) {
-        auto&& [uinteger, floats] = vector[1];
-        CHECK_EQ(uinteger, cntgs::get<0>(elem));
-        CHECK(test::range_equal(cntgs::get<1>(elem), floats));
-    });
+    std::for_each((vector.begin()++)--, --(++(++vector.begin())),
+                  [&](auto&& elem)
+                  {
+                      auto&& [uinteger, floats] = vector[0];
+                      CHECK_EQ(uinteger, cntgs::get<0>(elem));
+                      CHECK(test::range_equal(cntgs::get<1>(elem), floats));
+                  });
+    std::for_each(((vector.begin() + 2) - 1), vector.end(),
+                  [&](auto&& elem)
+                  {
+                      auto&& [uinteger, floats] = vector[1];
+                      CHECK_EQ(uinteger, cntgs::get<0>(elem));
+                      CHECK(test::range_equal(cntgs::get<1>(elem), floats));
+                  });
 }
 
 TEST_CASE("ContiguousTest: OneFixed begin() end()")
@@ -414,6 +418,28 @@ TEST_CASE("ContiguousTest: swap and iter_swap with ContiguousVectorIterator of F
         auto&& [a, b] = vector[1];
         CHECK_EQ(10, *a);
         CHECK_EQ(20, *b.front());
+    }
+}
+
+TEST_CASE("ContiguousTest: FixedSize swap partially trivial")
+{
+    using Vector = cntgs::ContiguousVector<int, cntgs::FixedSize<float>, cntgs::FixedSize<std::unique_ptr<int>>>;
+    Vector vector{2, {FLOATS1.size(), 1}};
+    vector.emplace_back(10, FLOATS1, array_one_unique_ptr(20));
+    vector.emplace_back(30, FLOATS1_ALT, array_one_unique_ptr(40));
+    using std::swap;
+    swap(vector[0], vector[1]);
+    {
+        auto&& [a, b, c] = vector.front();
+        CHECK_EQ(30, a);
+        CHECK(test::range_equal(FLOATS1_ALT, b));
+        CHECK(test::range_equal(array_one_unique_ptr(40), c, test::DereferenceEqual{}));
+    }
+    {
+        auto&& [a, b, c] = vector.back();
+        CHECK_EQ(10, a);
+        CHECK(test::range_equal(FLOATS1, b));
+        CHECK(test::range_equal(array_one_unique_ptr(20), c, test::DereferenceEqual{}));
     }
 }
 

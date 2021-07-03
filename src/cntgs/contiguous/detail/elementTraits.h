@@ -6,6 +6,7 @@
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
+#include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
 #include <array>
@@ -82,16 +83,17 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     template <class T>
     using FixedSizeGetter = detail::FixedSizeGetter<T, detail::TypeList<Types...>>;
 
-    static constexpr auto SKIP_ASSIGNMENT = std::numeric_limits<std::size_t>::max();
-    static constexpr auto REQUIRES_INDIVIDUAL_ASSIGNMENT = SKIP_ASSIGNMENT - 1;
+    static constexpr auto SKIP = std::numeric_limits<std::size_t>::max();
+    static constexpr auto MANUAL = SKIP - 1;
 
     template <template <class> class Predicate>
     static constexpr auto calculate_consecutive_indices() noexcept
     {
-        std::array<std::size_t, sizeof...(Types)> consecutive_indices{((void)I, SKIP_ASSIGNMENT)...};
+        std::array<std::size_t, sizeof...(Types)> consecutive_indices{((void)I, SKIP)...};
         [[maybe_unused]] std::size_t index = 0;
         (
-            [&] {
+            [&]
+            {
                 if constexpr (Predicate<typename detail::ParameterTraits<Types>::ValueType>::value)
                 {
                     consecutive_indices[index] = I;
@@ -99,7 +101,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
                 else
                 {
                     index = I + 1;
-                    consecutive_indices[I] = REQUIRES_INDIVIDUAL_ASSIGNMENT;
+                    consecutive_indices[I] = MANUAL;
                 }
             }(),
             ...);
@@ -109,6 +111,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr std::array CONSECUTIVE_TRIVIALLY_ASSIGNABLE_INDICES{
         calculate_consecutive_indices<std::is_trivially_copy_assignable>(),
         calculate_consecutive_indices<std::is_trivially_move_assignable>()};
+
+    static constexpr std::array CONSECUTIVE_TRIVIALLY_SWAPPABLE_INDICES{
+        calculate_consecutive_indices<detail::IsTriviallySwappable>()};
 
     template <class NeedsAlignmentSelector, bool IgnoreAliasing, class... Args>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes,
@@ -178,35 +183,64 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         (detail::construct_one_if_non_trivial<UseMove, Types>(std::get<I>(source.tuple), std::get<I>(target)), ...);
     }
 
-    template <bool UseMove, std::size_t K, class SourceTuple, class TargetTuple>
-    static void assign(const SourceTuple& source, const TargetTuple& target)
+    template <bool UseMove, std::size_t K, detail::ContiguousTupleQualifier LhsQualifier,
+              detail::ContiguousTupleQualifier RhsQualifier>
+    static void assign(const cntgs::ContiguousTuple<LhsQualifier, Types...>& source,
+                       const cntgs::ContiguousTuple<RhsQualifier, Types...>& target)
     {
         static constexpr auto INDEX = std::get<K>(std::get<UseMove>(CONSECUTIVE_TRIVIALLY_ASSIGNABLE_INDICES));
-        if constexpr (INDEX == REQUIRES_INDIVIDUAL_ASSIGNMENT)
+        if constexpr (INDEX == MANUAL)
         {
             if constexpr (UseMove)
             {
-                ParameterTraitsAt<K>::move(std::get<K>(source), std::get<K>(target));
+                ParameterTraitsAt<K>::move(std::get<K>(source.tuple), std::get<K>(target.tuple));
             }
             else
             {
-                ParameterTraitsAt<K>::copy(std::get<K>(source), std::get<K>(target));
+                ParameterTraitsAt<K>::copy(std::get<K>(source.tuple), std::get<K>(target.tuple));
             }
         }
-        else if constexpr (INDEX != SKIP_ASSIGNMENT)
+        else if constexpr (INDEX != SKIP)
         {
-            const auto target_start = ParameterTraitsAt<K>::start_address(std::get<K>(target));
-            const auto source_start = ParameterTraitsAt<K>::start_address(std::get<K>(source));
-            const auto source_end = ParameterTraitsAt<INDEX>::end_address(std::get<INDEX>(source));
+            const auto target_start = ParameterTraitsAt<K>::start_address(std::get<K>(target.tuple));
+            const auto source_start = ParameterTraitsAt<K>::start_address(std::get<K>(source.tuple));
+            const auto source_end = ParameterTraitsAt<INDEX>::end_address(std::get<INDEX>(source.tuple));
             std::memcpy(target_start, source_start, source_end - source_start);
         }
     }
 
-    template <bool UseMove, class SourceTuple, class TargetTuple>
-    static void assign(const SourceTuple& source, const TargetTuple& target)
+    template <bool UseMove, detail::ContiguousTupleQualifier LhsQualifier,
+              detail::ContiguousTupleQualifier RhsQualifier>
+    static void assign(const cntgs::ContiguousTuple<LhsQualifier, Types...>& source,
+                       const cntgs::ContiguousTuple<RhsQualifier, Types...>& target)
     {
         (assign<UseMove, I>(source, target), ...);
     }
+
+    template <std::size_t K>
+    static void swap(const ReferenceReturnType& lhs, const ReferenceReturnType& rhs)
+    {
+        static constexpr auto INDEX = std::get<K>(CONSECUTIVE_TRIVIALLY_SWAPPABLE_INDICES);
+        if constexpr (INDEX == MANUAL)
+        {
+            ParameterTraitsAt<K>::swap(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+        }
+        else if constexpr (INDEX != SKIP)
+        {
+            const auto rhs_start = ParameterTraitsAt<K>::start_address(std::get<K>(rhs.tuple));
+            const auto lhs_start = ParameterTraitsAt<K>::start_address(std::get<K>(lhs.tuple));
+            const auto lhs_end = ParameterTraitsAt<INDEX>::end_address(std::get<INDEX>(lhs.tuple));
+            // some compilers (e.g. MSVC) perform handrolled optimizations if the argument type
+            // to swap_ranges are trivially_swappable which includes that is has
+            // no ADL discovered swap function. std::byte has such function, but
+            // raw pointers do not
+            using UnderlyingType = std::underlying_type_t<std::byte>;
+            std::swap_ranges(reinterpret_cast<UnderlyingType*>(lhs_start), reinterpret_cast<UnderlyingType*>(lhs_end),
+                             reinterpret_cast<UnderlyingType*>(rhs_start));
+        }
+    }
+
+    static void swap(const ReferenceReturnType& lhs, const ReferenceReturnType& rhs) { (swap<I>(lhs, rhs), ...); }
 
     static void destruct(const ReferenceReturnType& element) noexcept
     {
