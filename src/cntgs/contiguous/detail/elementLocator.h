@@ -96,11 +96,13 @@ class ElementLocator : public detail::ElementTraitsT<Types...>
         const auto old_start = detail::calculate_element_start<ElementLocator>(old_max_element_count, old_memory_begin);
         const auto size_diff = std::distance(new_memory_begin, new_start) - std::distance(old_memory_begin, old_start);
         auto new_last_element_address = reinterpret_cast<std::byte**>(new_memory_begin);
-        std::for_each(
-            reinterpret_cast<std::byte**>(old_memory_begin), old_locator.last_element_address, [&](std::byte* element) {
-                *new_last_element_address = new_memory_begin + std::distance(old_memory_begin, element) + size_diff;
-                ++new_last_element_address;
-            });
+        std::for_each(reinterpret_cast<std::byte**>(old_memory_begin), old_locator.last_element_address,
+                      [&](std::byte* element)
+                      {
+                          *new_last_element_address =
+                              new_memory_begin + std::distance(old_memory_begin, element) + size_diff;
+                          ++new_last_element_address;
+                      });
         const auto old_used_memory_size = std::distance(old_start, old_locator.last_element);
         std::memcpy(new_start, old_start, old_used_memory_size);
         this->last_element_address = new_last_element_address;

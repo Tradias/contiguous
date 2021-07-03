@@ -7,4 +7,4 @@ enum class ContiguousTupleQualifier
     REFERENCE,
     CONST_REFERENCE
 };
-}
+}  // namespace cntgs::detail

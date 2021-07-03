@@ -29,7 +29,8 @@ struct FixedSizeGetter<cntgs::FixedSize<T>, detail::TypeList<Types...>>
         std::array<std::size_t, sizeof...(Types)> fixed_size_indices{};
         [[maybe_unused]] std::size_t index = 0;
         (
-            [&] {
+            [&]
+            {
                 if constexpr (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE)
                 {
                     std::get<I>(fixed_size_indices) = index;

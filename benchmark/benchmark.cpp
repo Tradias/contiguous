@@ -62,7 +62,8 @@ void fill_vector(Target& target, const std::vector<std::vector<float>>& source)
 template <class... T>
 auto iterate(const cntgs::ContiguousVector<T...>& vector, size_t)
 {
-    return [&] {
+    return [&]
+    {
         for (auto&& [elem] : vector)
         {
             for (auto&& e : elem)
@@ -76,7 +77,8 @@ auto iterate(const cntgs::ContiguousVector<T...>& vector, size_t)
 template <class... T>
 auto iterate(const std::vector<T...>& vector, size_t)
 {
-    return [&] {
+    return [&]
+    {
         for (auto&& elem : vector)
         {
             for (auto&& e : elem)
@@ -90,7 +92,8 @@ auto iterate(const std::vector<T...>& vector, size_t)
 template <class T, std::size_t N>
 auto iterate(const std::vector<std::array<T, N>>& vector, const size_t& fixed_size)
 {
-    return [&] {
+    return [&]
+    {
         for (auto&& elem : vector)
         {
             for (size_t i = 0; i < fixed_size; i++)
@@ -104,7 +107,8 @@ auto iterate(const std::vector<std::array<T, N>>& vector, const size_t& fixed_si
 template <class... T>
 auto random_lookup(const cntgs::ContiguousVector<T...>& vector, const std::vector<size_t>& indices)
 {
-    return [&] {
+    return [&]
+    {
         for (auto&& j : indices)
         {
             for (auto&& elem : cntgs::get<0>(vector[j]))
@@ -117,7 +121,8 @@ auto random_lookup(const cntgs::ContiguousVector<T...>& vector, const std::vecto
 
 static auto random_lookup(const VectorVector& vector, const std::vector<size_t>& indices)
 {
-    return [&] {
+    return [&]
+    {
         for (auto&& j : indices)
         {
             for (auto&& elem : vector.vector[j])
@@ -131,7 +136,8 @@ static auto random_lookup(const VectorVector& vector, const std::vector<size_t>&
 template <std::size_t N>
 auto random_lookup(const std::vector<std::array<float, N>>& vector, const std::vector<size_t>& indices)
 {
-    return [&] {
+    return [&]
+    {
         for (auto&& j : indices)
         {
             for (auto&& elem : vector[j])
@@ -149,7 +155,11 @@ auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_s
     for (auto&& v : input)
     {
         v.resize(fixed_size);
-        std::generate_n(v.begin(), fixed_size, [&] { return float_dist(gen); });
+        std::generate_n(v.begin(), fixed_size,
+                        [&]
+                        {
+                            return float_dist(gen);
+                        });
     }
     std::vector<std::array<float, N>> array_vector{input.size()};
     for (size_t i = 0; i < input.size(); i++)
@@ -203,7 +213,11 @@ void random_lookup(std::size_t elements, std::size_t fixed_size)
         make_single_element_input_vectors<N>(elements, fixed_size);
     std::uniform_int_distribution<size_t> size_t_dist(0, elements - 1);
     std::vector<size_t> indices(1000000);
-    std::generate(indices.begin(), indices.end(), [&] { return size_t_dist(gen); });
+    std::generate(indices.begin(), indices.end(),
+                  [&]
+                  {
+                      return size_t_dist(gen);
+                  });
     ankerl::nanobench::Bench().run(
         format("random_lookup: std::array<float, {}> elements: {} fixed_size: {}", N, elements, fixed_size),
         random_lookup(array_vector, indices));
@@ -229,7 +243,11 @@ auto make_varying_since_input_vectors(std::size_t elements, uint32_t variance)
         auto size = int_dist(gen);
         v.resize(size);
         total_size += v.size();
-        std::generate(v.begin(), v.end(), [&] { return float_dist(gen); });
+        std::generate(v.begin(), v.end(),
+                      [&]
+                      {
+                          return float_dist(gen);
+                      });
     }
     VectorVector vector_vector{std::make_unique<std::pmr::monotonic_buffer_resource>(
         total_size * sizeof(float) + elements * 16 * sizeof(std::pmr::vector<float>))};
@@ -261,7 +279,11 @@ void random_lookup_varying(std::size_t elements, std::uint32_t variance)
     auto [vector_vector, varying_size_vector] = make_varying_since_input_vectors(elements, variance);
     std::uniform_int_distribution<size_t> size_t_dist(0, elements - 1);
     std::vector<size_t> indices(1000000);
-    std::generate(indices.begin(), indices.end(), [&] { return size_t_dist(gen); });
+    std::generate(indices.begin(), indices.end(),
+                  [&]
+                  {
+                      return size_t_dist(gen);
+                  });
     ankerl::nanobench::Bench().run(
         format("random_lookup: std::pmr::vector<std::pmr::vector<float>> elements: {} variance: 0-{}", elements,
                variance),
@@ -278,7 +300,11 @@ void full_iteration_two(std::size_t elements, std::size_t fixed_size)
     for (auto&& v : input)
     {
         v.resize(fixed_size);
-        std::generate_n(v.begin(), fixed_size, [&] { return float_dist(gen); });
+        std::generate_n(v.begin(), fixed_size,
+                        [&]
+                        {
+                            return float_dist(gen);
+                        });
     }
     std::vector<TwoArray<N, K>> array_vector{input.size()};
     for (size_t i = 0; i < input.size(); i++)
@@ -319,7 +345,8 @@ void full_iteration_two(std::size_t elements, std::size_t fixed_size)
     ankerl::nanobench::Bench().run(format("full_iteration: std::vector<struct(std::array<float, "
                                           "{}>,float,std::array<float, {}>)> elements: {} fixed_size: {}",
                                           N, K, elements, fixed_size),
-                                   [&] {
+                                   [&]
+                                   {
                                        for (auto&& elem : array_vector)
                                        {
                                            for (size_t i = 0; i < fixed_size / 2; i++)
@@ -336,7 +363,8 @@ void full_iteration_two(std::size_t elements, std::size_t fixed_size)
     ankerl::nanobench::Bench().run(format("full_iteration: std::pmr::vector<struct(std::pmr::vector<float>,float,"
                                           "std::pmr::vector<float>)> elements: {} fixed_size: {}",
                                           elements, fixed_size),
-                                   [&] {
+                                   [&]
+                                   {
                                        for (auto&& elem : vector_vector)
                                        {
                                            for (auto&& e : elem.a)
@@ -353,7 +381,8 @@ void full_iteration_two(std::size_t elements, std::size_t fixed_size)
     ankerl::nanobench::Bench().run(
         format("full_iteration: ContiguousVector<FixedSize<float>,float,FixedSize<float>> elements: {} fixed_size: {}",
                elements, fixed_size),
-        [&] {
+        [&]
+        {
             for (auto&& [a, b, c] : fixed_size_vector)
             {
                 for (auto&& e : a)
@@ -371,7 +400,8 @@ void full_iteration_two(std::size_t elements, std::size_t fixed_size)
         format(
             "full_iteration: ContiguousVector<VaryingSize<float>,float,VaryingSize<float>> elements: {} fixed_size: {}",
             elements, fixed_size),
-        [&] {
+        [&]
+        {
             for (auto&& [a, b, c] : fixed_size_vector)
             {
                 for (auto&& e : a)

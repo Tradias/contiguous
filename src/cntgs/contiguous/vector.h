@@ -330,7 +330,11 @@ class ContiguousVector
     template <std::size_t... I>
     static void destruct(iterator first, iterator last, std::index_sequence<I...>) noexcept
     {
-        std::for_each(first, last, [](auto&& element) { ElementLocator::destruct(element); });
+        std::for_each(first, last,
+                      [](const auto& element)
+                      {
+                          ElementLocator::destruct(element);
+                      });
     }
 };
 
