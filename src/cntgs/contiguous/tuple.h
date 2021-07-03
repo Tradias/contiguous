@@ -117,7 +117,7 @@ class ContiguousTuple
 
     constexpr void swap(const ContiguousTuple& other) const noexcept(ListTraits::IS_NOTHROW_SWAPPABLE)
     {
-        this->swap(other, ListTraits::make_index_sequence());
+        ElementTraits::swap(other, *this);
     }
 
     [[nodiscard]] constexpr auto size_in_bytes() const noexcept { return this->end_address() - this->start_address(); }
@@ -137,18 +137,8 @@ class ContiguousTuple
     template <class Tuple>
     void assign(Tuple& other) const
     {
-        if (this->start_address() == other.start_address())
-        {
-            return;
-        }
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
         ElementTraits::template assign<USE_MOVE>(other, *this);
-    }
-
-    template <std::size_t... I>
-    constexpr void swap(const ContiguousTuple& other, std::index_sequence<I...>) const
-    {
-        ElementTraits::swap(other, *this);
     }
 };
 

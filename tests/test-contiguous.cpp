@@ -408,7 +408,12 @@ TEST_CASE("ContiguousTest: swap and iter_swap with ContiguousVectorIterator of F
     vector.emplace_back(std::make_unique<int>(10), std::make_move_iterator(v.begin()));
     vector.emplace_back(std::make_unique<int>(30), std::array{std::make_unique<int>(40)});
     SUBCASE("std::iter_swap") { std::iter_swap(vector.begin(), ++vector.begin()); }
-    SUBCASE("cntgs::swap") { cntgs::swap(vector[0], vector[1]); }
+    SUBCASE("cntgs::swap")
+    {
+        using std::swap;
+        swap(vector[0], vector[1]);
+        swap(vector[1], vector[1]);
+    }
     {
         auto&& [a, b] = vector[0];
         CHECK_EQ(30, *a);
@@ -429,6 +434,7 @@ TEST_CASE("ContiguousTest: FixedSize swap partially trivial")
     vector.emplace_back(30, FLOATS1_ALT, array_one_unique_ptr(40));
     using std::swap;
     swap(vector[0], vector[1]);
+    swap(vector[1], vector[1]);
     {
         auto&& [a, b, c] = vector.front();
         CHECK_EQ(30, a);
