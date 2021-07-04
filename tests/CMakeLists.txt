@@ -58,6 +58,8 @@ function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
 
     target_include_directories(${_cntgs_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                                      $<INSTALL_INTERFACE:include>)
+
+    target_precompile_headers(${_cntgs_name} PRIVATE "utils/precompiledHeader.h")
 endfunction()
 
 set(CNTGS_TEST_SOURCE_FILES "test-contiguous.cpp" "test-code-gen.cpp")
@@ -74,7 +76,8 @@ unset(CNTGS_TEST_SOURCE_FILES)
 set_source_files_properties(
     test-code-gen.cpp
     PROPERTIES COMPILE_OPTIONS
-               "$<$<CXX_COMPILER_ID:MSVC>:/EHs>;$<$<CXX_COMPILER_ID:MSVC>:/GR>;$<$<CXX_COMPILER_ID:GNU>:-fexceptions>")
+               "$<$<CXX_COMPILER_ID:MSVC>:/EHs>;$<$<CXX_COMPILER_ID:MSVC>:/GR>;$<$<CXX_COMPILER_ID:GNU>:-fexceptions>"
+               SKIP_PRECOMPILE_HEADERS on)
 
 if(CNTGS_DISCOVER_TESTS)
     enable_testing()
