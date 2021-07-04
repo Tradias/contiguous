@@ -110,9 +110,6 @@ struct alignas(N) AlignedByte
     std::byte byte;
 };
 
-template <std::size_t N>
-using AlignedByteT = std::conditional_t<(N == 0), std::byte, AlignedByte<N>>;
-
 template <class T>
 struct MaybeOwnedPtr
 {
@@ -191,7 +188,7 @@ template <std::size_t Alignment, class T>
 template <std::size_t Alignment>
 [[nodiscard]] constexpr auto align(std::uintptr_t position) noexcept
 {
-    if constexpr (Alignment == 0)
+    if constexpr (Alignment == 1)
     {
         return position;
     }
@@ -206,7 +203,7 @@ template <std::size_t Alignment>
 {
     const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
     const auto aligned = detail::align<Alignment>(uintptr);
-    return reinterpret_cast<void*>(aligned);
+    return detail::assume_aligned<Alignment>(reinterpret_cast<void*>(aligned));
 }
 
 template <bool NeedsAlignment, std::size_t Alignment>
@@ -214,18 +211,8 @@ template <bool NeedsAlignment, std::size_t Alignment>
 {
     if constexpr (NeedsAlignment)
     {
-        return detail::align<Alignment>(ptr);
+        ptr = detail::align<Alignment>(ptr);
     }
-    else
-    {
-        if constexpr (Alignment == 0)
-        {
-            return ptr;
-        }
-        else
-        {
-            return detail::assume_aligned<Alignment>(ptr);
-        }
-    }
+    return detail::assume_aligned<Alignment>(ptr);
 }
 }  // namespace cntgs::detail

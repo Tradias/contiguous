@@ -20,7 +20,7 @@ class ContiguousVectorIterator;
 
 class TypeErasedVector;
 
-template <class T, std::size_t Alignment = 0>
+template <class T, std::size_t Alignment = 1>
 struct AlignAs;
 
 template <detail::ContiguousTupleQualifier Qualifier, class... Types>

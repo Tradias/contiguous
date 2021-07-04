@@ -24,11 +24,11 @@ class ContiguousElement
     using Self = cntgs::ContiguousElement<Types...>;
     using ListTraits = detail::ParameterListTraits<Types...>;
     using VectorTraits = detail::ContiguousVectorTraits<Types...>;
-    using StorageType = std::unique_ptr<detail::AlignedByteT<ListTraits::MAX_ALIGNMENT>[]>;
+    using ElementTraits = detail::ElementTraitsT<Types...>;
+    using StorageType = std::unique_ptr<detail::AlignedByte<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>[]>;
     using StorageElementType = typename StorageType::element_type;
     using Tuple = typename VectorTraits::ReferenceReturnType;
     using UnderlyingTuple = typename Tuple::Tuple;
-    using ElementTraits = detail::ElementTraitsT<Types...>;
 
   public:
     StorageType memory;
@@ -111,7 +111,11 @@ class ContiguousElement
         return Tuple{detail::convert_tuple_to<typename Tuple::Tuple>(target)};
     }
 
-    [[nodiscard]] auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
+    [[nodiscard]] auto memory_begin() const noexcept
+    {
+        return detail::assume_aligned<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
+            reinterpret_cast<std::byte*>(this->memory.get()));
+    }
 };
 
 template <class... T>

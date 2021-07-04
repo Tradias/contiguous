@@ -36,7 +36,7 @@ using AlignmentSelectorT = std::conditional_t<(detail::ParameterListTraits<Types
 template <std::size_t Alignment>
 constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
 {
-    if constexpr (Alignment == 0)
+    if constexpr (Alignment == 1)
     {
         return std::size_t{};
     }
