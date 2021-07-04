@@ -1,11 +1,10 @@
 #pragma once
 
-#include "cntgs/contiguous/detail/attributes.h"
-#include "cntgs/contiguous/detail/elementLocator.h"
+#include "cntgs/contiguous/detail/elementTraits.h"
 #include "cntgs/contiguous/detail/fixedSizeGetter.h"
 #include "cntgs/contiguous/detail/forward.h"
+#include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
-#include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/utility.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
@@ -94,7 +93,7 @@ class ContiguousElement
         {
             if (this->memory)
             {
-                this->destruct();
+                ElementTraits::destruct(this->tuple);
             }
         }
     }
@@ -113,14 +112,6 @@ class ContiguousElement
     }
 
     [[nodiscard]] auto memory_begin() const noexcept { return reinterpret_cast<std::byte*>(this->memory.get()); }
-
-    void destruct() noexcept { this->destruct(ListTraits::make_index_sequence()); }
-
-    template <std::size_t... I>
-    void destruct(std::index_sequence<I...>) noexcept
-    {
-        (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(this->tuple)), ...);
-    }
 };
 
 template <class... T>

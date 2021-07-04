@@ -179,6 +179,8 @@ class ContiguousVector
 
     [[nodiscard]] bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
 
+    [[nodiscard]] std::byte* data() const noexcept { return this->locator.element_address({}, this->memory.get()); }
+
     [[nodiscard]] size_type size() const noexcept { return this->locator.size(this->memory.get()); }
 
     [[nodiscard]] constexpr size_type capacity() const noexcept { return this->max_element_count; }

@@ -497,9 +497,8 @@ TEST_CASE("ContiguousTest: OneFixed::reference can be used to move elements")
 TEST_CASE("ContiguousTest: std::rotate with ContiguousVectorIterator of FixedSize std::unique_ptr")
 {
     cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>> vector{2, {1}};
-    std::array v{std::make_unique<int>(20)};
-    vector.emplace_back(std::make_unique<int>(10), std::make_move_iterator(v.begin()));
-    vector.emplace_back(std::make_unique<int>(30), std::array{std::make_unique<int>(40)});
+    vector.emplace_back(std::make_unique<int>(10), array_one_unique_ptr(20));
+    vector.emplace_back(std::make_unique<int>(30), array_one_unique_ptr(40));
     std::rotate(vector.begin(), ++vector.begin(), vector.end());
     auto&& [a, b] = vector[0];
     CHECK_EQ(30, *a);

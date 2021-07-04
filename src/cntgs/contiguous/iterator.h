@@ -13,7 +13,7 @@ class ContiguousVectorIterator
     using value_type = typename Vector::value_type;
     using reference =
         std::conditional_t<std::is_const_v<Vector>, typename Vector::const_reference, typename Vector::reference>;
-    using pointer = reference;
+    using pointer = detail::ArrowProxy<reference>;
     using difference_type = typename Vector::difference_type;
     using iterator_category = std::random_access_iterator_tag;
 
@@ -49,7 +49,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr reference operator*() noexcept { return (*this->vector)[this->i]; }
 
-    [[nodiscard]] constexpr detail::ArrowProxy<reference> operator->() const noexcept { return {*(*this)}; }
+    [[nodiscard]] constexpr pointer operator->() const noexcept { return {*(*this)}; }
 
     constexpr ContiguousVectorIterator& operator++() noexcept
     {
