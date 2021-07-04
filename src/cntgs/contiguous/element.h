@@ -108,7 +108,7 @@ class ContiguousElement
                                                               detail::ContiguousReturnTypeSizeGetter>(
             this->memory_begin(), source.tuple);
         ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
-        return Tuple{detail::convert_tuple_to<typename Tuple::Tuple>(target)};
+        return Tuple{target};
     }
 
     [[nodiscard]] auto memory_begin() const noexcept

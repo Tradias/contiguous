@@ -146,7 +146,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
     template <class NeedsAlignmentSelector = AlignmentSelector,
               template <class> class FixedSizeGetterType = FixedSizeGetter, class FixedSizesType = FixedSizes>
-    static auto load_element_at(std::byte* address, const FixedSizesType& fixed_sizes) noexcept
+    static auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
         PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =

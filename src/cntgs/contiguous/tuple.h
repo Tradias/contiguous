@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/elementTraits.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
@@ -19,6 +20,7 @@ class ContiguousTuple
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
+    using PointerTuple = detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>;
 
   public:
     using Tuple = std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
@@ -35,15 +37,16 @@ class ContiguousTuple
     ContiguousTuple(const ContiguousTuple&) = default;
     ContiguousTuple(ContiguousTuple&&) = default;
 
-    constexpr ContiguousTuple(std::byte* address, const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
-        : tuple(detail::convert_tuple_to<Tuple>(
-              ElementTraits::template load_element_at<AlignmentSelector>(address, fixed_sizes)))
+    constexpr ContiguousTuple(std::byte* CNTGS_RESTRICT address,
+                              const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
+        : ContiguousTuple(ElementTraits::template load_element_at<AlignmentSelector>(address, fixed_sizes))
     {
     }
 
-    explicit constexpr ContiguousTuple(const Tuple& tuple) noexcept : tuple(tuple) {}
-
-    explicit constexpr ContiguousTuple(Tuple&& tuple) noexcept : tuple(std::move(tuple)) {}
+    explicit constexpr ContiguousTuple(const PointerTuple& tuple) noexcept
+        : tuple(detail::convert_tuple_to<Tuple>(tuple))
+    {
+    }
 
     template <class... Args>
     constexpr ContiguousTuple(std::in_place_t, Args&&... args) noexcept : tuple(std::forward<Args>(args)...)

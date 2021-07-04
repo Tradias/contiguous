@@ -184,7 +184,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     static constexpr auto TYPE = detail::ParameterType::VARYING_SIZE;
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
-    static constexpr auto ALIGNED_SIZE_IN_MEMORY = MEMORY_OVERHEAD + (ALIGNMENT > 0 ? ALIGNMENT - 1 : 0);
+    static constexpr auto ALIGNED_SIZE_IN_MEMORY = MEMORY_OVERHEAD + ALIGNMENT - 1;
 
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
