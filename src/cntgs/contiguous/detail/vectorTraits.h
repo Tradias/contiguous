@@ -3,6 +3,7 @@
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/tuple.h"
+#include "cntgs/contiguous/detail/vector.h"
 
 #include <tuple>
 
@@ -13,8 +14,8 @@ struct VectorTraits
 {
 };
 
-template <class... Types>
-struct VectorTraits<cntgs::ContiguousVector<Types...>>
+template <class... Types, class... Option>
+struct VectorTraits<cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>>
 {
     using ValueReturnType = cntgs::ContiguousElement<Types...>;
     using ReferenceReturnType = cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::REFERENCE, Types...>;

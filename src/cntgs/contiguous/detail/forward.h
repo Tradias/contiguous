@@ -13,7 +13,7 @@ template <class T>
 struct FixedSize;
 
 template <class... Types>
-class ContiguousVector;
+class BasicContiguousVector;
 
 template <class Vector>
 class ContiguousVectorIterator;
@@ -28,4 +28,7 @@ class ContiguousTuple;
 
 template <class... Types>
 class ContiguousElement;
+
+template <class... Types>
+struct Options;
 }  // namespace cntgs
