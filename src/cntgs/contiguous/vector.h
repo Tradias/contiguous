@@ -322,19 +322,13 @@ class ContiguousVector
         {
             if (this->memory && this->memory.is_owned)
             {
-                destruct(first, last, ListTraits::make_index_sequence());
+                std::for_each(first, last,
+                              [](const auto& element)
+                              {
+                                  ElementLocator::destruct(element);
+                              });
             }
         }
-    }
-
-    template <std::size_t... I>
-    static void destruct(iterator first, iterator last, std::index_sequence<I...>) noexcept
-    {
-        std::for_each(first, last,
-                      [](const auto& element)
-                      {
-                          ElementLocator::destruct(element);
-                      });
     }
 };
 
@@ -342,8 +336,17 @@ template <class... Types>
 auto type_erase(cntgs::ContiguousVector<Types...>&& vector) noexcept
 {
     return cntgs::TypeErasedVector{
-        vector.memory_size, vector.max_element_count, std::move(vector.memory),
+        vector.memory_size,
+        vector.max_element_count,
+        std::move(vector.memory),
         detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.fixed_sizes),
-        detail::type_erase_element_locator(std::move(vector.locator))};
+        detail::type_erase_element_locator(std::move(vector.locator)),
+        []([[maybe_unused]] cntgs::TypeErasedVector& erased)
+        {
+            if constexpr (!detail::ParameterListTraits<Types...>::IS_TRIVIALLY_DESTRUCTIBLE)
+            {
+                cntgs::ContiguousVector<Types...>{std::move(erased)};
+            }
+        }};
 }
 }  // namespace cntgs

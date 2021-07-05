@@ -130,12 +130,12 @@ struct BaseContiguousParameterTraits
 
     static auto end_address(const cntgs::Span<std::add_const_t<T>>& value) noexcept
     {
-        return reinterpret_cast<const std::byte*>(Self::begin(value) + value.size());
+        return reinterpret_cast<const std::byte*>(std::end(value));
     }
 
     static auto end_address(const cntgs::Span<T>& value) noexcept
     {
-        return reinterpret_cast<std::byte*>(Self::begin(value) + value.size());
+        return reinterpret_cast<std::byte*>(std::end(value));
     }
 
     static void uninitialized_copy(const cntgs::Span<std::add_const_t<T>>& source,

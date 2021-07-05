@@ -45,6 +45,8 @@ class ContiguousVectorIterator
     ContiguousVectorIterator& operator=(const ContiguousVectorIterator&) = default;
     ContiguousVectorIterator& operator=(ContiguousVectorIterator&&) = default;
 
+    [[nodiscard]] constexpr auto index() const noexcept { return this->i; }
+
     [[nodiscard]] constexpr reference operator*() const noexcept { return (*this->vector)[this->i]; }
 
     [[nodiscard]] constexpr reference operator*() noexcept { return (*this->vector)[this->i]; }
@@ -144,8 +146,6 @@ class ContiguousVectorIterator
     {
         return !(*this < other);
     }
-
-    [[nodiscard]] constexpr auto index() const noexcept { return this->i; }
 
   private:
     template <class TVector>

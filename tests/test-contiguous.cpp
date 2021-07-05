@@ -593,13 +593,14 @@ TEST_CASE("ContiguousTest: std::string TypeErasedVector")
     vector.emplace_back(STRING1);
     vector.emplace_back(STRING2);
     auto erased = cntgs::type_erase(std::move(vector));
+    auto move_constructed_erased{std::move(erased)};
     cntgs::ContiguousVector<std::string> restored;
-    SUBCASE("by move") { restored = cntgs::ContiguousVector<std::string>{std::move(erased)}; }
+    SUBCASE("by move") { restored = cntgs::ContiguousVector<std::string>{std::move(move_constructed_erased)}; }
     SUBCASE("by lvalue reference")
     {
         for (size_t i = 0; i < 2; i++)
         {
-            restored = cntgs::ContiguousVector<std::string>{erased};
+            restored = cntgs::ContiguousVector<std::string>{move_constructed_erased};
         }
     }
     auto&& [string_one] = restored[0];
