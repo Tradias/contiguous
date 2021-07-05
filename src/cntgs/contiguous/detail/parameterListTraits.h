@@ -29,8 +29,10 @@ struct ParameterListTraits
         (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE));
     static constexpr auto MAX_ALIGNMENT = detail::MAX_SIZE_T_OF<detail::ParameterTraits<Types>::ALIGNMENT...>;
 
-    static constexpr auto IS_NOTHROW_DESTRUCTIBLE =
-        (std::is_nothrow_destructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTHROW_COPY_CONSTRUCTIBLE =
+        (std::is_nothrow_copy_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTHROW_MOVE_CONSTRUCTIBLE =
+        (std::is_nothrow_move_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_NOTHROW_COPY_ASSIGNABLE =
         (std::is_nothrow_copy_assignable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_NOTHROW_MOVE_ASSIGNABLE =

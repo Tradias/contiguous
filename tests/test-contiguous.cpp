@@ -546,6 +546,54 @@ TEST_CASE("ContiguousTest: TwoVarying erase(Iterator)")
     CHECK(test::range_equal(FLOATS2, c));
 }
 
+TEST_CASE("ContiguousTest: OneFixedUniquePtr erase(Iterator, Iterator)")
+{
+    OneFixedUniquePtr vector{3, {1}};
+    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
+    vector.emplace_back(array_one_unique_ptr(50), std::make_unique<int>(60));
+    SUBCASE("erase first two")
+    {
+        vector.erase(vector.begin(), std::next(vector.begin(), 2));
+        CHECK_EQ(1, vector.size());
+        auto&& [a, b] = vector.front();
+        CHECK(test::range_equal(array_one_unique_ptr(50), a, test::DereferenceEqual{}));
+        CHECK_EQ(60, *b);
+    }
+    SUBCASE("erase all")
+    {
+        vector.erase(vector.begin(), vector.end());
+        CHECK_EQ(0, vector.size());
+    }
+}
+
+TEST_CASE("ContiguousTest: TwoVarying erase(Iterator, Iterator)")
+{
+    TwoFixed vector{3, {FLOATS2.size(), FLOATS2_ALT.size()}};
+    vector.emplace_back(FLOATS2, 10u, FLOATS2);
+    vector.emplace_back(FLOATS2, 20u, FLOATS2_ALT);
+    vector.emplace_back(FLOATS2_ALT, 30u, FLOATS2);
+    SUBCASE("erase last two")
+    {
+        vector.erase(++vector.begin(), vector.end());
+        CHECK_EQ(1, vector.size());
+        auto&& [a, b, c] = vector.front();
+        CHECK(test::range_equal(FLOATS2, a));
+        CHECK_EQ(10u, b);
+        CHECK(test::range_equal(FLOATS2, c));
+    }
+    SUBCASE("erase all")
+    {
+        vector.erase(vector.begin(), vector.end());
+        CHECK_EQ(0, vector.size());
+        vector.emplace_back(FLOATS2_ALT, 30u, FLOATS2);
+        auto&& [a, b, c] = vector.front();
+        CHECK(test::range_equal(FLOATS2_ALT, a));
+        CHECK_EQ(30u, b);
+        CHECK(test::range_equal(FLOATS2, c));
+    }
+}
+
 TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
 {
     std::optional<OneFixed> vector;
