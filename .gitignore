@@ -67,3 +67,6 @@ cmake-variants.yaml
 # SonarQube
 sonar-cfamily-reproducer.zip
 .scannerwork
+
+# https://github.com/aras-p/ClangBuildAnalyzer
+ClangBuildAnalyzer.ini

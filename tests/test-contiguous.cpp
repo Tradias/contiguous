@@ -279,8 +279,8 @@ TEST_CASE("ContiguousTest: pop_back")
 
 TEST_CASE("ContiguousTest: OneVarying subscript operator returns a reference")
 {
-    OneVarying vector{1, 0};
-    vector.emplace_back(10, std::initializer_list<float>{});
+    OneVarying vector{1, sizeof(float)};
+    vector.emplace_back(10, std::initializer_list<float>{1});
     SUBCASE("mutable")
     {
         auto&& [i1, e1] = vector[0];

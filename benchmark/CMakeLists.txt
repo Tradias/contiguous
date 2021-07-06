@@ -3,8 +3,8 @@ function(cntgs_add_benchmark _name)
 
     target_sources(${_name} PRIVATE benchmark.cpp)
 
-    target_compile_options(${_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra
-                                            -pedantic-errors>)
+    target_compile_options(${_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
+                                            -Wextra -pedantic-errors>)
 
     target_link_libraries(${_name} PRIVATE cntgs cntgs-test-utils)
 

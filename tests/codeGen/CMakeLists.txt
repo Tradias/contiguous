@@ -16,7 +16,7 @@ function(cntgs_add_code_gen _cntgs_name)
                 /EHsc-
                 /Zi
                 /DNDEBUG>
-                $<$<CXX_COMPILER_ID:GNU>:-O3
+                $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O3
                 -g
                 -fno-exceptions
                 -fno-rtti>)

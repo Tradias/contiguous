@@ -37,19 +37,14 @@ class ContiguousTuple
     ContiguousTuple(const ContiguousTuple&) = default;
     ContiguousTuple(ContiguousTuple&&) = default;
 
-    constexpr ContiguousTuple(std::byte* CNTGS_RESTRICT address,
-                              const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
+    explicit constexpr ContiguousTuple(std::byte* CNTGS_RESTRICT address,
+                                       const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
         : ContiguousTuple(ElementTraits::template load_element_at<AlignmentSelector>(address, fixed_sizes))
     {
     }
 
     explicit constexpr ContiguousTuple(const PointerTuple& tuple) noexcept
         : tuple(detail::convert_tuple_to<Tuple>(tuple))
-    {
-    }
-
-    template <class... Args>
-    constexpr ContiguousTuple(std::in_place_t, Args&&... args) noexcept : tuple(std::forward<Args>(args)...)
     {
     }
 

@@ -53,7 +53,7 @@ if(CNTGS_BUILD_TESTS)
         PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4
                /GR-
                /EHsc->
-               $<$<CXX_COMPILER_ID:GNU>:-Wall
+               $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
                -Wextra
                -pedantic-errors
                -fno-exceptions

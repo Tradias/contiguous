@@ -169,17 +169,23 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
         this->locator.resize(this->size() - std::distance(first, last), this->memory.get());
     }
 
-    reference operator[](size_type i) noexcept { return this->subscript_operator(i); }
+    reference operator[](size_type i) noexcept
+    {
+        return reference{this->locator.element_address(i, this->memory.get()), fixed_sizes};
+    }
 
-    const_reference operator[](size_type i) const noexcept { return this->subscript_operator(i); }
+    const_reference operator[](size_type i) const noexcept
+    {
+        return const_reference{this->locator.element_address(i, this->memory.get()), fixed_sizes};
+    }
 
-    reference front() noexcept { return this->subscript_operator({}); }
+    reference front() noexcept { return (*this)[{}]; }
 
-    const_reference front() const noexcept { return this->subscript_operator({}); }
+    const_reference front() const noexcept { return (*this)[{}]; }
 
-    reference back() noexcept { return this->subscript_operator(this->size() - size_type{1}); }
+    reference back() noexcept { return (*this)[this->size() - size_type{1}]; }
 
-    const_reference back() const noexcept { return this->subscript_operator(this->size() - size_type{1}); }
+    const_reference back() const noexcept { return (*this)[this->size() - size_type{1}]; }
 
     template <std::size_t I>
     [[nodiscard]] constexpr size_type get_fixed_size() const noexcept
@@ -241,16 +247,6 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
-    auto subscript_operator(size_type i) noexcept
-    {
-        return reference{this->locator.element_address(i, this->memory.get()), fixed_sizes};
-    }
-
-    [[nodiscard]] auto subscript_operator(size_type i) const noexcept
-    {
-        return const_reference{this->locator.element_address(i, this->memory.get()), fixed_sizes};
-    }
-
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
     {
         using StorageElementType = typename StorageType::element_type;
@@ -282,7 +278,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
         {
             for (size_type i{}; i < this->size(); ++i)
             {
-                auto&& source = this->subscript_operator(i);
+                auto&& source = (*this)[i];
                 auto&& target =
                     ElementLocator::load_element_at(new_locator.element_address(i, new_memory), this->fixed_sizes);
                 ElementLocator::template construct_if_non_trivial<true>(source, target);

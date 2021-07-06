@@ -27,8 +27,8 @@ add_library(cntgs-test-utils OBJECT)
 target_sources(cntgs-test-utils PRIVATE "utils/codeGenParser.h" "utils/codeGenParser.cpp" "utils/string.h"
                                         "utils/string.cpp" "utils/range.h" "utils/functional.h")
 
-target_compile_options(cntgs-test-utils PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra
-                                                -pedantic-errors>)
+target_compile_options(cntgs-test-utils PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
+                                                -Wextra -pedantic-errors>)
 
 target_link_libraries(cntgs-test-utils PRIVATE cntgs)
 
@@ -75,9 +75,10 @@ unset(CNTGS_TEST_SOURCE_FILES)
 
 set_source_files_properties(
     test-code-gen.cpp
-    PROPERTIES COMPILE_OPTIONS
-               "$<$<CXX_COMPILER_ID:MSVC>:/EHs>;$<$<CXX_COMPILER_ID:MSVC>:/GR>;$<$<CXX_COMPILER_ID:GNU>:-fexceptions>"
-               SKIP_PRECOMPILE_HEADERS on)
+    PROPERTIES
+        COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHs>;$<$<CXX_COMPILER_ID:MSVC>:/GR>;$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>"
+        SKIP_PRECOMPILE_HEADERS on)
 
 if(CNTGS_DISCOVER_TESTS)
     enable_testing()
