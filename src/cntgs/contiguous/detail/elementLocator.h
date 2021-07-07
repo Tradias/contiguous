@@ -17,7 +17,6 @@ class ElementLocator : public detail::ElementTraitsT<Types...>
   private:
     using Base = detail::ElementTraitsT<Types...>;
     using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
-    using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
 
     static constexpr auto RESERVED_BYTES_PER_ELEMENT = sizeof(std::byte*);
 
@@ -65,16 +64,15 @@ class ElementLocator : public detail::ElementTraitsT<Types...>
     {
         *this->last_element_address = last_element;
         ++this->last_element_address;
-        last_element =
-            Base::template emplace_at<AlignmentSelector>(last_element, fixed_sizes, std::forward<Args>(args)...);
+        last_element = Base::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
     }
 
     template <class... Args>
     void emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizes& fixed_sizes, Args&&... args)
     {
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
-        element_addresses_begin[index + 1] = Base::template emplace_at_aliased<AlignmentSelector>(
-            element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
+        element_addresses_begin[index + 1] =
+            Base::emplace_at_aliased(element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
     }
 
     [[nodiscard]] auto element_address(std::size_t index, std::byte* memory_begin) const noexcept
@@ -117,7 +115,6 @@ class AllFixedSizeElementLocator : public detail::ElementTraitsT<Types...>
   private:
     using Base = detail::ElementTraitsT<Types...>;
     using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
-    using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
 
     std::size_t element_count{};
     std::size_t stride{};
@@ -152,14 +149,13 @@ class AllFixedSizeElementLocator : public detail::ElementTraitsT<Types...>
     {
         auto last_element = this->element_address(element_count, {});
         ++this->element_count;
-        Base::template emplace_at<AlignmentSelector>(last_element, fixed_sizes, std::forward<Args>(args)...);
+        Base::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
     }
 
     template <class... Args>
     void emplace_at(std::size_t index, std::byte*, const FixedSizes& fixed_sizes, Args&&... args)
     {
-        Base::template emplace_at_aliased<AlignmentSelector>(this->element_address(index, {}), fixed_sizes,
-                                                             std::forward<Args>(args)...);
+        Base::emplace_at_aliased(this->element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
     }
 
     [[nodiscard]] constexpr auto element_address(std::size_t index, std::byte*) const noexcept

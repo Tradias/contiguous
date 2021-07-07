@@ -28,11 +28,6 @@ struct IgnoreFirstAlignmentSelector
     static constexpr auto VALUE = I != 0;
 };
 
-template <class... Types>
-using AlignmentSelectorT = std::conditional_t<(detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
-                                               detail::ParameterListTraits<Types...>::CONTIGUOUS_COUNT),
-                                              detail::IgnoreFirstAlignmentSelector, detail::DefaultAlignmentSelector>;
-
 template <std::size_t Alignment>
 constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
 {
@@ -78,7 +73,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     using FixedSizes = typename ListTraits::FixedSizes;
     using PointerReturnType = typename detail::ContiguousVectorTraits<Types...>::PointerReturnType;
     using ReferenceReturnType = typename detail::ContiguousVectorTraits<Types...>::ReferenceReturnType;
-    using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
+    using AlignmentSelector =
+        std::conditional_t<(ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT == ListTraits::CONTIGUOUS_COUNT),
+                           detail::IgnoreFirstAlignmentSelector, detail::DefaultAlignmentSelector>;
     using FixedSizeGetter = detail::FixedSizeGetter<Types...>;
 
     static constexpr auto SKIP = std::numeric_limits<std::size_t>::max();
@@ -113,12 +110,11 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto CONSECUTIVE_TRIVIALLY_SWAPPABLE_INDICES{
         calculate_consecutive_indices<detail::IsTriviallySwappable>()};
 
-    template <class NeedsAlignmentSelector, bool IgnoreAliasing, class... Args>
-    CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes,
-                                                       Args&&... args)
+    template <bool IgnoreAliasing, class... Args>
+    static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes, Args&&... args)
     {
         ((address =
-              detail::ParameterTraits<Types>::template store<NeedsAlignmentSelector::template VALUE<I>, IgnoreAliasing>(
+              detail::ParameterTraits<Types>::template store<AlignmentSelector::template VALUE<I>, IgnoreAliasing>(
                   std::forward<Args>(args), address, FixedSizeGetter::template get<Types, I>(fixed_sizes))),
          ...);
         return address;
@@ -128,18 +124,18 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     template <std::size_t K>
     using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
 
-    template <class NeedsAlignmentSelector, class... Args>
+    template <class... Args>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes,
                                                        Args&&... args)
     {
-        return emplace_at<NeedsAlignmentSelector, true>(address, fixed_sizes, std::forward<Args>(args)...);
+        return emplace_at<true>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    template <class NeedsAlignmentSelector, class... Args>
-    CNTGS_RESTRICT_RETURN static std::byte* emplace_at_aliased(std::byte* CNTGS_RESTRICT address,
-                                                               const FixedSizes& fixed_sizes, Args&&... args)
+    template <class... Args>
+    static std::byte* emplace_at_aliased(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes,
+                                         Args&&... args)
     {
-        return emplace_at<NeedsAlignmentSelector, false>(address, fixed_sizes, std::forward<Args>(args)...);
+        return emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
     template <class NeedsAlignmentSelector = AlignmentSelector, class FixedSizeGetterType = FixedSizeGetter,

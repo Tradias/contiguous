@@ -30,6 +30,7 @@ void check_code_gen_sizes(std::string reference, std::string contiguous, size_t 
     CHECK_GE(reference_line_count + size_deviation, contiguous_line_count);
 }
 
+#ifndef __clang__
 TEST_CASE("CodeGenTest: two FixedSize lookup and accumulate")
 {
     check_code_gen_sizes("reference_two_fixed_lookup_and_accumulate", "contiguous_two_fixed_lookup_and_accumulate");
@@ -40,6 +41,7 @@ TEST_CASE("CodeGenTest: two FixedSize aligned lookup and accumulate")
     check_code_gen_sizes("reference_two_fixed_aligned_lookup_and_accumulate",
                          "contiguous_two_fixed_aligned_lookup_and_accumulate");
 }
+#endif
 
 TEST_CASE("CodeGenTest: two FixedSize emplace")
 {

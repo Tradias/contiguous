@@ -19,7 +19,6 @@ class ContiguousTuple
   private:
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
     using PointerTuple = detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>;
 
   public:
@@ -39,7 +38,7 @@ class ContiguousTuple
 
     explicit constexpr ContiguousTuple(std::byte* CNTGS_RESTRICT address,
                                        const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
-        : ContiguousTuple(ElementTraits::template load_element_at<AlignmentSelector>(address, fixed_sizes))
+        : ContiguousTuple(ElementTraits::load_element_at(address, fixed_sizes))
     {
     }
 
