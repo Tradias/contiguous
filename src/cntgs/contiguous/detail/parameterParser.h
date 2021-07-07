@@ -1,8 +1,10 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
+#include "cntgs/contiguous/detail/vectorTraits.h"
 
 namespace cntgs::detail
 {
@@ -14,6 +16,8 @@ struct ParameterParser<detail::TypeList<Types...>, cntgs::Options<Option...>>
 {
     using VectorType = cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>;
     using ListTraits = detail::ParameterListTraits<Types...>;
+    using VectorTraits = detail::ContiguousVectorTraits<Types...>;
+    using ElementLocator = detail::ElementLocatorT<Types...>;
 };
 
 template <class... Types>
