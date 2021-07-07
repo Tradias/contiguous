@@ -10,18 +10,8 @@
 
 namespace cntgs::detail
 {
-template <class T, class U>
+template <class... Types>
 struct FixedSizeGetter
-{
-    template <std::size_t I, std::size_t N>
-    static constexpr auto get(const std::array<std::size_t, N>&) noexcept
-    {
-        return std::size_t{};
-    }
-};
-
-template <class T, class... Types>
-struct FixedSizeGetter<cntgs::FixedSize<T>, detail::TypeList<Types...>>
 {
     template <std::size_t... I>
     static constexpr auto calculate_fixed_size_indices(std::index_sequence<I...>) noexcept
@@ -44,30 +34,33 @@ struct FixedSizeGetter<cntgs::FixedSize<T>, detail::TypeList<Types...>>
     static constexpr auto FIXED_SIZE_INDICES =
         calculate_fixed_size_indices(std::make_index_sequence<sizeof...(Types)>{});
 
-    template <std::size_t I, std::size_t N>
-    static constexpr auto get(const std::array<std::size_t, N>& fixed_sizes) noexcept
+    template <class Type, std::size_t I, std::size_t N>
+    static constexpr auto get([[maybe_unused]] const std::array<std::size_t, N>& fixed_sizes) noexcept
     {
-        return std::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
+        if constexpr (detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE)
+        {
+            return std::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
+        }
+        else
+        {
+            return std::size_t{};
+        }
     }
 };
 
-template <class T>
 struct ContiguousReturnTypeSizeGetter
 {
-    template <std::size_t I, class... U>
-    static constexpr auto get(const std::tuple<U...>&) noexcept
+    template <class Type, std::size_t I, class... U>
+    static constexpr auto get([[maybe_unused]] const std::tuple<U...>& tuple) noexcept
     {
-        return std::size_t{};
-    }
-};
-
-template <class T>
-struct ContiguousReturnTypeSizeGetter<cntgs::FixedSize<T>>
-{
-    template <std::size_t I, class... U>
-    static constexpr auto get(const std::tuple<U...>& tuple) noexcept
-    {
-        return std::get<I>(tuple).size();
+        if constexpr (detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE)
+        {
+            return std::get<I>(tuple).size();
+        }
+        else
+        {
+            return std::size_t{};
+        }
     }
 };
 }  // namespace cntgs::detail

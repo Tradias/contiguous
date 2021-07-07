@@ -79,9 +79,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     using PointerReturnType = typename detail::ContiguousVectorTraits<Types...>::PointerReturnType;
     using ReferenceReturnType = typename detail::ContiguousVectorTraits<Types...>::ReferenceReturnType;
     using AlignmentSelector = detail::AlignmentSelectorT<Types...>;
-
-    template <class T>
-    using FixedSizeGetter = detail::FixedSizeGetter<T, detail::TypeList<Types...>>;
+    using FixedSizeGetter = detail::FixedSizeGetter<Types...>;
 
     static constexpr auto SKIP = std::numeric_limits<std::size_t>::max();
     static constexpr auto MANUAL = SKIP - 1;
@@ -121,7 +119,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     {
         ((address =
               detail::ParameterTraits<Types>::template store<NeedsAlignmentSelector::template VALUE<I>, IgnoreAliasing>(
-                  std::forward<Args>(args), address, FixedSizeGetter<Types>::template get<I>(fixed_sizes))),
+                  std::forward<Args>(args), address, FixedSizeGetter::template get<Types, I>(fixed_sizes))),
          ...);
         return address;
     }
@@ -144,14 +142,14 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         return emplace_at<NeedsAlignmentSelector, false>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    template <class NeedsAlignmentSelector = AlignmentSelector,
-              template <class> class FixedSizeGetterType = FixedSizeGetter, class FixedSizesType = FixedSizes>
+    template <class NeedsAlignmentSelector = AlignmentSelector, class FixedSizeGetterType = FixedSizeGetter,
+              class FixedSizesType = FixedSizes>
     static auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
         PointerReturnType result;
         ((std::tie(std::get<I>(result), address) =
               detail::ParameterTraits<Types>::template load<NeedsAlignmentSelector::template VALUE<I>>(
-                  address, FixedSizeGetterType<Types>::template get<I>(fixed_sizes))),
+                  address, FixedSizeGetterType::template get<Types, I>(fixed_sizes))),
          ...);
         return result;
     }
@@ -162,14 +160,14 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         if constexpr (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL)
         {
             ((result += detail::ParameterTraits<Types>::guaranteed_size_in_memory(
-                            FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
+                            FixedSizeGetter::template get<Types, I>(fixed_sizes)) +
                         alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
              ...);
         }
         else
         {
             ((result += detail::ParameterTraits<Types>::aligned_size_in_memory(
-                            FixedSizeGetter<Types>::template get<I>(fixed_sizes)) +
+                            FixedSizeGetter::template get<Types, I>(fixed_sizes)) +
                         alignment_offset<detail::ParameterTraits<Types>::ALIGNMENT>(result)),
              ...);
         }
