@@ -9,6 +9,26 @@
 
 namespace cntgs::test
 {
+namespace
+{
+auto find_function_name_in_current_line(std::string_view line, const std::vector<std::string>& function_names)
+{
+    auto next_index = 0;
+    for (size_t i = 0; i < function_names.size(); i++)
+    {
+        if (std::search(line.begin(), line.end(), function_names[i].begin(), function_names[i].end()) != line.end())
+        {
+            return next_index;
+        }
+        else
+        {
+            ++next_index;
+        }
+    }
+    return std::numeric_limits<int>::max();
+}
+}  // namespace
+
 std::vector<std::string> get_disassembly_of_functions(const std::filesystem::path& disassembly_file,
                                                       const std::vector<std::string>& function_names)
 {
@@ -26,26 +46,15 @@ std::vector<std::string> get_disassembly_of_functions(const std::filesystem::pat
     {
         if (current_index == std::numeric_limits<int>::max())
         {
-            auto next_index = 0;
-            for (size_t i = 0; i < function_names.size(); i++)
-            {
-                if (std::search(line.begin(), line.end(), function_names[i].begin(), function_names[i].end()) !=
-                    line.end())
-                {
-                    current_index = next_index;
-                }
-                else
-                {
-                    ++next_index;
-                }
-            }
+            current_index = find_function_name_in_current_line(line, function_names);
         }
         else
         {
-            if (std::string_view(line.data()).empty())
+            std::string_view line_chars{line.data()};
+            if (line_chars.empty() || line_chars.find_first_of("?") == 0)
             {
                 std::swap(current_string, result[current_index]);
-                current_index = std::numeric_limits<int>::max();
+                current_index = find_function_name_in_current_line(line_chars, function_names);
             }
             else
             {

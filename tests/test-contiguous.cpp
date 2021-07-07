@@ -4,9 +4,7 @@
 
 #include <doctest/doctest.h>
 
-#include <any>
 #include <array>
-#include <iostream>
 #include <list>
 #include <optional>
 #include <string>
@@ -659,17 +657,17 @@ TEST_CASE("ContiguousTest: std::string TypeErasedVector")
 
 TEST_CASE("ContiguousTest: std::any OneFixed emplace_back->reserve->emplace_back")
 {
-    cntgs::ContiguousVector<cntgs::FixedSize<std::any>, std::any, int> vector{1, {1}};
+    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string, int> vector{1, {1}};
     vector.emplace_back(std::array{STRING1}, STRING1, 42);
     vector.reserve(2);
     vector.emplace_back(std::array{STRING2}, STRING2, 84);
     auto&& [a, b, c] = vector[0];
-    CHECK_EQ(STRING1, std::any_cast<std::string>(a.front()));
-    CHECK_EQ(STRING1, std::any_cast<std::string>(b));
+    CHECK_EQ(STRING1, a.front());
+    CHECK_EQ(STRING1, b);
     CHECK_EQ(42, c);
     auto&& [d, e, f] = vector[1];
-    CHECK_EQ(STRING2, std::any_cast<std::string>(d.front()));
-    CHECK_EQ(STRING2, std::any_cast<std::string>(e));
+    CHECK_EQ(STRING2, d.front());
+    CHECK_EQ(STRING2, e);
     CHECK_EQ(84, f);
 }
 

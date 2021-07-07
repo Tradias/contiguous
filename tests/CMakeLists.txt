@@ -3,13 +3,15 @@ add_subdirectory(codeGen)
 # disassemble code-gen
 function(cntgs_disassemble_code_gen _cntgs_target)
     set(cntgs_disassembly_output_file "${CMAKE_CURRENT_BINARY_DIR}/${_cntgs_target}.asm")
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    if(WIN32)
+        find_program(CNTGS_DUMPBIN_PROGRAM NAMES "dumpbin" "dumpbin.exe")
         add_custom_command(
             OUTPUT ${cntgs_disassembly_output_file}
-            COMMAND dumpbin $<TARGET_OBJECTS:${_cntgs_target}> /disasm:nobytes /out:${cntgs_disassembly_output_file}
+            COMMAND ${CNTGS_DUMPBIN_PROGRAM} $<TARGET_OBJECTS:${_cntgs_target}> /disasm:nobytes
+                    /out:${cntgs_disassembly_output_file}
             DEPENDS ${_cntgs_target} $<TARGET_PROPERTY:${_cntgs_target},SOURCES> cntgs
                     $<TARGET_PROPERTY:cntgs,CNTGS_SOURCE_FILES>)
-    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    else()
         add_custom_command(
             OUTPUT ${cntgs_disassembly_output_file}
             COMMAND objdump --disassemble=.text -drwC -M intel $<TARGET_OBJECTS:${_cntgs_target}> >

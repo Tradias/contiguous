@@ -14,7 +14,6 @@ struct ParameterParser;
 template <class... Types, class... Option>
 struct ParameterParser<detail::TypeList<Types...>, cntgs::Options<Option...>>
 {
-    using VectorType = cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>;
     using ListTraits = detail::ParameterListTraits<Types...>;
     using VectorTraits = detail::ContiguousVectorTraits<Types...>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
