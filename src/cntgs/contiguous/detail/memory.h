@@ -110,21 +110,21 @@ struct alignas(N) AlignedByte
     std::byte byte;
 };
 
-template <class T>
+template <class T, class Deleter = std::default_delete<T>>
 struct MaybeOwnedPtr
 {
-    using pointer = typename std::unique_ptr<T>::pointer;
-    using element_type = typename std::unique_ptr<T>::element_type;
-    using deleter_type = typename std::unique_ptr<T>::deleter_type;
+    using pointer = typename std::unique_ptr<T, Deleter>::pointer;
+    using element_type = typename std::unique_ptr<T, Deleter>::element_type;
+    using deleter_type = typename std::unique_ptr<T, Deleter>::deleter_type;
 
-    std::unique_ptr<T> ptr;
+    std::unique_ptr<T, Deleter> ptr;
     bool is_owned{};
 
     MaybeOwnedPtr() = default;
 
-    MaybeOwnedPtr(std::unique_ptr<T>&& ptr) noexcept : ptr(std::move(ptr)), is_owned(true) {}
+    explicit MaybeOwnedPtr(std::unique_ptr<T, Deleter>&& ptr) noexcept : ptr(std::move(ptr)), is_owned(true) {}
 
-    MaybeOwnedPtr(cntgs::Span<std::remove_extent_t<T>> span) noexcept : ptr(span.data()) {}
+    MaybeOwnedPtr(pointer data, bool is_owned = false) noexcept : ptr(data), is_owned(is_owned) {}
 
     MaybeOwnedPtr(MaybeOwnedPtr&& other) = default;
 
@@ -144,6 +144,8 @@ struct MaybeOwnedPtr
     [[nodiscard]] decltype(auto) get() const noexcept { return this->ptr.get(); }
 
     explicit operator bool() const noexcept { return bool(this->ptr); }
+
+    decltype(auto) release() noexcept { return this->ptr.release(); }
 
     void release_if_not_owned() noexcept
     {
@@ -169,6 +171,11 @@ template <class T>
     }
     return detail::make_maybe_owned_ptr<T>(memory_size);
 }
+
+struct NoOpDeleter
+{
+    constexpr void operator()(void*) const noexcept {}
+};
 
 #ifdef __cpp_lib_assume_aligned
 using std::assume_aligned;

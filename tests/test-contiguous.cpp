@@ -597,7 +597,7 @@ TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
     std::optional<OneFixed> vector;
     const auto memory_size = 2 * (sizeof(uint32_t) + 2 * sizeof(float));
     auto ptr = std::make_unique<std::byte[]>(memory_size);
-    SUBCASE("unique_ptr") { vector.emplace(memory_size, std::move(ptr), 2, std::array{FLOATS1.size()}); }
+    SUBCASE("unique_ptr") { vector.emplace(memory_size, ptr.release(), 2, std::array{FLOATS1.size()}); }
     SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.get(), memory_size}, 2, std::array{FLOATS1.size()}); }
     CHECK(vector);
     vector->emplace_back(10u, FLOATS1);
@@ -611,7 +611,7 @@ TEST_CASE("ContiguousTest: Plain construct with unique_ptr and span")
     std::optional<Plain> vector;
     const auto memory_size = 2 * (sizeof(uint32_t) + sizeof(float));
     auto ptr = std::make_unique<std::byte[]>(memory_size);
-    SUBCASE("unique_ptr") { vector.emplace(memory_size, std::move(ptr), 2); }
+    SUBCASE("unique_ptr") { vector.emplace(memory_size, ptr.release(), 2); }
     SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.get(), memory_size}, 2); }
     CHECK(vector);
     vector->emplace_back(10u, 5.f);

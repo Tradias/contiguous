@@ -2,9 +2,9 @@
 
 #include "cntgs/contiguous/detail/array.h"
 #include "cntgs/contiguous/detail/elementLocator.h"
+#include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
-#include "cntgs/contiguous/detail/parameterParser.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/utility.h"
@@ -26,14 +26,16 @@
 namespace cntgs
 {
 template <class... Types>
-class ContiguousVector
+using ContiguousVector = cntgs::BasicContiguousVector<std::allocator<void>, Types...>;
+
+template <class Allocator, class... Types>
+class BasicContiguousVector
 {
   private:
-    using Self = cntgs::ContiguousVector<Types...>;
-    using ParameterParser = detail::ParameterParserT<Types...>;
-    using ListTraits = typename ParameterParser::ListTraits;
-    using VectorTraits = typename ParameterParser::VectorTraits;
-    using ElementLocator = typename ParameterParser::ElementLocator;
+    using Self = cntgs::BasicContiguousVector<Allocator, Types...>;
+    using ListTraits = detail::ParameterListTraits<Types...>;
+    using VectorTraits = detail::ContiguousVectorTraits<Types...>;
+    using ElementLocator = detail::ElementLocatorT<Types...>;
     using StorageType = typename VectorTraits::StorageType;
     using FixedSizes = typename ListTraits::FixedSizes;
 
@@ -44,7 +46,7 @@ class ContiguousVector
     static constexpr bool IS_NONE_SPECIAL = ListTraits::IS_NONE_SPECIAL;
 
   public:
-    using value_type = typename VectorTraits::ValueReturnType;
+    using value_type = cntgs::BasicContiguousElement<Allocator, Types...>;
     using reference = typename VectorTraits::ReferenceReturnType;
     using const_reference = typename VectorTraits::ConstReferenceReturnType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
@@ -58,80 +60,80 @@ class ContiguousVector
     FixedSizes fixed_sizes{};
     ElementLocator locator;
 
-    ContiguousVector() = default;
+    BasicContiguousVector() = default;
 
-    explicit ContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : ContiguousVector(vector, {std::move(vector.memory)})
+    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
+        : BasicContiguousVector(vector, {vector.memory, vector.memory_owned.value})
     {
+        vector.memory_owned.value = false;
     }
 
-    explicit ContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
-        : ContiguousVector(vector, cntgs::Span<std::byte>{vector.memory.get(), vector.memory_size})
+    explicit BasicContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
+        : BasicContiguousVector(vector, {vector.memory})
     {
     }
 
     template <bool IsMixed = IS_MIXED>
-    ContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
-                     std::enable_if_t<IsMixed>* = nullptr)
-        : ContiguousVector({}, {}, max_element_count, varying_size_bytes, fixed_sizes)
+    BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
+                          std::enable_if_t<IsMixed>* = nullptr)
+        : BasicContiguousVector({}, {}, max_element_count, varying_size_bytes, fixed_sizes)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    ContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
-                     std::enable_if_t<IsAllFixedSize>* = nullptr)
-        : ContiguousVector({}, {}, max_element_count, {}, fixed_sizes)
+    BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
+                          std::enable_if_t<IsAllFixedSize>* = nullptr)
+        : BasicContiguousVector({}, {}, max_element_count, {}, fixed_sizes)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    ContiguousVector(size_type memory_size, std::unique_ptr<std::byte[]>&& transferred_ownership,
-                     size_type max_element_count, const FixedSizes& fixed_sizes,
-                     std::enable_if_t<IsAllFixedSize>* = nullptr)
-        : ContiguousVector(memory_size, {std::move(transferred_ownership)}, max_element_count, {}, fixed_sizes)
+    BasicContiguousVector(size_type memory_size, std::byte* transferred_ownership, size_type max_element_count,
+                          const FixedSizes& fixed_sizes, std::enable_if_t<IsAllFixedSize>* = nullptr)
+        : BasicContiguousVector(memory_size, {transferred_ownership, true}, max_element_count, {}, fixed_sizes)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    ContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count, const FixedSizes& fixed_sizes,
-                     std::enable_if_t<IsAllFixedSize>* = nullptr)
-        : ContiguousVector(mutable_view.size(), {mutable_view}, max_element_count, {}, fixed_sizes)
+    BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
+                          const FixedSizes& fixed_sizes, std::enable_if_t<IsAllFixedSize>* = nullptr)
+        : BasicContiguousVector(mutable_view.size(), {mutable_view.data()}, max_element_count, {}, fixed_sizes)
     {
     }
 
     template <bool IsAllVaryingSize = IS_ALL_VARYING_SIZE>
-    ContiguousVector(size_type max_element_count, size_type varying_size_bytes,
-                     std::enable_if_t<IsAllVaryingSize>* = nullptr)
-        : ContiguousVector({}, {}, max_element_count, varying_size_bytes, {})
+    BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
+                          std::enable_if_t<IsAllVaryingSize>* = nullptr)
+        : BasicContiguousVector({}, {}, max_element_count, varying_size_bytes, {})
     {
     }
 
     template <bool IsNoneSpecial = IS_NONE_SPECIAL>
-    ContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
-        : ContiguousVector({}, {}, max_element_count, {}, {})
+    BasicContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : BasicContiguousVector({}, {}, max_element_count, {}, {})
     {
     }
 
     template <bool IsNoneSpecial = IS_NONE_SPECIAL>
-    ContiguousVector(size_type memory_size, std::unique_ptr<std::byte[]>&& transferred_ownership,
-                     size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
-        : ContiguousVector(memory_size, {std::move(transferred_ownership)}, max_element_count, {}, {})
+    BasicContiguousVector(size_type memory_size, std::byte* transferred_ownership, size_type max_element_count,
+                          std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : BasicContiguousVector(memory_size, {transferred_ownership, true}, max_element_count, {}, {})
     {
     }
 
     template <bool IsNoneSpecial = IS_NONE_SPECIAL>
-    ContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                     std::enable_if_t<IsNoneSpecial>* = nullptr)
-        : ContiguousVector(mutable_view.size(), {mutable_view}, max_element_count, {}, {})
+    BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
+                          std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : BasicContiguousVector(mutable_view.size(), {mutable_view.data()}, max_element_count, {}, {})
     {
     }
 
-    ContiguousVector(const ContiguousVector&) = default;
-    ContiguousVector(ContiguousVector&&) = default;
-    ContiguousVector& operator=(const ContiguousVector&) = default;
-    ContiguousVector& operator=(ContiguousVector&&) = default;
+    BasicContiguousVector(const BasicContiguousVector&) = default;
+    BasicContiguousVector(BasicContiguousVector&&) = default;
+    BasicContiguousVector& operator=(const BasicContiguousVector&) = default;
+    BasicContiguousVector& operator=(BasicContiguousVector&&) = default;
 
-    ~ContiguousVector() noexcept { this->destruct(); }
+    ~BasicContiguousVector() noexcept { this->destruct(); }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -215,8 +217,8 @@ class ContiguousVector
 
     // private API
   private:
-    ContiguousVector(size_type memory_size, StorageType&& storage, size_type max_element_count,
-                     size_type varying_size_bytes, const FixedSizes& fixed_sizes)
+    BasicContiguousVector(size_type memory_size, StorageType&& storage, size_type max_element_count,
+                          size_type varying_size_bytes, const FixedSizes& fixed_sizes)
         : memory_size(memory_size > 0
                           ? memory_size
                           : this->calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes)),
@@ -227,7 +229,7 @@ class ContiguousVector
     {
     }
 
-    ContiguousVector(const cntgs::TypeErasedVector& vector, StorageType&& storage) noexcept
+    BasicContiguousVector(const cntgs::TypeErasedVector& vector, StorageType&& storage) noexcept
         : memory_size(vector.memory_size),
           max_element_count(vector.max_element_count),
           memory(std::move(storage)),
@@ -265,7 +267,7 @@ class ContiguousVector
         }
         this->memory_size = new_memory_size;
         this->max_element_count = new_max_element_count;
-        this->memory = std::move(new_memory);
+        this->memory = StorageType{std::move(new_memory)};
     }
 
     template <std::size_t... I>
@@ -339,21 +341,21 @@ class ContiguousVector
     }
 };
 
-template <class... T>
-auto type_erase(cntgs::ContiguousVector<T...>&& vector) noexcept
+template <class Allocator, class... T>
+auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 {
     return cntgs::TypeErasedVector{
         vector.memory_size,
         vector.max_element_count,
-        std::move(vector.memory),
+        vector.memory.release(),
+        vector.memory.is_owned,
         detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.fixed_sizes),
         detail::type_erase_element_locator(std::move(vector.locator)),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
-            using ListTraits = typename detail::ParameterParserT<T...>::ListTraits;
-            if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+            if constexpr (!detail::ParameterListTraits<T...>::IS_TRIVIALLY_DESTRUCTIBLE)
             {
-                cntgs::ContiguousVector<T...>{std::move(erased)};
+                cntgs::BasicContiguousVector<Allocator, T...>{std::move(erased)};
             }
         }};
 }

@@ -190,7 +190,7 @@ using TypeErasedElementLocator =
 template <class T>
 auto type_erase_element_locator(T&& locator) noexcept
 {
-    TypeErasedElementLocator result;
+    detail::TypeErasedElementLocator result;
     detail::construct_at(reinterpret_cast<detail::RemoveCvrefT<T>*>(&result), std::forward<T>(locator));
     return result;
 }

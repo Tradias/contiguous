@@ -53,7 +53,8 @@ class ContiguousTuple
     {
     }
 
-    /*implicit*/ constexpr ContiguousTuple(const cntgs::ContiguousElement<Types...>& other) noexcept
+    template <class Allocator>
+    /*implicit*/ constexpr ContiguousTuple(const cntgs::BasicContiguousElement<Allocator, Types...>& other) noexcept
         : tuple(other.tuple)
     {
     }
@@ -64,7 +65,8 @@ class ContiguousTuple
     {
     }
 
-    /*implicit*/ constexpr ContiguousTuple(cntgs::ContiguousElement<Types...>&& other) noexcept
+    template <class Allocator>
+    /*implicit*/ constexpr ContiguousTuple(cntgs::BasicContiguousElement<Allocator, Types...>&& other) noexcept
         : tuple(std::move(other.tuple))
     {
     }
@@ -83,7 +85,8 @@ class ContiguousTuple
         return *this;
     }
 
-    constexpr ContiguousTuple& operator=(const cntgs::ContiguousElement<Types...>& other) noexcept(
+    template <class Allocator>
+    constexpr ContiguousTuple& operator=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->assign(other.tuple);
@@ -105,7 +108,8 @@ class ContiguousTuple
         return *this;
     }
 
-    constexpr ContiguousTuple& operator=(cntgs::ContiguousElement<Types...>&& other) noexcept(
+    template <class Allocator>
+    constexpr ContiguousTuple& operator=(cntgs::BasicContiguousElement<Allocator, Types...>&& other) noexcept(
         ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
         this->assign(other.tuple);

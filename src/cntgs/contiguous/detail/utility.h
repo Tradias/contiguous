@@ -7,6 +7,23 @@
 namespace cntgs::detail
 {
 template <class T>
+struct MoveDefaultingValue
+{
+    T value;
+
+    explicit constexpr MoveDefaultingValue(T value) noexcept : value(value) {}
+
+    constexpr MoveDefaultingValue(MoveDefaultingValue&& other) noexcept : value(other.value) { other.value = T{}; }
+
+    constexpr MoveDefaultingValue& operator=(MoveDefaultingValue&& other) noexcept
+    {
+        this->value = other.value;
+        other.value = T{};
+        return *this;
+    }
+};
+
+template <class T>
 constexpr const cntgs::Span<T>& dereference(const cntgs::Span<T>& value) noexcept
 {
     return value;

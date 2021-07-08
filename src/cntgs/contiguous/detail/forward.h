@@ -12,7 +12,7 @@ struct VaryingSize;
 template <class T>
 struct FixedSize;
 
-template <class... Types>
+template <class Allocator, class... T>
 class BasicContiguousVector;
 
 template <class Vector>
@@ -26,9 +26,6 @@ struct AlignAs;
 template <detail::ContiguousTupleQualifier Qualifier, class... Types>
 class ContiguousTuple;
 
-template <class... Types>
-class ContiguousElement;
-
-template <class... Types>
-struct Options;
+template <class Allocator, class... Types>
+class BasicContiguousElement;
 }  // namespace cntgs

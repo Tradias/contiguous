@@ -24,7 +24,6 @@ list(
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/math.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/memory.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterListTraits.h
-    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterParser.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterTraits.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterType.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/range.h

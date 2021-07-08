@@ -18,9 +18,4 @@ template <class T, std::size_t Alignment>
 struct AlignAs
 {
 };
-
-template <class... Option>
-struct Options
-{
-};
 }  // namespace cntgs
