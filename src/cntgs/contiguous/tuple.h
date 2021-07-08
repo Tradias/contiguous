@@ -6,6 +6,7 @@
 #include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/tuple.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
+#include "cntgs/contiguous/detail/typeUtils.h"
 
 #include <cstddef>
 #include <cstring>
@@ -22,9 +23,9 @@ class ContiguousTuple
     using PointerTuple = detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>;
 
   public:
-    using Tuple = std::conditional_t<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
-                                     detail::ToContiguousTupleOfReferenceReturnType<std::tuple<Types...>>,
-                                     detail::ToContiguousTupleOfConstReferenceReturnType<std::tuple<Types...>>>;
+    using Tuple = detail::ConditionalT<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
+                                       detail::ToContiguousTupleOfReferenceReturnType<std::tuple<Types...>>,
+                                       detail::ToContiguousTupleOfConstReferenceReturnType<std::tuple<Types...>>>;
 
     static constexpr auto IS_CONST = detail::ContiguousTupleQualifier::CONST_REFERENCE == Qualifier;
 

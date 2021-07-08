@@ -38,23 +38,23 @@ template <class T>
 using RemoveCvrefT = typename RemoveCvref<T>::Type;
 #endif
 
-template <class T, class U, bool B>
-struct EqualSizeof;
-
-template <class T, class U>
-struct EqualSizeof<T, U, true>
+template <bool B>
+struct EqualSizeof
 {
+    template <class, class>
     static constexpr auto VALUE = false;
 };
 
-template <class T, class U>
-struct EqualSizeof<T, U, false>
+template <>
+struct EqualSizeof<false>
 {
+    template <class T, class U>
     static constexpr auto VALUE = sizeof(T) == sizeof(U);
 };
 
 template <class T, class U>
-static constexpr auto EQUAL_SIZEOF = EqualSizeof<T, U, (std::is_same_v<void, T> || std::is_same_v<void, U>)>::VALUE;
+static constexpr auto EQUAL_SIZEOF =
+    EqualSizeof<(std::is_same_v<void, T> || std::is_same_v<void, U>)>::template VALUE<T, U>;
 
 template <class...>
 static constexpr auto FALSE_V = false;
@@ -79,4 +79,21 @@ template <class T>
 using IsTriviallySwappable =
     std::conjunction<std::is_trivially_destructible<T>, std::is_trivially_move_constructible<T>,
                      std::is_trivially_move_assignable<T>, std::negation<HasADLSwap<T>>>;
+
+template <bool B>
+struct Conditional
+{
+    template <class T, class U>
+    using Type = T;
+};
+
+template <>
+struct Conditional<false>
+{
+    template <class T, class U>
+    using Type = U;
+};
+
+template <bool B, class T, class U>
+using ConditionalT = typename detail::Conditional<B>::template Type<T, U>;
 }  // namespace cntgs::detail

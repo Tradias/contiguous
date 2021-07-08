@@ -55,11 +55,11 @@ class BaseElementLocator
     }
 };
 
-template <class... Types>
+template <bool IsAllFixedSize, class... Types>
 class ElementLocator : public BaseElementLocator
 {
   private:
-    using Self = ElementLocator<Types...>;
+    using Self = ElementLocator<IsAllFixedSize, Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
 
@@ -158,24 +158,23 @@ class BaseAllFixedSizeElementLocator
 };
 
 template <class... Types>
-class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
+class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
 {
   private:
-    using Self = detail::AllFixedSizeElementLocator<Types...>;
+    using Self = detail::ElementLocator<true, Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
 
   public:
-    AllFixedSizeElementLocator() = default;
+    ElementLocator() = default;
 
-    AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, const FixedSizes& fixed_sizes) noexcept
+    ElementLocator(std::size_t, std::byte* memory_begin, const FixedSizes& fixed_sizes) noexcept
         : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_size(fixed_sizes),
                                          Self::calculate_element_start(memory_begin))
     {
     }
 
-    AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, AllFixedSizeElementLocator& other, std::size_t,
-                               std::byte*) noexcept
+    ElementLocator(std::size_t, std::byte* memory_begin, ElementLocator& other, std::size_t, std::byte*) noexcept
         : BaseAllFixedSizeElementLocator(other.element_count, other.stride, {})
     {
         this->copy_from(memory_begin, other);
@@ -201,7 +200,7 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
     }
 
   private:
-    void copy_from(std::byte* new_memory_begin, AllFixedSizeElementLocator& old) noexcept
+    void copy_from(std::byte* new_memory_begin, ElementLocator& old) noexcept
     {
         const auto new_start = Self::calculate_element_start(new_memory_begin);
         std::memcpy(new_start, old.start, old.element_count * old.stride);
@@ -216,14 +215,13 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
 };
 
 template <class... Types>
-using ElementLocatorT =
-    std::conditional_t<detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
-                           detail::ParameterListTraits<Types...>::CONTIGUOUS_COUNT,
-                       detail::AllFixedSizeElementLocator<Types...>, detail::ElementLocator<Types...>>;
+using ElementLocatorT = detail::ElementLocator<(detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
+                                                detail::ParameterListTraits<Types...>::CONTIGUOUS_COUNT),
+                                               Types...>;
 
 using TypeErasedElementLocator =
-    std::aligned_storage_t<std::max(sizeof(detail::ElementLocator<>), sizeof(detail::AllFixedSizeElementLocator<>)),
-                           std::max(alignof(detail::ElementLocator<>), alignof(detail::AllFixedSizeElementLocator<>))>;
+    std::aligned_storage_t<std::max(sizeof(detail::ElementLocator<false>), sizeof(detail::ElementLocator<true>)),
+                           std::max(alignof(detail::ElementLocator<false>), alignof(detail::ElementLocator<true>))>;
 
 template <class T>
 auto type_erase_element_locator(T&& locator) noexcept
