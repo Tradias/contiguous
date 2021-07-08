@@ -55,8 +55,7 @@ if(CNTGS_BUILD_TESTS)
                -Wextra
                -pedantic-errors
                -fno-exceptions
-               -fno-rtti
-               -ftime-trace>)
+               -fno-rtti>)
 endif()
 
 # installation
