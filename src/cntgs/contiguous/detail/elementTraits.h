@@ -41,13 +41,6 @@ constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
     }
 }
 
-template <class Locator>
-auto calculate_element_start(std::size_t max_element_count, std::byte* memory_begin) noexcept
-{
-    return static_cast<std::byte*>(detail::align<Locator::template ParameterTraitsAt<0>::ALIGNMENT>(
-        memory_begin + Locator::reserved_bytes(max_element_count)));
-}
-
 template <bool UseMove, class Type, class Source, class Target>
 constexpr void construct_one_if_non_trivial([[maybe_unused]] Source& source, [[maybe_unused]] const Target& target)
 {

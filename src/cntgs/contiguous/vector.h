@@ -36,6 +36,7 @@ class BasicContiguousVector
     using ListTraits = detail::ParameterListTraits<Types...>;
     using VectorTraits = detail::ContiguousVectorTraits<Types...>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
+    using ElementTraits = detail::ElementTraitsT<Types...>;
     using StorageType = typename VectorTraits::StorageType;
     using FixedSizes = typename ListTraits::FixedSizes;
 
@@ -143,7 +144,7 @@ class BasicContiguousVector
 
     void pop_back() noexcept
     {
-        ElementLocator::destruct(this->back());
+        ElementTraits::destruct(this->back());
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
     }
 
@@ -243,7 +244,7 @@ class BasicContiguousVector
                                                                      const FixedSizes& fixed_sizes) noexcept
     {
         constexpr auto ALIGNMENT_OVERHEAD = ListTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
-        return varying_size_bytes + ElementLocator::calculate_element_size(fixed_sizes) * max_element_count +
+        return varying_size_bytes + ElementTraits::calculate_element_size(fixed_sizes) * max_element_count +
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
@@ -280,8 +281,8 @@ class BasicContiguousVector
             {
                 auto&& source = (*this)[i];
                 auto&& target =
-                    ElementLocator::load_element_at(new_locator.element_address(i, new_memory), this->fixed_sizes);
-                ElementLocator::template construct_if_non_trivial<true>(source, target);
+                    ElementTraits::load_element_at(new_locator.element_address(i, new_memory), this->fixed_sizes);
+                ElementTraits::template construct_if_non_trivial<true>(source, target);
             }
         }
         this->destruct();
@@ -320,7 +321,7 @@ class BasicContiguousVector
     void emplace_at(std::size_t i, const reference& element, std::index_sequence<I...>)
     {
         this->locator.emplace_at(i, this->memory.get(), this->fixed_sizes, std::move(cntgs::get<I>(element))...);
-        ElementLocator::destruct(element);
+        ElementTraits::destruct(element);
     }
 
     void destruct() noexcept { this->destruct(this->begin(), this->end()); }
@@ -334,7 +335,7 @@ class BasicContiguousVector
                 std::for_each(first, last,
                               [](const auto& element)
                               {
-                                  ElementLocator::destruct(element);
+                                  ElementTraits::destruct(element);
                               });
             }
         }
