@@ -67,7 +67,7 @@ class MaybeOwnedPtr
 
     ~MaybeOwnedPtr() noexcept { this->release_ptr_if_not_owned(); }
 
-    [[nodiscard]] decltype(auto) get() const noexcept { return this->ptr.get(); }
+    [[nodiscard]] pointer get() const noexcept { return this->ptr.get(); }
 
     [[nodiscard]] constexpr bool is_owned() const noexcept { return this->owned; }
 
@@ -119,7 +119,7 @@ class AllocatorDeleter : private detail::EmptyBaseOptimizationT<Allocator>
     }
 
     template <class T>
-    constexpr void operator()(T* ptr) noexcept
+    constexpr void operator()(T* ptr) const noexcept
     {
         detail::destroy_deallocate(ptr, std::move(Base::get()), this->size);
     }
@@ -141,7 +141,7 @@ class AllocatorDeleter<Allocator, false> : private detail::EmptyBaseOptimization
     constexpr AllocatorDeleter(std::size_t size, Allocator allocator) noexcept : Base{std::move(allocator)} {}
 
     template <class T>
-    constexpr void operator()(T* ptr) noexcept
+    constexpr void operator()(T* ptr) const noexcept
     {
         detail::destroy_deallocate(ptr, std::move(Base::get()));
     }
