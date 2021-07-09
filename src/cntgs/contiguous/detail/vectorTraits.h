@@ -15,6 +15,5 @@ struct ContiguousVectorTraits
     using ConstReferenceReturnType =
         cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::CONST_REFERENCE, Types...>;
     using PointerReturnType = detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>;
-    using StorageType = detail::MaybeOwnedPtr<std::byte[]>;
 };
 }  // namespace cntgs::detail

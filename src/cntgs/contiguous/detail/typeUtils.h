@@ -96,4 +96,9 @@ struct Conditional<false>
 
 template <bool B, class T, class U>
 using ConditionalT = typename detail::Conditional<B>::template Type<T, U>;
+
+template <class T, class U>
+static constexpr auto MEMCPY_COMPATIBLE =
+    detail::EQUAL_SIZEOF<T, U>&& std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<U>&&
+        std::is_floating_point_v<T> == std::is_floating_point_v<U>;
 }  // namespace cntgs::detail

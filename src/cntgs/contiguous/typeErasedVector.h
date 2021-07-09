@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/elementLocator.h"
+#include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/utility.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
@@ -14,21 +15,24 @@ class TypeErasedVector
     std::size_t memory_size;
     std::size_t max_element_count;
     std::byte* memory;
-    detail::MoveDefaultingValue<bool> memory_owned;
+    detail::MoveDefaultingValue<bool> is_memory_owned;
     std::array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER> fixed_sizes;
     detail::TypeErasedElementLocator locator;
-    void (*deleter)(cntgs::TypeErasedVector&);
+    void (*destructor)(cntgs::TypeErasedVector&);
+    detail::TypeErasedDeleter deleter;
 
     TypeErasedVector(std::size_t memory_size, std::size_t max_element_count, std::byte* memory, bool is_memory_owned,
+                     detail::TypeErasedDeleter deleter,
                      std::array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER> fixed_sizes,
-                     detail::TypeErasedElementLocator locator, void (*deleter)(cntgs::TypeErasedVector&)) noexcept
+                     detail::TypeErasedElementLocator locator, void (*destructor)(cntgs::TypeErasedVector&)) noexcept
         : memory_size(memory_size),
           max_element_count(max_element_count),
           memory(std::move(memory)),
-          memory_owned(is_memory_owned),
+          is_memory_owned(is_memory_owned),
           fixed_sizes(fixed_sizes),
           locator(std::move(locator)),
-          deleter(deleter)
+          destructor(destructor),
+          deleter(std::move(deleter))
     {
     }
 
@@ -38,6 +42,6 @@ class TypeErasedVector
     TypeErasedVector& operator=(const TypeErasedVector&) = delete;
     TypeErasedVector& operator=(TypeErasedVector&&) = default;
 
-    ~TypeErasedVector() noexcept { deleter(*this); }
+    ~TypeErasedVector() noexcept { destructor(*this); }
 };
 }  // namespace cntgs
