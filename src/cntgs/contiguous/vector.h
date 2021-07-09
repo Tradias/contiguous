@@ -367,10 +367,7 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
         detail::type_erase_element_locator(std::move(vector.locator)),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
-            if constexpr (!detail::ParameterListTraits<T...>::IS_TRIVIALLY_DESTRUCTIBLE)
-            {
-                cntgs::BasicContiguousVector<Allocator, T...>{std::move(erased)};
-            }
+            cntgs::BasicContiguousVector<Allocator, T...>{std::move(erased)};
         }};
 }
 }  // namespace cntgs

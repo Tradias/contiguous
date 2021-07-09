@@ -95,9 +95,7 @@ class BasicContiguousElement
 
     BasicContiguousElement& operator=(BasicContiguousElement&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        this->memory = std::move(other.memory);
-        this->tuple.tuple.~UnderlyingTuple();
-        detail::construct_at(&this->tuple.tuple, std::move(other.tuple.tuple));
+        this->tuple = std::move(other.tuple);
         return *this;
     }
 
