@@ -99,35 +99,39 @@ constexpr void destroy_deallocate(T* ptr, Allocator allocator, std::size_t size 
 }
 
 template <class Allocator, bool IsSized>
-class AllocatorDeleter : private detail::EmptyBaseOptimizationT<Allocator>
+class AllocatorDeleter
 {
   private:
-    using Base = detail::EmptyBaseOptimizationT<Allocator>;
+    // workaround for bug in GCC 9.3 which detects a member typedef 'pointer' in a private base class
+    struct Impl : detail::EmptyBaseOptimizationT<Allocator>
+    {
+        using Base = detail::EmptyBaseOptimizationT<Allocator>;
 
-    // workaround for bug in GCC 8.3 which detects a member typedef 'pointer' in the private base class
-    using pointer = void*;
+        std::size_t size{};
+
+        Impl() = default;
+
+        constexpr Impl(std::size_t size, Allocator allocator) noexcept : Base{std::move(allocator)}, size(size) {}
+    };
 
   public:
     using allocator_type = Allocator;
 
-    std::size_t size;
+    Impl impl;
 
-    constexpr AllocatorDeleter() noexcept(std::is_nothrow_default_constructible_v<Allocator>)
-        : Base{Allocator{}}, size()
-    {
-    }
+    AllocatorDeleter() = default;
 
-    constexpr AllocatorDeleter(std::size_t size, Allocator allocator) noexcept : Base{std::move(allocator)}, size(size)
-    {
-    }
+    constexpr AllocatorDeleter(std::size_t size, Allocator allocator) noexcept : impl(size, std::move(allocator)) {}
 
     template <class T>
     constexpr void operator()(T* ptr) const noexcept
     {
-        detail::destroy_deallocate(ptr, std::move(Base::get()), this->size);
+        detail::destroy_deallocate(ptr, std::move(this->impl.get()), this->impl.size);
     }
 
-    constexpr allocator_type get_allocator() const noexcept { return Base::get(); }
+    constexpr allocator_type get_allocator() const noexcept { return this->impl.get(); }
+
+    constexpr auto size() const noexcept { return this->impl.size; }
 };
 
 template <class Allocator>
@@ -136,15 +140,12 @@ class AllocatorDeleter<Allocator, false> : private detail::EmptyBaseOptimization
   private:
     using Base = detail::EmptyBaseOptimizationT<Allocator>;
 
-    // workaround for bug in GCC 8.3 which detects a member typedef 'pointer' in the private base class
-    using pointer = void*;
-
   public:
     using allocator_type = Allocator;
 
-    constexpr AllocatorDeleter() noexcept(std::is_nothrow_default_constructible_v<Allocator>) : Base{Allocator{}} {}
+    AllocatorDeleter() = default;
 
-    constexpr AllocatorDeleter(std::size_t size, Allocator allocator) noexcept : Base{std::move(allocator)} {}
+    explicit constexpr AllocatorDeleter(Allocator allocator) noexcept : Base{std::move(allocator)} {}
 
     template <class T>
     constexpr void operator()(T* ptr) const noexcept

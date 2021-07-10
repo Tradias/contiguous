@@ -213,7 +213,7 @@ class BasicContiguousVector
 
     [[nodiscard]] constexpr size_type capacity() const noexcept { return this->max_element_count; }
 
-    [[nodiscard]] constexpr size_type memory_consumption() const noexcept { return this->memory.get_deleter().size; }
+    [[nodiscard]] constexpr size_type memory_consumption() const noexcept { return this->memory.get_deleter().size(); }
 
     [[nodiscard]] constexpr iterator begin() noexcept { return iterator{*this}; }
 
@@ -358,7 +358,7 @@ template <class Allocator, class... T>
 auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 {
     return cntgs::TypeErasedVector{
-        vector.memory.get_deleter().size,
+        vector.memory_consumption(),
         vector.max_element_count,
         vector.memory.release(),
         vector.memory.is_owned(),

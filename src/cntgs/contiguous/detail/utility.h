@@ -39,6 +39,8 @@ template <class T>
 class EmptyBaseOptimization<T, true> : private T
 {
   public:
+    EmptyBaseOptimization() = default;
+
     explicit constexpr EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
         : T{std::move(value)}
     {

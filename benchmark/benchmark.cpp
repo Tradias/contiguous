@@ -8,7 +8,7 @@
 #include <random>
 #include <vector>
 
-using namespace cntgs::test;
+using cntgs::test::format;
 
 static constexpr auto FLOAT_MAX = 100000.f;
 static std::random_device rd;
