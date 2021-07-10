@@ -358,7 +358,6 @@ template <class Allocator, class... T>
 auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 {
     return cntgs::TypeErasedVector{
-        vector.memory_consumption(),
         vector.max_element_count,
         vector.memory.release(),
         vector.memory.is_owned(),

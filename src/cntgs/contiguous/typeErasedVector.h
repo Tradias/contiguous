@@ -12,7 +12,6 @@ namespace cntgs
 class TypeErasedVector
 {
   public:
-    std::size_t memory_size;
     std::size_t max_element_count;
     std::byte* memory;
     detail::MoveDefaultingValue<bool> is_memory_owned;
@@ -21,12 +20,11 @@ class TypeErasedVector
     void (*destructor)(cntgs::TypeErasedVector&);
     detail::TypeErasedDeleter deleter;
 
-    TypeErasedVector(std::size_t memory_size, std::size_t max_element_count, std::byte* memory, bool is_memory_owned,
+    TypeErasedVector(std::size_t max_element_count, std::byte* memory, bool is_memory_owned,
                      detail::TypeErasedDeleter deleter,
                      std::array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER> fixed_sizes,
                      detail::TypeErasedElementLocator locator, void (*destructor)(cntgs::TypeErasedVector&)) noexcept
-        : memory_size(memory_size),
-          max_element_count(max_element_count),
+        : max_element_count(max_element_count),
           memory(std::move(memory)),
           is_memory_owned(is_memory_owned),
           fixed_sizes(fixed_sizes),

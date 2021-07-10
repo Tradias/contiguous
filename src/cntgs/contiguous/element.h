@@ -30,7 +30,7 @@ class BasicContiguousElement
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
     using StorageElementType = detail::AlignedByte<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>;
-    using StorageType = std::unique_ptr<StorageElementType[], detail::AllocatorDeleter<Allocator, true>>;
+    using StorageType = detail::AllocateUniquePtr<StorageElementType[], Allocator>;
     using Tuple = typename VectorTraits::ReferenceReturnType;
     using UnderlyingTuple = typename Tuple::Tuple;
 
