@@ -134,10 +134,11 @@ class BasicContiguousElement
     auto store_and_load(Tuple& source, std::size_t memory_size)
     {
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
-        std::memcpy(this->memory_begin(), source.start_address(), memory_size);
-        auto target = ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentSelector,
-                                                              detail::ContiguousReturnTypeSizeGetter>(
-            this->memory_begin(), source.tuple);
+        const auto begin = this->memory_begin();
+        std::memcpy(begin, source.start_address(), memory_size);
+        auto target =
+            ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentSelector,
+                                                    detail::ContiguousReturnTypeSizeGetter>(begin, source.tuple);
         ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
         return Tuple{target};
     }

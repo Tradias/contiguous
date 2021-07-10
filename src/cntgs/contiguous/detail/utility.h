@@ -30,6 +30,13 @@ class EmptyBaseOptimization
     T value;
 
   public:
+    EmptyBaseOptimization() = default;
+
+    explicit constexpr EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+        : value{std::move(value)}
+    {
+    }
+
     constexpr auto& get() noexcept { return value; }
 
     constexpr const auto& get() const noexcept { return value; }

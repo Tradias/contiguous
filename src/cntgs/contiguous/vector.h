@@ -344,11 +344,7 @@ class BasicContiguousVector
         {
             if (this->memory && this->memory.is_owned())
             {
-                std::for_each(first, last,
-                              [](const auto& element)
-                              {
-                                  ElementTraits::destruct(element);
-                              });
+                std::for_each(first, last, ElementTraits::destruct);
             }
         }
     }

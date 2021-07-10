@@ -7,6 +7,7 @@
 
 #include <array>
 #include <list>
+#include <memory_resource>
 #include <optional>
 #include <string>
 #include <vector>
@@ -172,9 +173,11 @@ TEST_CASE("ContiguousTest: value_type can be copy assigned")
     CHECK(test::range_equal(std::array{STRING2}, cntgs::get<1>(value2)));
 }
 
-auto fixed_vector_of_unique_ptrs()
+template <class Allocator = std::allocator<void>>
+auto fixed_vector_of_unique_ptrs(Allocator allocator = {})
 {
-    OneFixedUniquePtr vector{2, {1}};
+    cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
+        2, {1}, allocator};
     vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
     vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
     return vector;
@@ -921,5 +924,31 @@ TEST_CASE("ContiguousTest: OneFixedOneVaryingAligned emplace_back() and subscrip
         check_alignment<16>(a);
         check_alignment<8>(c);
     }
+}
+
+TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
+{
+    using Alloc = std::pmr::polymorphic_allocator<int>;
+    std::array<std::byte, 256> buffer{};
+    std::pmr::monotonic_buffer_resource resource{buffer.data(), buffer.size()};
+    std::optional<Alloc> allocator;
+    SUBCASE("vector")
+    {
+        auto vector = fixed_vector_of_unique_ptrs<Alloc>({&resource});
+        allocator.emplace(vector.get_allocator());
+    }
+    SUBCASE("value_type")
+    {
+        auto vector = fixed_vector_of_unique_ptrs();
+        using ValueType = typename decltype(fixed_vector_of_unique_ptrs<Alloc>({&resource}))::value_type;
+        ValueType value{std::move(vector[0]), &resource};
+        allocator.emplace(value.get_allocator());
+    }
+    CHECK_EQ(Alloc{&resource}, allocator);
+    CHECK(std::any_of(buffer.begin(), buffer.end(),
+                      [](auto&& byte)
+                      {
+                          return byte != std::byte{};
+                      }));
 }
 }  // namespace test_contiguous
