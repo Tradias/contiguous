@@ -104,6 +104,9 @@ class AllocatorDeleter : private detail::EmptyBaseOptimizationT<Allocator>
   private:
     using Base = detail::EmptyBaseOptimizationT<Allocator>;
 
+    // workaround for bug in GCC 8.3 which detects a member typedef 'pointer' in the private base class
+    using pointer = void*;
+
   public:
     using allocator_type = Allocator;
 
@@ -133,6 +136,9 @@ class AllocatorDeleter<Allocator, false> : private detail::EmptyBaseOptimization
   private:
     using Base = detail::EmptyBaseOptimizationT<Allocator>;
 
+    // workaround for bug in GCC 8.3 which detects a member typedef 'pointer' in the private base class
+    using pointer = void*;
+
   public:
     using allocator_type = Allocator;
 
@@ -149,36 +155,21 @@ class AllocatorDeleter<Allocator, false> : private detail::EmptyBaseOptimization
     constexpr allocator_type get_allocator() const noexcept { return Base::get(); }
 };
 
-template <bool IsSized, class Allocator>
-constexpr auto make_allocator_deleter(std::size_t size, Allocator allocator) noexcept
-{
-    if constexpr (IsSized)
-    {
-        return detail::AllocatorDeleter<Allocator, IsSized>{size, allocator};
-    }
-    else
-    {
-        return detail::AllocatorDeleter<Allocator, IsSized>{allocator};
-    }
-}
-
-template <bool IsSized, class T, class Allocator>
-auto make_allocator_unique_ptr(T* ptr, std::size_t size, Allocator allocator) noexcept
-{
-    return std::unique_ptr<T, detail::AllocatorDeleter<Allocator, IsSized>>{
-        ptr, detail::make_allocator_deleter<IsSized>(size, std::move(allocator))};
-}
+template <class T, class Allocator>
+using AllocateUniquePtr = std::unique_ptr<T, detail::AllocatorDeleter<Allocator, std::is_array_v<T>>>;
 
 template <class T, class Allocator, class... Args>
 auto allocate_unique(Allocator allocator, Args&&... args)
 {
+    using ReturnType = detail::AllocateUniquePtr<T, Allocator>;
+    using Deleter = typename ReturnType::deleter_type;
     using Traits = typename std::allocator_traits<Allocator>::template rebind_traits<std::remove_extent_t<T>>;
     typename Traits::allocator_type alloc{allocator};
     const auto no_throw = [&]
     {
         auto* ptr = Traits::allocate(alloc, 1);
         Traits::construct(alloc, ptr, std::forward<Args>(args)...);
-        return detail::make_allocator_unique_ptr<false>(ptr, 1, std::move(allocator));
+        return ReturnType{ptr, Deleter{std::move(allocator)}};
     };
 #ifdef __cpp_exceptions
     if constexpr (std::is_nothrow_constructible_v<T, Args&&...>)
@@ -197,7 +188,7 @@ auto allocate_unique(Allocator allocator, Args&&... args)
             Traits::deallocate(alloc, ptr, 1);
             throw;
         }
-        return detail::make_allocator_unique_ptr<false>(ptr, 1, std::move(allocator));
+        return ReturnType{ptr, Deleter{std::move(allocator)}};
     }
 #else
     return no_throw();
@@ -207,22 +198,12 @@ auto allocate_unique(Allocator allocator, Args&&... args)
 template <class T, class Allocator>
 auto allocate_unique_for_overwrite(std::size_t size, Allocator allocator)
 {
+    using ReturnType = detail::AllocateUniquePtr<T, Allocator>;
+    using Deleter = typename ReturnType::deleter_type;
     using Traits = typename std::allocator_traits<Allocator>::template rebind_traits<std::remove_extent_t<T>>;
     typename Traits::allocator_type alloc{allocator};
     auto* ptr = Traits::allocate(alloc, size);
-    return detail::make_allocator_unique_ptr<true>(ptr, size, std::move(allocator));
-}
-
-template <class T, class Allocator>
-[[nodiscard]] auto acquire_or_create_new(detail::MaybeOwnedPtr<T, detail::AllocatorDeleter<Allocator, true>>&& ptr,
-                                         std::size_t size, Allocator allocator)
-{
-    if (ptr)
-    {
-        return std::move(ptr);
-    }
-    return detail::MaybeOwnedPtr<T, detail::AllocatorDeleter<Allocator, true>>{
-        detail::allocate_unique_for_overwrite<T>(size, std::move(allocator))};
+    return ReturnType{ptr, Deleter{size, std::move(allocator)}};
 }
 
 template <class T>

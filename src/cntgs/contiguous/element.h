@@ -30,7 +30,7 @@ class BasicContiguousElement
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
     using StorageElementType = detail::AlignedByte<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>;
-    using StorageType = std::unique_ptr<StorageElementType, detail::AllocatorDeleter<Allocator, true>>;
+    using StorageType = std::unique_ptr<StorageElementType[], detail::AllocatorDeleter<Allocator, true>>;
     using Tuple = typename VectorTraits::ReferenceReturnType;
     using UnderlyingTuple = typename Tuple::Tuple;
 
@@ -46,7 +46,7 @@ class BasicContiguousElement
     /*implicit*/ BasicContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other,
                                         allocator_type allocator = {})
         : memory(
-              detail::allocate_unique_for_overwrite<StorageElementType>(other.size_in_bytes(), std::move(allocator))),
+              detail::allocate_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes(), std::move(allocator))),
           tuple(this->store_and_load(other, other.size_in_bytes()))
     {
     }
@@ -55,7 +55,7 @@ class BasicContiguousElement
     /*implicit*/ BasicContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other,
                                         allocator_type allocator = {})
         : memory(
-              detail::allocate_unique_for_overwrite<StorageElementType>(other.size_in_bytes(), std::move(allocator))),
+              detail::allocate_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes(), std::move(allocator))),
           tuple(this->store_and_load(other, other.size_in_bytes()))
     {
     }
@@ -67,8 +67,8 @@ class BasicContiguousElement
     }
 
     BasicContiguousElement(const BasicContiguousElement& other, allocator_type allocator)
-        : memory(detail::allocate_unique_for_overwrite<StorageElementType>(other.tuple.size_in_bytes(),
-                                                                           std::move(allocator))),
+        : memory(detail::allocate_unique_for_overwrite<StorageElementType[]>(other.tuple.size_in_bytes(),
+                                                                             std::move(allocator))),
           tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
     {
     }
@@ -78,8 +78,8 @@ class BasicContiguousElement
     BasicContiguousElement(BasicContiguousElement&& other, allocator_type allocator)
         : memory(allocator == other.memory.get_deleter().get_allocator()
                      ? std::move(other.memory)
-                     : detail::allocate_unique_for_overwrite<StorageElementType>(other.tuple.size_in_bytes(),
-                                                                                 std::move(allocator))),
+                     : detail::allocate_unique_for_overwrite<StorageElementType[]>(other.tuple.size_in_bytes(),
+                                                                                   std::move(allocator))),
           tuple(allocator == other.memory.get_deleter().get_allocator()
                     ? std::move(other.tuple)
                     : this->store_and_load(other.tuple, other.tuple.size_in_bytes()))

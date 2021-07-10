@@ -38,7 +38,7 @@ class BasicContiguousVector
     using ElementLocator = detail::ElementLocatorT<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using StorageDeleter = detail::AllocatorDeleter<Allocator, true>;
-    using StorageType = detail::MaybeOwnedPtr<std::byte, StorageDeleter>;
+    using StorageType = detail::MaybeOwnedPtr<std::byte[], StorageDeleter>;
     using FixedSizes = typename ListTraits::FixedSizes;
 
     static constexpr bool IS_MIXED = ListTraits::IS_MIXED;
@@ -242,7 +242,7 @@ class BasicContiguousVector
     BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
                           allocator_type allocator)
         : max_element_count(max_element_count),
-          memory(detail::allocate_unique_for_overwrite<typename StorageType::element_type>(
+          memory(detail::allocate_unique_for_overwrite<typename StorageType::element_type[]>(
               Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes),
               std::move(allocator))),
           fixed_sizes(fixed_sizes),
