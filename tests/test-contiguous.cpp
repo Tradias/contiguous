@@ -535,7 +535,7 @@ TEST_CASE("ContiguousTest: OneVaryingUniquePtr erase(Iterator)")
     CHECK_EQ(80, *e);
 }
 
-TEST_CASE("ContiguousTest: TwoVarying erase(Iterator)")
+TEST_CASE("ContiguousTest: TwoFixed erase(Iterator)")
 {
     TwoFixed vector{2, {FLOATS2.size(), FLOATS2_ALT.size()}};
     vector.emplace_back(FLOATS2, 10u, FLOATS2);
@@ -566,10 +566,15 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr erase(Iterator, Iterator)")
     {
         vector.erase(vector.begin(), vector.end());
         CHECK_EQ(0, vector.size());
+    }    
+    SUBCASE("erase none")
+    {
+        vector.erase(vector.begin(), vector.begin());
+        CHECK_EQ(3, vector.size());
     }
 }
 
-TEST_CASE("ContiguousTest: TwoVarying erase(Iterator, Iterator)")
+TEST_CASE("ContiguousTest: TwoFixed erase(Iterator, Iterator)")
 {
     TwoFixed vector{3, {FLOATS2.size(), FLOATS2_ALT.size()}};
     vector.emplace_back(FLOATS2, 10u, FLOATS2);
@@ -592,6 +597,15 @@ TEST_CASE("ContiguousTest: TwoVarying erase(Iterator, Iterator)")
         auto&& [a, b, c] = vector.front();
         CHECK(test::range_equal(FLOATS2_ALT, a));
         CHECK_EQ(30u, b);
+        CHECK(test::range_equal(FLOATS2, c));
+    }    
+    SUBCASE("erase none")
+    {
+        vector.erase(vector.begin(), vector.begin());
+        CHECK_EQ(3, vector.size());
+        auto&& [a, b, c] = vector.front();
+        CHECK(test::range_equal(FLOATS2, a));
+        CHECK_EQ(10u, b);
         CHECK(test::range_equal(FLOATS2, c));
     }
 }

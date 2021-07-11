@@ -145,7 +145,13 @@ class BasicContiguousVector
     BasicContiguousVector& operator=(const BasicContiguousVector&) = delete;
     BasicContiguousVector& operator=(BasicContiguousVector&&) = default;
 
-    ~BasicContiguousVector() noexcept { this->destruct(); }
+    ~BasicContiguousVector() noexcept
+    {
+        if (this->memory && this->memory.is_owned())
+        {
+            this->destruct();
+        }
+    }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -169,7 +175,11 @@ class BasicContiguousVector
 
     void erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
-        this->erase(position, position + 1);
+        iterator it_position{*this, position.index()};
+        iterator it_last{*this, position.index() + 1};
+        ElementTraits::destruct(*it_position);
+        this->move_elements_forward_to(it_position, it_last, it_position->end_address());
+        this->locator.resize(this->size() - size_type{1}, this->memory.get());
     }
 
     void erase(const_iterator first, const_iterator last) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
@@ -177,7 +187,7 @@ class BasicContiguousVector
         iterator it_first{*this, first.index()};
         iterator it_last{*this, last.index()};
         this->destruct(it_first, it_last);
-        this->move_elements_forward_to(it_first, it_last);
+        this->move_elements_forward_to(it_first, it_last, it_last->start_address());
         this->locator.resize(this->size() - std::distance(first, last), this->memory.get());
     }
 
@@ -269,11 +279,9 @@ class BasicContiguousVector
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
     {
-        using StorageElementType = typename StorageType::element_type;
         const auto new_memory_size =
             this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
-        auto new_memory =
-            detail::allocate_unique_for_overwrite<StorageElementType[]>(new_memory_size, this->get_allocator());
+        auto new_memory = detail::allocate_unique_for_overwrite<std::byte[]>(new_memory_size, this->get_allocator());
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
             this->locator.copy_from(new_max_element_count, new_memory.get(), this->max_element_count,
@@ -308,22 +316,18 @@ class BasicContiguousVector
         this->destruct();
     }
 
-    void move_elements_forward_to(iterator position, iterator from)
+    void move_elements_forward_to(const iterator& position, iterator from, std::byte* from_start_address)
     {
-        if (this->end() == from)
-        {
-            return;
-        }
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
                       (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL))
         {
-            const auto source = from->start_address();
-            std::memmove(position->start_address(), source, (this->memory.get() + this->memory_consumption()) - source);
+            const auto target = position->start_address();
+            std::memmove(target, from_start_address,
+                         (this->memory.get() + this->memory_consumption()) - from_start_address);
         }
         else
         {
-            for (auto i = static_cast<size_type>(std::distance(this->begin(), position)); from != this->end();
-                 ++i, ++from)
+            for (auto i = position.index(); from != this->end(); ++i, ++from)
             {
                 this->emplace_at(i, *from, ListTraits::make_index_sequence());
             }
@@ -343,10 +347,7 @@ class BasicContiguousVector
     {
         if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            if (this->memory && this->memory.is_owned())
-            {
-                std::for_each(first, last, ElementTraits::destruct);
-            }
+            std::for_each(first, last, ElementTraits::destruct);
         }
     }
 };
