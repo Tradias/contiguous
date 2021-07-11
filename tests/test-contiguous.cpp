@@ -964,4 +964,12 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
         }
     }
 }
+
+TEST_CASE("ContiguousTest: trivial OneFixed reserve with polymorphic_allocator")
+{
+    cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, cntgs::FixedSize<float>, int> vector{0,
+                                                                                                                  {10}};
+    vector.reserve(2);
+    CHECK_EQ(2, vector.capacity());
+}
 }  // namespace test_contiguous

@@ -131,7 +131,9 @@ class AllocatorDeleter
 
     constexpr allocator_type get_allocator() const noexcept { return this->impl.get(); }
 
-    constexpr auto size() const noexcept { return this->impl.size; }
+    constexpr auto& size() noexcept { return this->impl.size; }
+    
+    constexpr const auto& size() const noexcept { return this->impl.size; }
 };
 
 template <class Allocator>

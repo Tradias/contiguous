@@ -287,7 +287,8 @@ class BasicContiguousVector
             this->locator = std::move(new_locator);
         }
         this->max_element_count = new_max_element_count;
-        this->memory = StorageType{std::move(new_memory)};
+        this->memory.ptr.reset(new_memory.release());
+        this->memory.get_deleter().size() = new_memory_size;
     }
 
     template <std::size_t... I>
