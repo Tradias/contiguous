@@ -176,19 +176,25 @@ class BasicContiguousVector
     void erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         iterator it_position{*this, position.index()};
-        iterator it_last{*this, position.index() + 1};
+        const auto end_address = it_position->end_address();
+        const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
-        this->move_elements_forward_to(it_position, it_last, it_position->end_address());
+        this->move_elements_forward_to(it_position, next_position, end_address);
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
     }
 
     void erase(const_iterator first, const_iterator last) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
+        const auto current_size = this->size();
         iterator it_first{*this, first.index()};
-        iterator it_last{*this, last.index()};
+        const auto last_index = last.index();
+        iterator it_last{*this, last_index};
         this->destruct(it_first, it_last);
-        this->move_elements_forward_to(it_first, it_last, it_last->start_address());
-        this->locator.resize(this->size() - std::distance(first, last), this->memory.get());
+        if (last_index != current_size)
+        {
+            this->move_elements_forward_to(it_first, last_index, it_last->start_address());
+        }
+        this->locator.resize(current_size - std::distance(it_first, it_last), this->memory.get());
     }
 
     reference operator[](size_type i) noexcept
@@ -316,7 +322,7 @@ class BasicContiguousVector
         this->destruct();
     }
 
-    void move_elements_forward_to(const iterator& position, iterator from, std::byte* from_start_address)
+    void move_elements_forward_to(const iterator& position, std::size_t from, std::byte* from_start_address)
     {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
                       (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL))
@@ -327,9 +333,9 @@ class BasicContiguousVector
         }
         else
         {
-            for (auto i = position.index(); from != this->end(); ++i, ++from)
+            for (auto i = position.index(); from != this->size(); ++i, ++from)
             {
-                this->emplace_at(i, *from, ListTraits::make_index_sequence());
+                this->emplace_at(i, (*this)[from], ListTraits::make_index_sequence());
             }
         }
     }
