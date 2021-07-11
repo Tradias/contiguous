@@ -926,36 +926,42 @@ TEST_CASE("ContiguousTest: OneFixedOneVaryingAligned emplace_back() and subscrip
     }
 }
 
-TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
+template <class Allocator, std::size_t N>
+auto check_memory_resource_was_used(const Allocator& allocator, const std::array<std::byte, N>& buffer,
+                                    const std::pmr::monotonic_buffer_resource& resource)
 {
-    using Alloc = std::pmr::polymorphic_allocator<int>;
-    std::array<std::byte, 256> buffer{};
-    std::pmr::monotonic_buffer_resource resource{buffer.data(), buffer.size()};
-    std::optional<Alloc> allocator;
-    SUBCASE("vector")
-    {
-        auto vector = fixed_vector_of_unique_ptrs<Alloc>({&resource});
-        allocator.emplace(vector.get_allocator());
-    }
-    SUBCASE("value_type")
-    {
-        auto vector = fixed_vector_of_unique_ptrs();
-        using ValueType = typename decltype(fixed_vector_of_unique_ptrs<Alloc>({&resource}))::value_type;
-        ValueType value{std::move(vector[0]), &resource};
-        CHECK_NE(nullptr, cntgs::get<1>(value));
-        SUBCASE("move construct from tuple and allocator") { allocator.emplace(value.get_allocator()); }
-        SUBCASE("move construct from element and allocator")
-        {
-            ValueType value2{std::move(value), &resource};
-            CHECK_NE(nullptr, cntgs::get<1>(value2));
-            allocator.emplace(value2.get_allocator());
-        }
-    }
-    CHECK_EQ(Alloc{&resource}, allocator);
+    CHECK_EQ(&resource, allocator.resource());
     CHECK(std::any_of(buffer.begin(), buffer.end(),
                       [](auto&& byte)
                       {
                           return byte != std::byte{};
                       }));
+}
+
+TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
+{
+    using Alloc = std::pmr::polymorphic_allocator<int>;
+    std::array<std::byte, 256> buffer{};
+    std::pmr::monotonic_buffer_resource resource{buffer.data(), buffer.size()};
+    SUBCASE("vector")
+    {
+        auto vector = fixed_vector_of_unique_ptrs<Alloc>(&resource);
+        check_memory_resource_was_used(vector.get_allocator(), buffer, resource);
+    }
+    SUBCASE("value_type")
+    {
+        auto vector = fixed_vector_of_unique_ptrs();
+        using ValueType = typename decltype(fixed_vector_of_unique_ptrs<Alloc>(&resource))::value_type;
+        ValueType value{std::move(vector[0]), &resource};
+        SUBCASE("move construct from tuple and allocator")
+        {
+            check_memory_resource_was_used(value.get_allocator(), buffer, resource);
+        }
+        SUBCASE("move construct from element and allocator")
+        {
+            ValueType value2{std::move(value), &resource};
+            check_memory_resource_was_used(value2.get_allocator(), buffer, resource);
+        }
+    }
 }
 }  // namespace test_contiguous

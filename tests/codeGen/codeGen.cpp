@@ -103,3 +103,13 @@ auto contiguous_two_fixed_aligned_lookup_and_accumulate(CntgsFixedSizeAlignedVec
         out += v;
     }
 }
+
+auto reference_two_fixed_reserve_growth(ReferenceFixedSizeVector& vector, uint32_t new_capacity)
+{
+    vector.reserve_unaligned(new_capacity);
+}
+
+auto contiguous_two_fixed_reserve_growth(CntgsFixedSizeVector& vector, uint32_t new_capacity)
+{
+    vector.reserve(new_capacity);
+}
