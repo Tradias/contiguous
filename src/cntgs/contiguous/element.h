@@ -66,7 +66,15 @@ class BasicContiguousElement
     {
     }
 
-    BasicContiguousElement(const BasicContiguousElement& other, allocator_type allocator)
+    template <class TAllocator>
+    /*implicit*/ BasicContiguousElement(const BasicContiguousElement<TAllocator, Types...>& other)
+        : BasicContiguousElement(
+              other, AllocatorTraits::select_on_container_copy_construction(other.memory.get_deleter().get_allocator()))
+    {
+    }
+
+    template <class TAllocator>
+    BasicContiguousElement(const BasicContiguousElement<TAllocator, Types...>& other, allocator_type allocator)
         : memory(detail::allocate_unique_for_overwrite<StorageElementType[]>(other.tuple.size_in_bytes(),
                                                                              std::move(allocator))),
           tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
@@ -75,7 +83,14 @@ class BasicContiguousElement
 
     BasicContiguousElement(BasicContiguousElement&&) = default;
 
-    BasicContiguousElement(BasicContiguousElement&& other, allocator_type allocator)
+    template <class TAllocator>
+    BasicContiguousElement(BasicContiguousElement<TAllocator, Types...>&& other)
+        : memory(std::move(other.memory)), tuple(std::move(other.tuple))
+    {
+    }
+
+    template <class TAllocator>
+    BasicContiguousElement(BasicContiguousElement<TAllocator, Types...>&& other, allocator_type allocator)
         : memory(allocator == other.memory.get_deleter().get_allocator()
                      ? std::move(other.memory)
                      : detail::allocate_unique_for_overwrite<StorageElementType[]>(other.tuple.size_in_bytes(),
@@ -93,7 +108,23 @@ class BasicContiguousElement
         return *this;
     }
 
+    template <class TAllocator>
+    BasicContiguousElement& operator=(const BasicContiguousElement<TAllocator, Types...>& other) noexcept(
+        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    {
+        this->tuple = other.tuple;
+        return *this;
+    }
+
     BasicContiguousElement& operator=(BasicContiguousElement&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
+    {
+        this->tuple = std::move(other.tuple);
+        return *this;
+    }
+
+    template <class TAllocator>
+    BasicContiguousElement& operator=(BasicContiguousElement<TAllocator, Types...>&& other) noexcept(
+        ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
         this->tuple = std::move(other.tuple);
         return *this;

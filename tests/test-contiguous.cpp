@@ -942,7 +942,14 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
         auto vector = fixed_vector_of_unique_ptrs();
         using ValueType = typename decltype(fixed_vector_of_unique_ptrs<Alloc>({&resource}))::value_type;
         ValueType value{std::move(vector[0]), &resource};
-        allocator.emplace(value.get_allocator());
+        CHECK_NE(nullptr, cntgs::get<1>(value));
+        SUBCASE("move construct from tuple and allocator") { allocator.emplace(value.get_allocator()); }
+        SUBCASE("move construct from element and allocator")
+        {
+            ValueType value2{std::move(value), &resource};
+            CHECK_NE(nullptr, cntgs::get<1>(value2));
+            allocator.emplace(value2.get_allocator());
+        }
     }
     CHECK_EQ(Alloc{&resource}, allocator);
     CHECK(std::any_of(buffer.begin(), buffer.end(),
