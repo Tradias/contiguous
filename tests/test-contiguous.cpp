@@ -540,11 +540,12 @@ TEST_CASE("ContiguousTest: TwoFixed erase(Iterator)")
     TwoFixed vector{2, {FLOATS2.size(), FLOATS2_ALT.size()}};
     vector.emplace_back(FLOATS2, 10u, FLOATS2);
     vector.emplace_back(FLOATS2_ALT, 20u, FLOATS2);
-    vector.erase(vector.begin());
+    auto it = vector.erase(++vector.begin());
+    CHECK_EQ(vector.end(), it);
     CHECK_EQ(1, vector.size());
     auto&& [a, b, c] = vector.front();
-    CHECK(test::range_equal(FLOATS2_ALT, a));
-    CHECK_EQ(20u, b);
+    CHECK(test::range_equal(FLOATS2, a));
+    CHECK_EQ(10u, b);
     CHECK(test::range_equal(FLOATS2, c));
 }
 
@@ -556,7 +557,8 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr erase(Iterator, Iterator)")
     vector.emplace_back(array_one_unique_ptr(50), std::make_unique<int>(60));
     SUBCASE("erase first two")
     {
-        vector.erase(vector.begin(), std::next(vector.begin(), 2));
+        auto it = vector.erase(vector.begin(), std::next(vector.begin(), 2));
+        CHECK_EQ(vector.begin(), it);
         CHECK_EQ(1, vector.size());
         auto&& [a, b] = vector.front();
         CHECK(test::range_equal(array_one_unique_ptr(50), a, test::DereferenceEqual{}));
@@ -564,12 +566,14 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr erase(Iterator, Iterator)")
     }
     SUBCASE("erase all")
     {
-        vector.erase(vector.begin(), vector.end());
+        auto it = vector.erase(vector.begin(), vector.end());
+        CHECK_EQ(vector.end(), it);
         CHECK_EQ(0, vector.size());
-    }    
+    }
     SUBCASE("erase none")
     {
-        vector.erase(vector.begin(), vector.begin());
+        auto it = vector.erase(vector.begin(), vector.begin());
+        CHECK_EQ(vector.begin(), it);
         CHECK_EQ(3, vector.size());
     }
 }
@@ -598,7 +602,7 @@ TEST_CASE("ContiguousTest: TwoFixed erase(Iterator, Iterator)")
         CHECK(test::range_equal(FLOATS2_ALT, a));
         CHECK_EQ(30u, b);
         CHECK(test::range_equal(FLOATS2, c));
-    }    
+    }
     SUBCASE("erase none")
     {
         vector.erase(vector.begin(), vector.begin());
@@ -735,6 +739,14 @@ TEST_CASE("ContiguousTest: std::unique_ptr VaryingSize reserve and shrink")
     auto&& [e, f] = vector[2];
     CHECK_EQ(10, *e.front());
     CHECK_EQ(20, *f);
+}
+
+TEST_CASE("ContiguousTest: trivial OneFixed reserve with polymorphic_allocator")
+{
+    cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, cntgs::FixedSize<float>, int> vector{0,
+                                                                                                                  {10}};
+    vector.reserve(2);
+    CHECK_EQ(2, vector.capacity());
 }
 
 #ifdef __cpp_lib_span
@@ -975,15 +987,9 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
         {
             ValueType value2{std::move(value), &resource};
             check_memory_resource_was_used(value2.get_allocator(), buffer, resource);
+            ValueType value3{std::move(value2), Alloc{}};
+            CHECK_EQ(Alloc{}, value3.get_allocator());
         }
     }
-}
-
-TEST_CASE("ContiguousTest: trivial OneFixed reserve with polymorphic_allocator")
-{
-    cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, cntgs::FixedSize<float>, int> vector{0,
-                                                                                                                  {10}};
-    vector.reserve(2);
-    CHECK_EQ(2, vector.capacity());
 }
 }  // namespace test_contiguous

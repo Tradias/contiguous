@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstring>
 #include <memory>
 #include <new>
 #include <tuple>
@@ -173,7 +174,7 @@ class BasicContiguousVector
         }
     }
 
-    void erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
+    iterator erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         iterator it_position{*this, position.index()};
         const auto end_address = it_position->end_address();
@@ -181,20 +182,23 @@ class BasicContiguousVector
         ElementTraits::destruct(*it_position);
         this->move_elements_forward_to(it_position, next_position, end_address);
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
+        return it_position;
     }
 
-    void erase(const_iterator first, const_iterator last) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
+    iterator erase(const_iterator first, const_iterator last) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         const auto current_size = this->size();
-        iterator it_first{*this, first.index()};
+        const auto first_index = first.index();
+        iterator it_first{*this, first_index};
         const auto last_index = last.index();
         iterator it_last{*this, last_index};
         this->destruct(it_first, it_last);
-        if (last_index != current_size)
+        if (last_index != current_size && first_index != last_index)
         {
             this->move_elements_forward_to(it_first, last_index, it_last->start_address());
         }
         this->locator.resize(current_size - std::distance(it_first, it_last), this->memory.get());
+        return it_first;
     }
 
     reference operator[](size_type i) noexcept
@@ -229,7 +233,7 @@ class BasicContiguousVector
 
     [[nodiscard]] constexpr size_type capacity() const noexcept { return this->max_element_count; }
 
-    [[nodiscard]] constexpr size_type memory_consumption() const noexcept { return this->memory.get_deleter().size(); }
+    [[nodiscard]] size_type memory_consumption() const noexcept { return this->memory.get_deleter().size(); }
 
     [[nodiscard]] constexpr iterator begin() noexcept { return iterator{*this}; }
 
@@ -322,7 +326,8 @@ class BasicContiguousVector
         this->destruct();
     }
 
-    void move_elements_forward_to(const iterator& position, std::size_t from, std::byte* from_start_address)
+    void move_elements_forward_to(const iterator& position, [[maybe_unused]] std::size_t from,
+                                  [[maybe_unused]] std::byte* from_start_address)
     {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
                       (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL))
