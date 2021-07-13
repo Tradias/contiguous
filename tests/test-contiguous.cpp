@@ -40,6 +40,8 @@ const std::string STRING2{"another very long test string"};
 
 auto floats1(float one = 1.f, float two = 2.f) { return std::array{one, two}; }
 
+auto floats1(float one = 1.f, float two = 2.f, float three = 3.f) { return std::array{one, two, three}; }
+
 auto array_one_unique_ptr(int v1 = 10) { return std::array{std::make_unique<int>(v1)}; }
 
 auto array_two_unique_ptr(int v1 = 30, int v2 = 40)
@@ -461,12 +463,53 @@ TEST_CASE("ContiguousTest: FixedSize swap partially trivial")
 
 TEST_CASE("ContiguousTest: OneFixed::reference equality comparison")
 {
-    OneFixed vector{3, {2}};
+    OneVarying vector{4, 4 * (FLOATS1.size() * 2 + FLOATS1_ALT.size() + 3) * sizeof(float)};
     vector.emplace_back(10u, FLOATS1);
-    vector.emplace_back(10u, FLOATS1_ALT);
+    vector.emplace_back(20u, FLOATS1_ALT);
     vector.emplace_back(10u, FLOATS1);
-    CHECK_EQ(vector[0], vector[2]);
-    CHECK_NE(vector[0], std::as_const(vector)[1]);
+    vector.emplace_back(15u, floats1(10.f, 20.f, 30.f));
+    SUBCASE("equal")
+    {
+        CHECK_EQ(vector[0], vector[2]);
+        CHECK_EQ(std::as_const(vector)[0], vector[2]);
+        CHECK_EQ(vector[0], std::as_const(vector)[2]);
+        CHECK_EQ(std::as_const(vector)[0], std::as_const(vector)[2]);
+    }
+    SUBCASE("not equal")
+    {
+        CHECK_NE(vector[0], vector[1]);
+        CHECK_NE(std::as_const(vector)[0], vector[1]);
+        CHECK_NE(vector[0], std::as_const(vector)[1]);
+        CHECK_NE(std::as_const(vector)[0], std::as_const(vector)[1]);
+    }
+    SUBCASE("less")
+    {
+        CHECK_LT(vector[2], vector[1]);
+        CHECK_LT(std::as_const(vector)[0], vector[1]);
+        CHECK_LT(vector[2], std::as_const(vector)[3]);
+        CHECK_FALSE(std::as_const(vector)[0] < std::as_const(vector)[2]);
+    }
+    SUBCASE("less equal")
+    {
+        CHECK_LE(vector[0], vector[1]);
+        CHECK_LE(std::as_const(vector)[0], vector[1]);
+        CHECK_LE(vector[2], std::as_const(vector)[3]);
+        CHECK_FALSE(std::as_const(vector)[1] <= std::as_const(vector)[2]);
+    }
+    SUBCASE("greater")
+    {
+        CHECK_GT(vector[1], vector[0]);
+        CHECK_GT(std::as_const(vector)[1], vector[0]);
+        CHECK_GT(vector[3], std::as_const(vector)[2]);
+        CHECK_FALSE(std::as_const(vector)[2] >= std::as_const(vector)[1]);
+    }
+    SUBCASE("greater equal")
+    {
+        CHECK_GE(vector[1], vector[0]);
+        CHECK_GE(std::as_const(vector)[0], vector[2]);
+        CHECK_FALSE(vector[0] >= std::as_const(vector)[1]);
+        CHECK_GE(std::as_const(vector)[3], std::as_const(vector)[2]);
+    }
 }
 
 TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy elements")

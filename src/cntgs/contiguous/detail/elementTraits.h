@@ -229,14 +229,20 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
     static void swap(const ReferenceReturnType& lhs, const ReferenceReturnType& rhs) { (swap<I>(lhs, rhs), ...); }
 
-    template <detail::ContiguousTupleQualifier LhsQualifier, detail::ContiguousTupleQualifier RhsQualifier,
-              class Comparator>
-    static constexpr auto compare(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
-                                  const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs,
-                                  const Comparator& comparator)
+    template <detail::ContiguousTupleQualifier LhsQualifier, detail::ContiguousTupleQualifier RhsQualifier>
+    static constexpr auto equal(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
+                                const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs)
     {
-        return (detail::ParameterTraits<Types>::compare(std::get<I>(lhs.tuple), std::get<I>(rhs.tuple), comparator) &&
-                ...);
+        return (detail::ParameterTraits<Types>::equal(std::get<I>(lhs.tuple), std::get<I>(rhs.tuple)) && ...);
+    }
+
+    template <detail::ContiguousTupleQualifier LhsQualifier, detail::ContiguousTupleQualifier RhsQualifier>
+    static constexpr auto lexicographical_compare(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
+                                                  const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs)
+    {
+        return (
+            detail::ParameterTraits<Types>::lexicographical_compare(std::get<I>(lhs.tuple), std::get<I>(rhs.tuple)) &&
+            ...);
     }
 
     static void destruct(const ReferenceReturnType& element) noexcept

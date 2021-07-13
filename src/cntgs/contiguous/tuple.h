@@ -138,13 +138,37 @@ class ContiguousTuple
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr auto operator==(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
     {
-        return ElementTraits::compare(*this, other, std::equal_to<>{});
+        return ElementTraits::equal(*this, other);
     }
 
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr auto operator!=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
     {
         return !(*this == other);
+    }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator<(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return ElementTraits::lexicographical_compare(*this, other);
+    }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator<=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return !(*this > other);
+    }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator>(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return (other < *this);
+    }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator>=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return !(*this < other);
     }
 
   private:

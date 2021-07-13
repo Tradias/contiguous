@@ -110,11 +110,11 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         swap(lhs, rhs);
     }
 
-    template <class Comparator>
-    static constexpr auto compare(ConstReferenceReturnType lhs, ConstReferenceReturnType rhs,
-                                  const Comparator& comparator)
+    static constexpr auto equal(ConstReferenceReturnType lhs, ConstReferenceReturnType rhs) { return lhs == rhs; }
+
+    static constexpr auto lexicographical_compare(ConstReferenceReturnType lhs, ConstReferenceReturnType rhs)
     {
-        return comparator(lhs, rhs);
+        return lhs < rhs;
     }
 
     static constexpr void destroy(ReferenceReturnType value) noexcept { value.~T(); }
@@ -145,57 +145,81 @@ struct BaseContiguousParameterTraits
         return reinterpret_cast<std::byte*>(std::end(value));
     }
 
-    static void uninitialized_copy(const cntgs::Span<std::add_const_t<T>>& source,
-                                   const cntgs::Span<T>& target) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    static constexpr void uninitialized_copy(
+        const cntgs::Span<std::add_const_t<T>>& source,
+        const cntgs::Span<T>& target) noexcept(std::is_nothrow_copy_constructible_v<T>)
     {
         std::uninitialized_copy(Self::begin(source), std::end(source), Self::begin(target));
     }
 
-    static void uninitialized_copy(const cntgs::Span<T>& source,
-                                   const cntgs::Span<T>& target) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    static constexpr void uninitialized_copy(const cntgs::Span<T>& source, const cntgs::Span<T>& target) noexcept(
+        std::is_nothrow_copy_constructible_v<T>)
     {
         std::uninitialized_copy(Self::begin(source), std::end(source), Self::begin(target));
     }
 
-    static void uninitialized_move(const cntgs::Span<T>& source,
-                                   const cntgs::Span<T>& target) noexcept(std::is_nothrow_move_constructible_v<T>)
+    static constexpr void uninitialized_move(const cntgs::Span<T>& source, const cntgs::Span<T>& target) noexcept(
+        std::is_nothrow_move_constructible_v<T>)
     {
         std::uninitialized_copy(std::make_move_iterator(Self::begin(source)), std::make_move_iterator(std::end(source)),
                                 Self::begin(target));
     }
 
-    template <class Comparator>
-    static constexpr auto compare(const cntgs::Span<T>& source, const cntgs::Span<T>& target,
-                                  const Comparator& comparator)
+    static constexpr auto equal(const cntgs::Span<T>& source, const cntgs::Span<T>& target)
     {
-        return std::equal(Self::begin(source), std::end(source), Self::begin(target), comparator);
+        return std::equal(Self::begin(source), std::end(source), Self::begin(target));
     }
 
-    template <class Comparator>
-    static constexpr auto compare(const cntgs::Span<T>& source, const cntgs::Span<std::add_const_t<T>>& target,
-                                  const Comparator& comparator)
+    static constexpr auto equal(const cntgs::Span<T>& source, const cntgs::Span<std::add_const_t<T>>& target)
     {
-        return std::equal(Self::begin(source), std::end(source), Self::begin(target), comparator);
+        return std::equal(Self::begin(source), std::end(source), Self::begin(target));
     }
 
-    template <class Comparator>
-    static constexpr auto compare(const cntgs::Span<std::add_const_t<T>>& source, const cntgs::Span<T>& target,
-                                  const Comparator& comparator)
+    static constexpr auto equal(const cntgs::Span<std::add_const_t<T>>& source, const cntgs::Span<T>& target)
     {
-        return std::equal(Self::begin(source), std::end(source), Self::begin(target), comparator);
+        return std::equal(Self::begin(source), std::end(source), Self::begin(target));
     }
 
-    template <class Comparator>
-    static constexpr auto compare(const cntgs::Span<std::add_const_t<T>>& source,
-                                  const cntgs::Span<std::add_const_t<T>>& target, const Comparator& comparator)
+    static constexpr auto equal(const cntgs::Span<std::add_const_t<T>>& source,
+                                const cntgs::Span<std::add_const_t<T>>& target)
     {
-        return std::equal(Self::begin(source), std::end(source), Self::begin(target), comparator);
+        return std::equal(Self::begin(source), std::end(source), Self::begin(target));
     }
 
-    static void destroy(const cntgs::Span<T>& value) noexcept { std::destroy(Self::begin(value), std::end(value)); }
+    static constexpr auto lexicographical_compare(const cntgs::Span<T>& source, const cntgs::Span<T>& target)
+    {
+        return std::lexicographical_compare(Self::begin(source), std::end(source), Self::begin(target),
+                                            std::end(target));
+    }
+
+    static constexpr auto lexicographical_compare(const cntgs::Span<T>& source,
+                                                  const cntgs::Span<std::add_const_t<T>>& target)
+    {
+        return std::lexicographical_compare(Self::begin(source), std::end(source), Self::begin(target),
+                                            std::end(target));
+    }
+
+    static constexpr auto lexicographical_compare(const cntgs::Span<std::add_const_t<T>>& source,
+                                                  const cntgs::Span<T>& target)
+    {
+        return std::lexicographical_compare(Self::begin(source), std::end(source), Self::begin(target),
+                                            std::end(target));
+    }
+
+    static constexpr auto lexicographical_compare(const cntgs::Span<std::add_const_t<T>>& source,
+                                                  const cntgs::Span<std::add_const_t<T>>& target)
+    {
+        return std::lexicographical_compare(Self::begin(source), std::end(source), Self::begin(target),
+                                            std::end(target));
+    }
+
+    static constexpr void destroy(const cntgs::Span<T>& value) noexcept
+    {
+        std::destroy(Self::begin(value), std::end(value));
+    }
 
     template <class U>
-    static auto begin(const cntgs::Span<U>& value) noexcept
+    static constexpr auto begin(const cntgs::Span<U>& value) noexcept
     {
         return detail::assume_aligned<Alignment>(std::begin(value));
     }
