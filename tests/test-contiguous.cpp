@@ -459,6 +459,16 @@ TEST_CASE("ContiguousTest: FixedSize swap partially trivial")
     }
 }
 
+TEST_CASE("ContiguousTest: OneFixed::reference equality comparison")
+{
+    OneFixed vector{3, {2}};
+    vector.emplace_back(10u, FLOATS1);
+    vector.emplace_back(10u, FLOATS1_ALT);
+    vector.emplace_back(10u, FLOATS1);
+    CHECK_EQ(vector[0], vector[2]);
+    CHECK_NE(vector[0], std::as_const(vector)[1]);
+}
+
 TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy elements")
 {
     auto floats2 = FLOATS1;

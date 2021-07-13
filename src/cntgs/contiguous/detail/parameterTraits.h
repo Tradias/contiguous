@@ -110,6 +110,13 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         swap(lhs, rhs);
     }
 
+    template <class Comparator>
+    static constexpr auto compare(ConstReferenceReturnType lhs, ConstReferenceReturnType rhs,
+                                  const Comparator& comparator)
+    {
+        return comparator(lhs, rhs);
+    }
+
     static constexpr void destroy(ReferenceReturnType value) noexcept { value.~T(); }
 };
 
@@ -155,6 +162,34 @@ struct BaseContiguousParameterTraits
     {
         std::uninitialized_copy(std::make_move_iterator(Self::begin(source)), std::make_move_iterator(std::end(source)),
                                 Self::begin(target));
+    }
+
+    template <class Comparator>
+    static constexpr auto compare(const cntgs::Span<T>& source, const cntgs::Span<T>& target,
+                                  const Comparator& comparator)
+    {
+        return std::equal(Self::begin(source), std::end(source), Self::begin(target), comparator);
+    }
+
+    template <class Comparator>
+    static constexpr auto compare(const cntgs::Span<T>& source, const cntgs::Span<std::add_const_t<T>>& target,
+                                  const Comparator& comparator)
+    {
+        return std::equal(Self::begin(source), std::end(source), Self::begin(target), comparator);
+    }
+
+    template <class Comparator>
+    static constexpr auto compare(const cntgs::Span<std::add_const_t<T>>& source, const cntgs::Span<T>& target,
+                                  const Comparator& comparator)
+    {
+        return std::equal(Self::begin(source), std::end(source), Self::begin(target), comparator);
+    }
+
+    template <class Comparator>
+    static constexpr auto compare(const cntgs::Span<std::add_const_t<T>>& source,
+                                  const cntgs::Span<std::add_const_t<T>>& target, const Comparator& comparator)
+    {
+        return std::equal(Self::begin(source), std::end(source), Self::begin(target), comparator);
     }
 
     static void destroy(const cntgs::Span<T>& value) noexcept { std::destroy(Self::begin(value), std::end(value)); }

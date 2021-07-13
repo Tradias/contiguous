@@ -135,6 +135,18 @@ class ContiguousTuple
             std::get<sizeof...(Types) - 1>(this->tuple));
     }
 
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator==(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return ElementTraits::compare(*this, other, std::equal_to<>{});
+    }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator!=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return !(*this == other);
+    }
+
   private:
     template <class Tuple>
     void assign(Tuple& other) const

@@ -229,6 +229,16 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
     static void swap(const ReferenceReturnType& lhs, const ReferenceReturnType& rhs) { (swap<I>(lhs, rhs), ...); }
 
+    template <detail::ContiguousTupleQualifier LhsQualifier, detail::ContiguousTupleQualifier RhsQualifier,
+              class Comparator>
+    static constexpr auto compare(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
+                                  const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs,
+                                  const Comparator& comparator)
+    {
+        return (detail::ParameterTraits<Types>::compare(std::get<I>(lhs.tuple), std::get<I>(rhs.tuple), comparator) &&
+                ...);
+    }
+
     static void destruct(const ReferenceReturnType& element) noexcept
     {
         (detail::ParameterTraits<Types>::destroy(std::get<I>(element.tuple)), ...);
