@@ -87,7 +87,7 @@ class ElementLocator : public BaseElementLocator
     }
 
     template <class... Args>
-    void emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizes& fixed_sizes, Args&&... args)
+    static void emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizes& fixed_sizes, Args&&... args)
     {
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
         element_addresses_begin[index + 1] =
@@ -107,18 +107,26 @@ class ElementLocator : public BaseElementLocator
         const auto new_start = Self::calculate_element_start(new_max_element_count, new_memory_begin);
         const auto old_start = Self::calculate_element_start(old_max_element_count, old_memory_begin);
         const auto size_diff = std::distance(new_memory_begin, new_start) - std::distance(old_memory_begin, old_start);
+        const auto new_last_element_address = Self::copy_element_addresses(new_memory_begin, old_memory_begin,
+                                                                           old_locator.last_element_address, size_diff);
+        const auto old_used_memory_size = std::distance(old_start, old_locator.last_element);
+        std::memcpy(new_start, old_start, old_used_memory_size);
+        this->last_element_address = new_last_element_address;
+        this->last_element = new_memory_begin + std::distance(old_memory_begin, old_locator.last_element) + size_diff;
+    }
+
+    static auto copy_element_addresses(std::byte* new_memory_begin, std::byte* old_memory_begin,
+                                       std::byte** old_last_element_address, std::ptrdiff_t size_diff) noexcept
+    {
         auto new_last_element_address = reinterpret_cast<std::byte**>(new_memory_begin);
-        std::for_each(reinterpret_cast<std::byte**>(old_memory_begin), old_locator.last_element_address,
+        std::for_each(reinterpret_cast<std::byte**>(old_memory_begin), old_last_element_address,
                       [&](std::byte* element)
                       {
                           *new_last_element_address =
                               new_memory_begin + std::distance(old_memory_begin, element) + size_diff;
                           ++new_last_element_address;
                       });
-        const auto old_used_memory_size = std::distance(old_start, old_locator.last_element);
-        std::memcpy(new_start, old_start, old_used_memory_size);
-        this->last_element_address = new_last_element_address;
-        this->last_element = new_memory_begin + std::distance(old_memory_begin, old_locator.last_element) + size_diff;
+        return new_last_element_address;
     }
 
     static constexpr auto calculate_element_start(std::size_t max_element_count, std::byte* memory_begin) noexcept
@@ -145,16 +153,16 @@ class BaseAllFixedSizeElementLocator
   public:
     static constexpr auto reserved_bytes(std::size_t) noexcept { return std::size_t{}; }
 
-    constexpr bool empty(std::byte*) const noexcept { return this->element_count == std::size_t{}; }
+    constexpr bool empty(const std::byte*) const noexcept { return this->element_count == std::size_t{}; }
 
-    constexpr std::size_t size(std::byte*) const noexcept { return this->element_count; }
+    constexpr std::size_t size(const std::byte*) const noexcept { return this->element_count; }
 
-    constexpr auto element_address(std::size_t index, std::byte*) const noexcept
+    constexpr auto element_address(std::size_t index, const std::byte*) const noexcept
     {
-        return start + this->stride * index;
+        return this->start + this->stride * index;
     }
 
-    constexpr void resize(std::size_t new_size, std::byte*) noexcept { this->element_count = new_size; }
+    constexpr void resize(std::size_t new_size, const std::byte*) noexcept { this->element_count = new_size; }
 };
 
 template <class... Types>
@@ -183,18 +191,18 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
     template <class... Args>
     void emplace_back(const FixedSizes& fixed_sizes, Args&&... args)
     {
-        auto last_element = this->element_address(element_count, {});
+        auto last_element = this->element_address(this->element_count, {});
         ++this->element_count;
         ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
     }
 
     template <class... Args>
-    void emplace_at(std::size_t index, std::byte*, const FixedSizes& fixed_sizes, Args&&... args)
+    void emplace_at(std::size_t index, const std::byte*, const FixedSizes& fixed_sizes, Args&&... args)
     {
         ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
     }
 
-    void copy_from(std::size_t, std::byte* new_memory_begin, std::size_t, std::byte*) noexcept
+    void copy_from(std::size_t, std::byte* new_memory_begin, std::size_t, const std::byte*) noexcept
     {
         this->copy_from(new_memory_begin, *this);
     }

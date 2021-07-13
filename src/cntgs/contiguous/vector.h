@@ -354,7 +354,7 @@ class BasicContiguousVector
 
     void destruct() noexcept { this->destruct(this->begin(), this->end()); }
 
-    void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
+    static void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
     {
         if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {

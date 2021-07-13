@@ -59,7 +59,7 @@ static constexpr auto EQUAL_SIZEOF =
 template <class...>
 static constexpr auto FALSE_V = false;
 
-namespace has_ADL_swap_detail
+namespace has_adl_swap_detail
 {
 void swap();  // undefined (deliberate shadowing)
 
@@ -71,8 +71,8 @@ template <class T>
 struct HasADLSwap<T, std::void_t<decltype(swap(std::declval<T&>(), std::declval<T&>()))>> : std::true_type
 {
 };
-}  // namespace has_ADL_swap_detail
-using has_ADL_swap_detail::HasADLSwap;
+}  // namespace has_adl_swap_detail
+using has_adl_swap_detail::HasADLSwap;
 
 // Implementation taken from MSVC _Is_trivially_swappable
 template <class T>

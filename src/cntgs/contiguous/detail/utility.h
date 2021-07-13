@@ -13,7 +13,13 @@ struct MoveDefaultingValue
 
     explicit constexpr MoveDefaultingValue(T value) noexcept : value(value) {}
 
+    ~MoveDefaultingValue() = default;
+
+    MoveDefaultingValue(const MoveDefaultingValue&) = default;
+
     constexpr MoveDefaultingValue(MoveDefaultingValue&& other) noexcept : value(other.value) { other.value = T{}; }
+
+    MoveDefaultingValue& operator=(const MoveDefaultingValue& other) = default;
 
     constexpr MoveDefaultingValue& operator=(MoveDefaultingValue&& other) noexcept
     {
