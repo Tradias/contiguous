@@ -175,7 +175,7 @@ TEST_CASE("ContiguousTest: value_type can be copy assigned")
     CHECK(test::range_equal(std::array{STRING2}, cntgs::get<1>(value2)));
 }
 
-template <class Allocator = std::allocator<void>>
+template <class Allocator = std::allocator<int>>
 auto fixed_vector_of_unique_ptrs(Allocator allocator = {})
 {
     cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
@@ -689,7 +689,7 @@ TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
     std::optional<OneFixed> vector;
     const auto memory_size = 2 * (sizeof(uint32_t) + 2 * sizeof(float));
     test::AllocationGuard<std::byte> ptr{memory_size};
-    SUBCASE("unique_ptr") { vector.emplace(memory_size, ptr.release(), 2, std::array{FLOATS1.size()}); }
+    SUBCASE("unique_ptr") { vector.emplace(ptr.release(), memory_size, 2, std::array{FLOATS1.size()}); }
     SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.ptr, memory_size}, 2, std::array{FLOATS1.size()}); }
     CHECK(vector);
     vector->emplace_back(10u, FLOATS1);
@@ -703,7 +703,7 @@ TEST_CASE("ContiguousTest: Plain construct with unique_ptr and span")
     std::optional<Plain> vector;
     const auto memory_size = 2 * (sizeof(uint32_t) + sizeof(float));
     test::AllocationGuard<std::byte> ptr{memory_size};
-    SUBCASE("unique_ptr") { vector.emplace(memory_size, ptr.release(), 2); }
+    SUBCASE("unique_ptr") { vector.emplace(ptr.release(), memory_size, 2); }
     SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.ptr, memory_size}, 2); }
     CHECK(vector);
     vector->emplace_back(10u, 5.f);

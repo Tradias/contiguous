@@ -17,7 +17,7 @@
 
 namespace cntgs::detail
 {
-using TypeErasedDeleter = std::aligned_storage_t<32>;
+using TypeErasedAllocator = std::aligned_storage_t<32>;
 
 template <std::size_t N>
 struct alignas(N) AlignedByte
@@ -95,7 +95,7 @@ class AllocatorAwarePointer
         if (this != &other)
         {
             this->deallocate();
-            if constexpr (AllocatorTraits::propagate_on_container_copy_assignment)
+            if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value)
             {
                 this->get_allocator() = other.get_allocator();
             }
@@ -109,7 +109,7 @@ class AllocatorAwarePointer
     {
         if (this != &other)
         {
-            if constexpr (AllocatorTraits::propagate_on_container_move_assignment)
+            if constexpr (AllocatorTraits::propagate_on_container_move_assignment::value)
             {
                 this->get_allocator() = std::move(other.get_allocator());
             }
@@ -174,13 +174,14 @@ class MaybeOwnedAllocatorAwarePointer
     using pointer = typename StorageType::pointer;
     using value_type = typename StorageType::value_type;
 
-    StorageType ptr;
+    StorageType ptr{};
     bool owned{};
 
     MaybeOwnedAllocatorAwarePointer() = default;
 
-    constexpr MaybeOwnedAllocatorAwarePointer(pointer ptr, std::size_t size, Allocator allocator) noexcept
-        : ptr(ptr, size, allocator), owned(false)
+    constexpr MaybeOwnedAllocatorAwarePointer(pointer ptr, std::size_t size, bool is_owned,
+                                              Allocator allocator) noexcept
+        : ptr(ptr, size, allocator), owned(is_owned)
     {
     }
 
@@ -210,6 +211,8 @@ class MaybeOwnedAllocatorAwarePointer
 
     constexpr auto get() const noexcept { return this->ptr.get(); }
 
+    constexpr auto size() const noexcept { return this->ptr.size(); }
+
     constexpr bool is_owned() const noexcept { return this->owned; }
 
     explicit constexpr operator bool() const noexcept { return bool(this->ptr); }
@@ -217,6 +220,8 @@ class MaybeOwnedAllocatorAwarePointer
     constexpr auto release() noexcept { return this->ptr.release(); }
 
     constexpr auto get_allocator() const noexcept { return this->ptr.get_allocator(); }
+
+    constexpr auto& get_impl() noexcept { return this->ptr; }
 
   private:
     constexpr void release_ptr_if_not_owned() noexcept
@@ -227,190 +232,6 @@ class MaybeOwnedAllocatorAwarePointer
         }
     }
 };
-
-template <class T, class Deleter = std::default_delete<T>>
-class MaybeOwnedPtr
-{
-  private:
-    using StorageType = std::unique_ptr<T, Deleter>;
-
-  public:
-    using pointer = typename StorageType::pointer;
-    using element_type = typename StorageType::element_type;
-    using deleter_type = typename StorageType::deleter_type;
-
-    StorageType ptr;
-    bool owned{};
-
-    MaybeOwnedPtr() = default;
-
-    explicit MaybeOwnedPtr(StorageType&& ptr) noexcept : ptr(std::move(ptr)), owned(true) {}
-
-    MaybeOwnedPtr(pointer data, Deleter deleter, bool owned = false) noexcept
-        : ptr(data, std::move(deleter)), owned(owned)
-    {
-    }
-
-    MaybeOwnedPtr(const MaybeOwnedPtr& other) = delete;
-
-    MaybeOwnedPtr(MaybeOwnedPtr&& other) = default;
-
-    MaybeOwnedPtr& operator=(const MaybeOwnedPtr& other) = delete;
-
-    MaybeOwnedPtr& operator=(MaybeOwnedPtr&& other) noexcept
-    {
-        if (this != &other)
-        {
-            this->release_ptr_if_not_owned();
-            ptr = std::move(other.ptr);
-            owned = other.owned;
-        }
-        return *this;
-    }
-
-    ~MaybeOwnedPtr() noexcept { this->release_ptr_if_not_owned(); }
-
-    [[nodiscard]] pointer get() const noexcept { return this->ptr.get(); }
-
-    [[nodiscard]] constexpr bool is_owned() const noexcept { return this->owned; }
-
-    explicit operator bool() const noexcept { return bool(this->ptr); }
-
-    [[nodiscard]] pointer release() noexcept { return this->ptr.release(); }
-
-    [[nodiscard]] decltype(auto) get_deleter() noexcept { return this->ptr.get_deleter(); }
-
-    [[nodiscard]] decltype(auto) get_deleter() const noexcept { return this->ptr.get_deleter(); }
-
-  private:
-    void release_ptr_if_not_owned() noexcept
-    {
-        if (!owned)
-        {
-            (void)this->ptr.release();
-        }
-    }
-};
-
-template <class T, class Allocator>
-constexpr void destroy_deallocate(T* ptr, Allocator allocator, std::size_t size = 1) noexcept
-{
-    using Traits = typename std::allocator_traits<Allocator>::template rebind_traits<std::remove_extent_t<T>>;
-    typename Traits::allocator_type rebound_allocator{std::move(allocator)};
-    Traits::destroy(rebound_allocator, ptr);
-    Traits::deallocate(rebound_allocator, ptr, size);
-}
-
-template <class Allocator, bool IsSized>
-class AllocatorDeleter
-{
-  private:
-    // workaround for bug in GCC 9.3 which detects a member typedef 'pointer' in a private base class
-    struct Impl : detail::EmptyBaseOptimizationT<Allocator>
-    {
-        using Base = detail::EmptyBaseOptimizationT<Allocator>;
-
-        std::size_t size{};
-
-        Impl() = default;
-
-        constexpr Impl(std::size_t size, Allocator allocator) noexcept : Base{std::move(allocator)}, size(size) {}
-    };
-
-  public:
-    using allocator_type = Allocator;
-
-    Impl impl;
-
-    AllocatorDeleter() = default;
-
-    constexpr AllocatorDeleter(std::size_t size, Allocator allocator) noexcept : impl(size, std::move(allocator)) {}
-
-    template <class T>
-    constexpr void operator()(T* ptr) const noexcept
-    {
-        detail::destroy_deallocate(ptr, std::move(this->impl.get()), this->impl.size);
-    }
-
-    constexpr allocator_type get_allocator() const noexcept { return this->impl.get(); }
-
-    constexpr auto& size() noexcept { return this->impl.size; }
-
-    constexpr const auto& size() const noexcept { return this->impl.size; }
-};
-
-template <class Allocator>
-class AllocatorDeleter<Allocator, false> : private detail::EmptyBaseOptimizationT<Allocator>
-{
-  private:
-    using Base = detail::EmptyBaseOptimizationT<Allocator>;
-
-  public:
-    using allocator_type = Allocator;
-
-    AllocatorDeleter() = default;
-
-    explicit constexpr AllocatorDeleter(Allocator allocator) noexcept : Base{std::move(allocator)} {}
-
-    template <class T>
-    constexpr void operator()(T* ptr) const noexcept
-    {
-        detail::destroy_deallocate(ptr, std::move(Base::get()));
-    }
-
-    constexpr allocator_type get_allocator() const noexcept { return Base::get(); }
-};
-
-template <class T, class Allocator>
-using AllocateUniquePtr = std::unique_ptr<T, detail::AllocatorDeleter<Allocator, std::is_array_v<T>>>;
-
-template <class T, class Allocator, class... Args>
-auto allocate_unique(Allocator allocator, Args&&... args)
-{
-    using ReturnType = detail::AllocateUniquePtr<T, Allocator>;
-    using Deleter = typename ReturnType::deleter_type;
-    using Traits = typename std::allocator_traits<Allocator>::template rebind_traits<std::remove_extent_t<T>>;
-    typename Traits::allocator_type alloc{allocator};
-    const auto no_throw = [&]
-    {
-        auto* ptr = Traits::allocate(alloc, 1);
-        Traits::construct(alloc, ptr, std::forward<Args>(args)...);
-        return ReturnType{ptr, Deleter{std::move(allocator)}};
-    };
-#ifdef __cpp_exceptions
-    if constexpr (std::is_nothrow_constructible_v<T, Args&&...>)
-    {
-        return no_throw();
-    }
-    else
-    {
-        auto* ptr = Traits::allocate(alloc, 1);
-        try
-        {
-            Traits::construct(alloc, ptr, std::forward<Args>(args)...);
-        }
-        catch (...)
-        {
-            Traits::deallocate(alloc, ptr, 1);
-            throw;
-        }
-        return ReturnType{ptr, Deleter{std::move(allocator)}};
-    }
-#else
-    return no_throw();
-#endif
-}
-
-template <class T, class Allocator>
-auto allocate_unique_for_overwrite(std::size_t size, Allocator allocator)
-{
-    using ReturnType = detail::AllocateUniquePtr<T, Allocator>;
-    using Deleter = typename ReturnType::deleter_type;
-    using Traits = typename std::allocator_traits<Allocator>::template rebind_traits<std::remove_extent_t<T>>;
-    typename Traits::allocator_type alloc{allocator};
-    auto* ptr = Traits::allocate(alloc, size);
-    return ReturnType{ptr, Deleter{size, std::move(allocator)}};
-}
 
 template <class T>
 auto copy_using_memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept
@@ -532,10 +353,10 @@ template <bool NeedsAlignment, std::size_t Alignment>
 }
 
 template <class T>
-auto type_erase_deleter(T&& deleter) noexcept
+auto type_erase_allocator(T&& allocator) noexcept
 {
-    detail::TypeErasedDeleter result;
-    detail::construct_at(reinterpret_cast<detail::RemoveCvrefT<T>*>(&result), std::forward<T>(deleter));
+    detail::TypeErasedAllocator result;
+    detail::construct_at(reinterpret_cast<detail::RemoveCvrefT<T>*>(&result), std::forward<T>(allocator));
     return result;
 }
 }  // namespace cntgs::detail

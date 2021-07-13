@@ -18,7 +18,7 @@
 namespace cntgs
 {
 template <class... Types>
-using ContiguousElement = cntgs::BasicContiguousElement<std::allocator<void>, Types...>;
+using ContiguousElement = cntgs::BasicContiguousElement<std::allocator<std::byte>, Types...>;
 
 template <class Allocator, class... Types>
 class BasicContiguousElement
