@@ -25,12 +25,12 @@ class TypeErasedVector
                      const std::array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>& fixed_sizes,
                      detail::TypeErasedElementLocator locator, void (*destructor)(cntgs::TypeErasedVector&)) noexcept
         : max_element_count(max_element_count),
-          memory(std::move(memory)),
+          memory(memory),
           is_memory_owned(is_memory_owned),
           fixed_sizes(fixed_sizes),
-          locator(std::move(locator)),
+          locator(locator),
           destructor(destructor),
-          deleter(std::move(deleter))
+          deleter(deleter)
     {
     }
 

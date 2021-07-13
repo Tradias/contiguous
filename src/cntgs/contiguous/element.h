@@ -24,7 +24,6 @@ template <class Allocator, class... Types>
 class BasicContiguousElement
 {
   private:
-    using Self = cntgs::BasicContiguousElement<Types...>;
     using ListTraits = detail::ParameterListTraits<Types...>;
     using VectorTraits = detail::ContiguousVectorTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
@@ -32,7 +31,6 @@ class BasicContiguousElement
     using StorageElementType = detail::AlignedByte<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>;
     using StorageType = detail::AllocateUniquePtr<StorageElementType[], Allocator>;
     using Tuple = typename VectorTraits::ReferenceReturnType;
-    using UnderlyingTuple = typename Tuple::Tuple;
 
   public:
     using allocator_type = Allocator;

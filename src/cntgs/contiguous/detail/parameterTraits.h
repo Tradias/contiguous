@@ -23,7 +23,6 @@ struct ParameterTraits : detail::ParameterTraits<cntgs::AlignAs<T, 1>>
 template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 {
-    using Type = T;
     using ValueType = T;
     using PointerReturnType = std::add_pointer_t<T>;
     using ReferenceReturnType = std::add_lvalue_reference_t<T>;
@@ -233,7 +232,6 @@ struct ParameterTraits<cntgs::VaryingSize<T>> : ParameterTraits<cntgs::VaryingSi
 template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T, Alignment>
 {
-    using Type = cntgs::VaryingSize<T>;
     using ValueType = T;
     using PointerReturnType = cntgs::Span<T>;
     using ReferenceReturnType = cntgs::Span<T>;
@@ -279,7 +277,6 @@ struct ParameterTraits<cntgs::FixedSize<T>> : ParameterTraits<cntgs::FixedSize<c
 template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T, Alignment>
 {
-    using Type = cntgs::FixedSize<T>;
     using ValueType = T;
     using PointerReturnType = cntgs::Span<T>;
     using ReferenceReturnType = cntgs::Span<T>;

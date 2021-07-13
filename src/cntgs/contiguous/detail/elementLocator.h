@@ -42,7 +42,7 @@ class BaseElementLocator
         return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
     }
 
-    auto element_address(std::size_t index, std::byte* memory_begin) const noexcept
+    static auto element_address(std::size_t index, std::byte* memory_begin) noexcept
     {
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
         return element_addresses_begin[index];
@@ -50,7 +50,7 @@ class BaseElementLocator
 
     void resize(std::size_t new_size, std::byte* memory_begin) noexcept
     {
-        this->last_element = this->element_address(new_size, memory_begin);
+        this->last_element = BaseElementLocator::element_address(new_size, memory_begin);
         this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 };

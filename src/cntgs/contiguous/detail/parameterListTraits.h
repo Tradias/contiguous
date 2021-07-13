@@ -27,7 +27,6 @@ struct ParameterListTraits
         (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
     static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
         (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE));
-    static constexpr auto MAX_ALIGNMENT = detail::MAX_SIZE_T_OF<detail::ParameterTraits<Types>::ALIGNMENT...>;
 
     static constexpr auto IS_NOTHROW_COPY_CONSTRUCTIBLE =
         (std::is_nothrow_copy_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);

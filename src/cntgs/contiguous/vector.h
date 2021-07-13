@@ -272,7 +272,7 @@ class BasicContiguousVector
 
     BasicContiguousVector(const cntgs::TypeErasedVector& vector, std::byte* memory, bool is_memory_owned) noexcept
         : max_element_count(vector.max_element_count),
-          memory(memory, *reinterpret_cast<const StorageDeleter*>(&vector.deleter), is_memory_owned),
+          memory(memory, *std::launder(reinterpret_cast<const StorageDeleter*>(&vector.deleter)), is_memory_owned),
           fixed_sizes(detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
           locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)))
     {
