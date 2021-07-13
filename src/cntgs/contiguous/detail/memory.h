@@ -25,6 +25,209 @@ struct alignas(N) AlignedByte
     std::byte byte;
 };
 
+template <class Allocator>
+class AllocatorAwarePointer
+{
+  private:
+    using AllocatorTraits = std::allocator_traits<Allocator>;
+    using Pointer = typename AllocatorTraits::pointer;
+
+  public:
+    using allocator_type = Allocator;
+    using pointer = Pointer;
+    using value_type = typename AllocatorTraits::value_type;
+
+  private:
+    struct Impl : detail::EmptyBaseOptimizationT<Allocator>
+    {
+        using Base = detail::EmptyBaseOptimizationT<Allocator>;
+
+        Pointer ptr{};
+        std::size_t size{};
+
+        Impl() = default;
+
+        constexpr Impl(Pointer ptr, std::size_t size, Allocator allocator) noexcept
+            : Base{std::move(allocator)}, ptr(ptr), size(size)
+        {
+        }
+    };
+
+    Impl impl;
+
+  public:
+    AllocatorAwarePointer() = default;
+
+    constexpr AllocatorAwarePointer(std::size_t size, Allocator allocator)
+        : impl(AllocatorTraits::allocate(allocator, size), size, allocator)
+    {
+    }
+
+    constexpr AllocatorAwarePointer(pointer ptr, std::size_t size, Allocator allocator) : impl(ptr, size, allocator) {}
+
+    ~AllocatorAwarePointer() noexcept { this->deallocate(); }
+
+    constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other)
+        : AllocatorAwarePointer(other.size(),
+                                AllocatorTraits::select_on_container_copy_construction(other.get_allocator()))
+    {
+    }
+
+    constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other, Allocator allocator)
+        : impl(AllocatorTraits::allocate(allocator, other.size()), other.size(), allocator)
+    {
+    }
+
+    constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other) noexcept
+        : impl(other.get(), other.size(), other.get_allocator())
+    {
+        other.get() = nullptr;
+    }
+
+    constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other, Allocator allocator) noexcept
+        : impl(other.get(), other.size(), allocator)
+    {
+        other.get() = nullptr;
+    }
+
+    constexpr AllocatorAwarePointer& operator=(const AllocatorAwarePointer& other)
+    {
+        if (this != &other)
+        {
+            this->deallocate();
+            if constexpr (AllocatorTraits::propagate_on_container_copy_assignment)
+            {
+                this->get_allocator() = other.get_allocator();
+            }
+            this->size() = other.size();
+            this->get() = this->allocate();
+        }
+        return *this;
+    }
+
+    constexpr AllocatorAwarePointer& operator=(AllocatorAwarePointer&& other) noexcept
+    {
+        if (this != &other)
+        {
+            if constexpr (AllocatorTraits::propagate_on_container_move_assignment)
+            {
+                this->get_allocator() = std::move(other.get_allocator());
+            }
+            this->get() = other.get();
+            this->size() = other.size();
+            other.get() = nullptr;
+        }
+        return *this;
+    }
+
+    constexpr decltype(auto) get_allocator() noexcept { return this->impl.get(); }
+
+    constexpr auto get_allocator() const noexcept { return this->impl.get(); }
+
+    constexpr auto& get() noexcept { return this->impl.ptr; }
+
+    constexpr auto get() const noexcept { return this->impl.ptr; }
+
+    constexpr auto& size() noexcept { return this->impl.size; }
+
+    constexpr auto size() const noexcept { return this->impl.size; }
+
+    explicit constexpr operator bool() const noexcept { return bool(this->get()); }
+
+    constexpr auto release() noexcept
+    {
+        auto ptr = this->impl.ptr;
+        this->impl.ptr = nullptr;
+        return ptr;
+    }
+
+    constexpr void allocate() { AllocatorTraits::allocate(this->get_allocator(), this->size()); }
+
+    constexpr void deallocate() noexcept
+    {
+        if (this->get())
+        {
+            AllocatorTraits::deallocate(this->get_allocator(), this->get(), this->size());
+        }
+    }
+};
+
+template <class Allocator>
+void swap(detail::AllocatorAwarePointer<Allocator>& lhs, detail::AllocatorAwarePointer<Allocator>& rhs) noexcept
+{
+    using std::swap;
+    if constexpr (std::allocator_traits<Allocator>::propagate_on_container_swap::value)
+    {
+        swap(lhs.get_allocator(), rhs.get_allocator());
+    }
+    swap(lhs.get(), rhs.get());
+    swap(lhs.size(), rhs.size());
+}
+
+template <class Allocator>
+class MaybeOwnedAllocatorAwarePointer
+{
+  private:
+    using StorageType = detail::AllocatorAwarePointer<Allocator>;
+
+  public:
+    using pointer = typename StorageType::pointer;
+    using value_type = typename StorageType::value_type;
+
+    StorageType ptr;
+    bool owned{};
+
+    MaybeOwnedAllocatorAwarePointer() = default;
+
+    constexpr MaybeOwnedAllocatorAwarePointer(pointer ptr, std::size_t size, Allocator allocator) noexcept
+        : ptr(ptr, size, allocator), owned(false)
+    {
+    }
+
+    constexpr MaybeOwnedAllocatorAwarePointer(std::size_t size, Allocator allocator) noexcept
+        : ptr(size, allocator), owned(true)
+    {
+    }
+
+    MaybeOwnedAllocatorAwarePointer(const MaybeOwnedAllocatorAwarePointer& other) = default;
+
+    MaybeOwnedAllocatorAwarePointer(MaybeOwnedAllocatorAwarePointer&& other) = default;
+
+    MaybeOwnedAllocatorAwarePointer& operator=(const MaybeOwnedAllocatorAwarePointer& other) = default;
+
+    constexpr MaybeOwnedAllocatorAwarePointer& operator=(MaybeOwnedAllocatorAwarePointer&& other) noexcept
+    {
+        if (this != &other)
+        {
+            this->release_ptr_if_not_owned();
+            ptr = std::move(other.ptr);
+            owned = other.owned;
+        }
+        return *this;
+    }
+
+    ~MaybeOwnedAllocatorAwarePointer() noexcept { this->release_ptr_if_not_owned(); }
+
+    constexpr auto get() const noexcept { return this->ptr.get(); }
+
+    constexpr bool is_owned() const noexcept { return this->owned; }
+
+    explicit constexpr operator bool() const noexcept { return bool(this->ptr); }
+
+    constexpr auto release() noexcept { return this->ptr.release(); }
+
+    constexpr auto get_allocator() const noexcept { return this->ptr.get_allocator(); }
+
+  private:
+    constexpr void release_ptr_if_not_owned() noexcept
+    {
+        if (!owned)
+        {
+            (void)this->ptr.release();
+        }
+    }
+};
+
 template <class T, class Deleter = std::default_delete<T>>
 class MaybeOwnedPtr
 {
@@ -132,7 +335,7 @@ class AllocatorDeleter
     constexpr allocator_type get_allocator() const noexcept { return this->impl.get(); }
 
     constexpr auto& size() noexcept { return this->impl.size; }
-    
+
     constexpr const auto& size() const noexcept { return this->impl.size; }
 };
 

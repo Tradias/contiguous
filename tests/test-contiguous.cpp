@@ -190,8 +190,9 @@ TEST_CASE("ContiguousTest: value_type can be move constructed")
     auto vector = fixed_vector_of_unique_ptrs();
     OneFixedUniquePtr::value_type value1{vector[0]};
     OneFixedUniquePtr::value_type value2{std::move(value1)};
-    CHECK_EQ(10, *cntgs::get<0>(value2).front());
-    CHECK_EQ(20, *cntgs::get<1>(value2));
+    auto&& [a, b] = value2;
+    CHECK(test::range_equal(array_one_unique_ptr(10), a, test::DereferenceEqual{}));
+    CHECK_EQ(20, *b);
 }
 
 TEST_CASE("ContiguousTest: value_type can be move assigned")
@@ -200,8 +201,24 @@ TEST_CASE("ContiguousTest: value_type can be move assigned")
     OneFixedUniquePtr::value_type value1{vector[0]};
     OneFixedUniquePtr::value_type value2{vector[1]};
     value1 = std::move(value2);
-    CHECK_EQ(30, *cntgs::get<0>(value1).front());
-    CHECK_EQ(40, *cntgs::get<1>(value1));
+    auto&& [a, b] = value1;
+    CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
+    CHECK_EQ(40, *b);
+}
+
+TEST_CASE("ContiguousTest: value_type can be swapped")
+{
+    auto vector = fixed_vector_of_unique_ptrs();
+    OneFixedUniquePtr::value_type value1{vector[0]};
+    OneFixedUniquePtr::value_type value2{vector[1]};
+    using std::swap;
+    swap(value1, value2);
+    auto&& [a, b] = value1;
+    CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
+    CHECK_EQ(40, *b);
+    auto&& [c, d] = value2;
+    CHECK(test::range_equal(array_one_unique_ptr(10), c, test::DereferenceEqual{}));
+    CHECK_EQ(20, *d);
 }
 
 TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumption()")

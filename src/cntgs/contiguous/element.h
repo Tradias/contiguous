@@ -29,7 +29,8 @@ class BasicContiguousElement
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
     using StorageElementType = detail::AlignedByte<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>;
-    using StorageType = detail::AllocateUniquePtr<StorageElementType[], Allocator>;
+    using StorageType = detail::AllocatorAwarePointer<
+        typename std::allocator_traits<Allocator>::template rebind_alloc<StorageElementType>>;
     using Tuple = typename VectorTraits::ReferenceReturnType;
 
   public:
@@ -43,38 +44,31 @@ class BasicContiguousElement
     template <detail::ContiguousTupleQualifier Qualifier>
     /*implicit*/ BasicContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other,
                                         allocator_type allocator = {})
-        : memory(
-              detail::allocate_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes(), std::move(allocator))),
-          tuple(this->store_and_load(other, other.size_in_bytes()))
+        : memory(other.size_in_bytes(), std::move(allocator)), tuple(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     template <detail::ContiguousTupleQualifier Qualifier>
     /*implicit*/ BasicContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other,
                                         allocator_type allocator = {})
-        : memory(
-              detail::allocate_unique_for_overwrite<StorageElementType[]>(other.size_in_bytes(), std::move(allocator))),
-          tuple(this->store_and_load(other, other.size_in_bytes()))
+        : memory(other.size_in_bytes(), std::move(allocator)), tuple(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     /*implicit*/ BasicContiguousElement(const BasicContiguousElement& other)
-        : BasicContiguousElement(
-              other, AllocatorTraits::select_on_container_copy_construction(other.memory.get_deleter().get_allocator()))
+        : memory(other.memory), tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
     {
     }
 
     template <class TAllocator>
     /*implicit*/ BasicContiguousElement(const BasicContiguousElement<TAllocator, Types...>& other)
-        : BasicContiguousElement(
-              other, AllocatorTraits::select_on_container_copy_construction(other.memory.get_deleter().get_allocator()))
+        : memory(other.memory), tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
     {
     }
 
     template <class TAllocator>
     BasicContiguousElement(const BasicContiguousElement<TAllocator, Types...>& other, allocator_type allocator)
-        : memory(detail::allocate_unique_for_overwrite<StorageElementType[]>(other.tuple.size_in_bytes(),
-                                                                             std::move(allocator))),
+        : memory(other.tuple.size_in_bytes(), std::move(allocator)),
           tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
     {
     }
@@ -89,11 +83,10 @@ class BasicContiguousElement
 
     template <class TAllocator>
     BasicContiguousElement(BasicContiguousElement<TAllocator, Types...>&& other, allocator_type allocator)
-        : memory(allocator == other.memory.get_deleter().get_allocator()
+        : memory(allocator == other.memory.get_allocator()
                      ? std::move(other.memory)
-                     : detail::allocate_unique_for_overwrite<StorageElementType[]>(other.tuple.size_in_bytes(),
-                                                                                   std::move(allocator))),
-          tuple(allocator == other.memory.get_deleter().get_allocator()
+                     : StorageType(other.tuple.size_in_bytes(), std::move(allocator))),
+          tuple(allocator == other.memory.get_allocator()
                     ? std::move(other.tuple)
                     : this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
     {
@@ -145,7 +138,7 @@ class BasicContiguousElement
         return *this;
     }
 
-    allocator_type get_allocator() const noexcept { return this->memory.get_deleter().get_allocator(); }
+    constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
 
     ~BasicContiguousElement() noexcept
     {
@@ -183,8 +176,11 @@ template <class Allocator, class... T>
 constexpr void swap(cntgs::BasicContiguousElement<Allocator, T...>& lhs,
                     cntgs::BasicContiguousElement<Allocator, T...>& rhs) noexcept
 {
-    std::swap(lhs.memory, rhs.memory);
-    std::swap(lhs.tuple.tuple, rhs.tuple.tuple);
+    using std::swap;
+    swap(lhs.memory, rhs.memory);
+    auto temp{lhs.tuple.tuple};
+    detail::construct_at(&lhs.tuple.tuple, rhs.tuple.tuple);
+    detail::construct_at(&rhs.tuple.tuple, temp);
 }
 
 template <std::size_t I, class Allocator, class... Types>
@@ -208,7 +204,7 @@ template <std::size_t I, class Allocator, class... Types>
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(const cntgs::BasicContiguousElement<Allocator, Types...>&& element) noexcept
 {
-    return cntgs::get<I>(std::move(element.tuple));
+    return detail::as_const(cntgs::get<I>(std::move(element.tuple)));
 }
 }  // namespace cntgs
 
@@ -216,12 +212,13 @@ namespace std
 {
 template <std::size_t I, class Allocator, class... Types>
 struct tuple_element<I, ::cntgs::BasicContiguousElement<Allocator, Types...>>
-    : std::tuple_element<I, typename ::cntgs::BasicContiguousElement<Allocator, Types...>::Tuple>
+    : std::tuple_element<I, decltype(::cntgs::BasicContiguousElement<Allocator, Types...>::tuple)>
 {
 };
 
-template <class... Types>
-struct tuple_size<::cntgs::BasicContiguousElement<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)>
+template <class Allocator, class... Types>
+struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
+    : std::integral_constant<std::size_t, sizeof...(Types)>
 {
 };
 }  // namespace std
