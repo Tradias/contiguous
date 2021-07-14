@@ -21,23 +21,22 @@ struct TransformTuple<Transformer, std::tuple<T...>>
 };
 
 template <class T>
-using ToContiguousReference = typename detail::ParameterTraits<T>::ReferenceReturnType;
+using ToContiguousReference = typename detail::ParameterTraits<T>::ReferenceType;
 
 template <class T>
-using ToContiguousTupleOfReferenceReturnType = typename detail::TransformTuple<ToContiguousReference, T>::Type;
+using ToTupleOfContiguousReference = typename detail::TransformTuple<ToContiguousReference, T>::Type;
 
 template <class T>
-using ToContiguousConstReference = typename detail::ParameterTraits<T>::ConstReferenceReturnType;
+using ToContiguousConstReference = typename detail::ParameterTraits<T>::ConstReferenceType;
 
 template <class T>
-using ToContiguousTupleOfConstReferenceReturnType =
-    typename detail::TransformTuple<ToContiguousConstReference, T>::Type;
+using ToTupleOfContiguousConstReference = typename detail::TransformTuple<ToContiguousConstReference, T>::Type;
 
 template <class T>
-using ToContiguousPointer = typename detail::ParameterTraits<T>::PointerReturnType;
+using ToContiguousPointer = typename detail::ParameterTraits<T>::PointerType;
 
 template <class T>
-using ToContiguousTupleOfPointerReturnType = typename detail::TransformTuple<ToContiguousPointer, T>::Type;
+using ToTupleOfContiguousPointer = typename detail::TransformTuple<ToContiguousPointer, T>::Type;
 
 template <class Result, class... T, std::size_t... I>
 constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer, std::index_sequence<I...>) noexcept

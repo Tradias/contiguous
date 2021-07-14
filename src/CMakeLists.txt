@@ -18,7 +18,7 @@ list(
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/attributes.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementLocator.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementTraits.h
-    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/fixedSizeGetter.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/sizeGetter.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/forward.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/iterator.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/math.h

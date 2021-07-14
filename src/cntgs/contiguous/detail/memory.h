@@ -65,8 +65,6 @@ class AllocatorAwarePointer
 
     constexpr AllocatorAwarePointer(pointer ptr, std::size_t size, Allocator allocator) : impl(ptr, size, allocator) {}
 
-    ~AllocatorAwarePointer() noexcept { this->deallocate(); }
-
     constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other)
         : AllocatorAwarePointer(other.size(),
                                 AllocatorTraits::select_on_container_copy_construction(other.get_allocator()))
@@ -89,6 +87,8 @@ class AllocatorAwarePointer
     {
         other.get() = nullptr;
     }
+
+    ~AllocatorAwarePointer() noexcept { this->deallocate(); }
 
     constexpr AllocatorAwarePointer& operator=(const AllocatorAwarePointer& other)
     {
@@ -171,6 +171,7 @@ class MaybeOwnedAllocatorAwarePointer
     using StorageType = detail::AllocatorAwarePointer<Allocator>;
 
   public:
+    using allocator_type = typename StorageType::allocator_type;
     using pointer = typename StorageType::pointer;
     using value_type = typename StorageType::value_type;
 
@@ -180,12 +181,12 @@ class MaybeOwnedAllocatorAwarePointer
     MaybeOwnedAllocatorAwarePointer() = default;
 
     constexpr MaybeOwnedAllocatorAwarePointer(pointer ptr, std::size_t size, bool is_owned,
-                                              Allocator allocator) noexcept
+                                              allocator_type allocator) noexcept
         : ptr(ptr, size, allocator), owned(is_owned)
     {
     }
 
-    constexpr MaybeOwnedAllocatorAwarePointer(std::size_t size, Allocator allocator) noexcept
+    constexpr MaybeOwnedAllocatorAwarePointer(std::size_t size, allocator_type allocator) noexcept
         : ptr(size, allocator), owned(true)
     {
     }

@@ -11,9 +11,8 @@ namespace cntgs::detail
 template <class... Types>
 struct ContiguousVectorTraits
 {
-    using ReferenceReturnType = cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::REFERENCE, Types...>;
-    using ConstReferenceReturnType =
-        cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::CONST_REFERENCE, Types...>;
-    using PointerReturnType = detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>;
+    using ReferenceType = cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::REFERENCE, Types...>;
+    using ConstReferenceType = cntgs::ContiguousTuple<detail::ContiguousTupleQualifier::CONST_REFERENCE, Types...>;
+    using PointerType = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
 };
 }  // namespace cntgs::detail

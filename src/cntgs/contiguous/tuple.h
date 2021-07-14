@@ -20,12 +20,12 @@ class ContiguousTuple
   private:
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using PointerTuple = detail::ToContiguousTupleOfPointerReturnType<std::tuple<Types...>>;
+    using PointerTuple = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
 
   public:
     using Tuple = detail::ConditionalT<(Qualifier == detail::ContiguousTupleQualifier::REFERENCE),
-                                       detail::ToContiguousTupleOfReferenceReturnType<std::tuple<Types...>>,
-                                       detail::ToContiguousTupleOfConstReferenceReturnType<std::tuple<Types...>>>;
+                                       detail::ToTupleOfContiguousReference<std::tuple<Types...>>,
+                                       detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>>;
 
     static constexpr auto IS_CONST = detail::ContiguousTupleQualifier::CONST_REFERENCE == Qualifier;
 
@@ -122,16 +122,16 @@ class ContiguousTuple
         ElementTraits::swap(other, *this);
     }
 
-    [[nodiscard]] constexpr auto size_in_bytes() const noexcept { return this->end_address() - this->start_address(); }
+    [[nodiscard]] constexpr auto size_in_bytes() const noexcept { return this->data_end() - this->data_begin(); }
 
-    [[nodiscard]] constexpr auto start_address() const noexcept
+    [[nodiscard]] constexpr auto data_begin() const noexcept
     {
-        return ElementTraits::template ParameterTraitsAt<0>::start_address(std::get<0>(this->tuple));
+        return ElementTraits::template ParameterTraitsAt<0>::data_begin(std::get<0>(this->tuple));
     }
 
-    [[nodiscard]] constexpr auto end_address() const noexcept
+    [[nodiscard]] constexpr auto data_end() const noexcept
     {
-        return ElementTraits::template ParameterTraitsAt<sizeof...(Types) - 1>::end_address(
+        return ElementTraits::template ParameterTraitsAt<sizeof...(Types) - 1>::data_end(
             std::get<sizeof...(Types) - 1>(this->tuple));
     }
 

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/attributes.h"
-#include "cntgs/contiguous/detail/fixedSizeGetter.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
+#include "cntgs/contiguous/detail/sizeGetter.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
 
@@ -16,13 +16,13 @@
 
 namespace cntgs::detail
 {
-struct DefaultAlignmentSelector
+struct DefaultAlignmentNeeds
 {
     template <std::size_t>
     static constexpr auto VALUE = true;
 };
 
-struct IgnoreFirstAlignmentSelector
+struct IgnoreFirstAlignmentNeeds
 {
     template <std::size_t I>
     static constexpr auto VALUE = I != 0;
@@ -64,11 +64,11 @@ class ElementTraits<std::index_sequence<I...>, Types...>
   private:
     using ListTraits = detail::ParameterListTraits<Types...>;
     using FixedSizes = typename ListTraits::FixedSizes;
-    using PointerReturnType = typename detail::ContiguousVectorTraits<Types...>::PointerReturnType;
-    using ReferenceReturnType = typename detail::ContiguousVectorTraits<Types...>::ReferenceReturnType;
-    using AlignmentSelector =
+    using ContiguousPointer = typename detail::ContiguousVectorTraits<Types...>::PointerType;
+    using ContiguousReference = typename detail::ContiguousVectorTraits<Types...>::ReferenceType;
+    using AlignmentNeeds =
         detail::ConditionalT<(ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT == ListTraits::CONTIGUOUS_COUNT),
-                             detail::IgnoreFirstAlignmentSelector, detail::DefaultAlignmentSelector>;
+                             detail::IgnoreFirstAlignmentNeeds, detail::DefaultAlignmentNeeds>;
     using FixedSizeGetter = detail::FixedSizeGetter<Types...>;
 
     static constexpr auto SKIP = std::numeric_limits<std::size_t>::max();
@@ -106,9 +106,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     template <bool IgnoreAliasing, class... Args>
     static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes, Args&&... args)
     {
-        ((address =
-              detail::ParameterTraits<Types>::template store<AlignmentSelector::template VALUE<I>, IgnoreAliasing>(
-                  std::forward<Args>(args), address, FixedSizeGetter::template get<Types, I>(fixed_sizes))),
+        ((address = detail::ParameterTraits<Types>::template store<AlignmentNeeds::template VALUE<I>, IgnoreAliasing>(
+              std::forward<Args>(args), address, FixedSizeGetter::template get<Types, I>(fixed_sizes))),
          ...);
         return address;
     }
@@ -131,13 +130,13 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         return emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    template <class NeedsAlignmentSelector = AlignmentSelector, class FixedSizeGetterType = FixedSizeGetter,
+    template <class AlignmentNeedsType = AlignmentNeeds, class FixedSizeGetterType = FixedSizeGetter,
               class FixedSizesType = FixedSizes>
     static auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
-        PointerReturnType result;
+        ContiguousPointer result;
         ((std::tie(std::get<I>(result), address) =
-              detail::ParameterTraits<Types>::template load<NeedsAlignmentSelector::template VALUE<I>>(
+              detail::ParameterTraits<Types>::template load<AlignmentNeedsType::template VALUE<I>>(
                   address, FixedSizeGetterType::template get<Types, I>(fixed_sizes))),
          ...);
         return result;
@@ -165,7 +164,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
     template <bool UseMove, detail::ContiguousTupleQualifier Qualifier>
     static constexpr void construct_if_non_trivial(const cntgs::ContiguousTuple<Qualifier, Types...>& source,
-                                                   const PointerReturnType& target)
+                                                   const ContiguousPointer& target)
     {
         (detail::construct_one_if_non_trivial<UseMove, Types>(std::get<I>(source.tuple), std::get<I>(target)), ...);
     }
@@ -189,9 +188,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto target_start = ParameterTraitsAt<K>::start_address(std::get<K>(target.tuple));
-            const auto source_start = ParameterTraitsAt<K>::start_address(std::get<K>(source.tuple));
-            const auto source_end = ParameterTraitsAt<INDEX>::end_address(std::get<INDEX>(source.tuple));
+            const auto target_start = ParameterTraitsAt<K>::data_begin(std::get<K>(target.tuple));
+            const auto source_start = ParameterTraitsAt<K>::data_begin(std::get<K>(source.tuple));
+            const auto source_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(source.tuple));
             std::memmove(target_start, source_start, source_end - source_start);
         }
     }
@@ -205,7 +204,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     }
 
     template <std::size_t K>
-    static void swap(const ReferenceReturnType& lhs, const ReferenceReturnType& rhs)
+    static void swap(const ContiguousReference& lhs, const ContiguousReference& rhs)
     {
         static constexpr auto INDEX = std::get<K>(CONSECUTIVE_TRIVIALLY_SWAPPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
@@ -214,9 +213,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto rhs_start = ParameterTraitsAt<K>::start_address(std::get<K>(rhs.tuple));
-            const auto lhs_start = ParameterTraitsAt<K>::start_address(std::get<K>(lhs.tuple));
-            const auto lhs_end = ParameterTraitsAt<INDEX>::end_address(std::get<INDEX>(lhs.tuple));
+            const auto rhs_start = ParameterTraitsAt<K>::data_begin(std::get<K>(rhs.tuple));
+            const auto lhs_start = ParameterTraitsAt<K>::data_begin(std::get<K>(lhs.tuple));
+            const auto lhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(lhs.tuple));
             // some compilers (e.g. MSVC) perform handrolled optimizations if the argument type
             // to swap_ranges are trivially_swappable which includes that is has
             // no ADL discovered swap function. std::byte has such function, but
@@ -227,7 +226,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
     }
 
-    static void swap(const ReferenceReturnType& lhs, const ReferenceReturnType& rhs) { (swap<I>(lhs, rhs), ...); }
+    static void swap(const ContiguousReference& lhs, const ContiguousReference& rhs) { (swap<I>(lhs, rhs), ...); }
 
     template <detail::ContiguousTupleQualifier LhsQualifier, detail::ContiguousTupleQualifier RhsQualifier>
     static constexpr auto equal(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
@@ -245,9 +244,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
             ...);
     }
 
-    static void destruct(const ReferenceReturnType& element) noexcept
+    static void destruct(const ContiguousReference& reference) noexcept
     {
-        (detail::ParameterTraits<Types>::destroy(std::get<I>(element.tuple)), ...);
+        (detail::ParameterTraits<Types>::destroy(std::get<I>(reference.tuple)), ...);
     }
 };
 

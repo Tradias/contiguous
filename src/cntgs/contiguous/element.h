@@ -1,10 +1,10 @@
 #pragma once
 
 #include "cntgs/contiguous/detail/elementTraits.h"
-#include "cntgs/contiguous/detail/fixedSizeGetter.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/memory.h"
 #include "cntgs/contiguous/detail/parameterListTraits.h"
+#include "cntgs/contiguous/detail/sizeGetter.h"
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/utility.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
@@ -31,7 +31,7 @@ class BasicContiguousElement
     using StorageElementType = detail::AlignedByte<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>;
     using StorageType = detail::AllocatorAwarePointer<
         typename std::allocator_traits<Allocator>::template rebind_alloc<StorageElementType>>;
-    using Tuple = typename VectorTraits::ReferenceReturnType;
+    using Tuple = typename VectorTraits::ReferenceType;
 
   public:
     using allocator_type = Allocator;
@@ -157,10 +157,9 @@ class BasicContiguousElement
     {
         static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
         const auto begin = this->memory_begin();
-        std::memcpy(begin, source.start_address(), memory_size);
-        auto target =
-            ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentSelector,
-                                                    detail::ContiguousReturnTypeSizeGetter>(begin, source.tuple);
+        std::memcpy(begin, source.data_begin(), memory_size);
+        auto target = ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentNeeds,
+                                                              detail::ContiguousTupleSizeGetter>(begin, source.tuple);
         ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
         return Tuple{target};
     }

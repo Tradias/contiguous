@@ -24,9 +24,9 @@ template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 {
     using ValueType = T;
-    using PointerReturnType = std::add_pointer_t<T>;
-    using ReferenceReturnType = std::add_lvalue_reference_t<T>;
-    using ConstReferenceReturnType = std::add_lvalue_reference_t<std::add_const_t<T>>;
+    using PointerType = std::add_pointer_t<T>;
+    using ReferenceType = std::add_lvalue_reference_t<T>;
+    using ConstReferenceType = std::add_lvalue_reference_t<std::add_const_t<T>>;
 
     static constexpr auto TYPE = detail::ParameterType::PLAIN;
     static constexpr auto ALIGNMENT = Alignment;
@@ -37,7 +37,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static auto load(std::byte* address, std::size_t) noexcept
     {
         address = static_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        auto result = std::launder(reinterpret_cast<PointerReturnType>(address));
+        auto result = std::launder(reinterpret_cast<PointerType>(address));
         return std::pair{result, address + VALUE_BYTES};
     }
 
@@ -53,70 +53,60 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 
     static constexpr auto guaranteed_size_in_memory(std::size_t) noexcept { return VALUE_BYTES; }
 
-    static auto start_address(ConstReferenceReturnType return_type) noexcept
+    static auto data_begin(ConstReferenceType return_type) noexcept
     {
         return detail::assume_aligned<ALIGNMENT>(reinterpret_cast<const std::byte*>(std::addressof(return_type)));
     }
 
-    static auto start_address(ReferenceReturnType return_type) noexcept
+    static auto data_begin(ReferenceType return_type) noexcept
     {
         return detail::assume_aligned<ALIGNMENT>(reinterpret_cast<std::byte*>(std::addressof(return_type)));
     }
 
-    static auto end_address(ConstReferenceReturnType return_type) noexcept
-    {
-        return start_address(return_type) + VALUE_BYTES;
-    }
+    static auto data_end(ConstReferenceType return_type) noexcept { return data_begin(return_type) + VALUE_BYTES; }
 
-    static auto end_address(ReferenceReturnType return_type) noexcept
-    {
-        return start_address(return_type) + VALUE_BYTES;
-    }
+    static auto data_end(ReferenceType return_type) noexcept { return data_begin(return_type) + VALUE_BYTES; }
 
-    static constexpr void copy(ConstReferenceReturnType source,
-                               ReferenceReturnType target) noexcept(std::is_nothrow_copy_assignable_v<T>)
+    static constexpr void copy(ConstReferenceType source,
+                               ReferenceType target) noexcept(std::is_nothrow_copy_assignable_v<T>)
     {
         target = source;
     }
 
-    static constexpr void move(T&& source, ReferenceReturnType target) noexcept(std::is_nothrow_move_assignable_v<T>)
+    static constexpr void move(T&& source, ReferenceType target) noexcept(std::is_nothrow_move_assignable_v<T>)
     {
         target = std::move(source);
     }
 
-    static constexpr void move(ReferenceReturnType source,
-                               ReferenceReturnType target) noexcept(std::is_nothrow_move_assignable_v<T>)
+    static constexpr void move(ReferenceType source,
+                               ReferenceType target) noexcept(std::is_nothrow_move_assignable_v<T>)
     {
         target = std::move(source);
     }
 
-    static constexpr void uninitialized_copy(ConstReferenceReturnType source,
+    static constexpr void uninitialized_copy(ConstReferenceType source,
                                              T* target) noexcept(std::is_nothrow_copy_constructible_v<T>)
     {
         detail::construct_at(target, source);
     }
 
-    static constexpr void uninitialized_move(ReferenceReturnType source,
+    static constexpr void uninitialized_move(ReferenceType source,
                                              T* target) noexcept(std::is_nothrow_move_constructible_v<T>)
     {
         detail::construct_at(target, std::move(source));
     }
 
-    static constexpr void swap(ReferenceReturnType lhs,
-                               ReferenceReturnType rhs) noexcept(std::is_nothrow_swappable_v<T>)
+    static constexpr void swap(ReferenceType lhs, ReferenceType rhs) noexcept(std::is_nothrow_swappable_v<T>)
     {
         using std::swap;
         swap(lhs, rhs);
     }
 
-    static constexpr auto equal(ConstReferenceReturnType lhs, ConstReferenceReturnType rhs) { return lhs == rhs; }
+    static constexpr auto equal(ConstReferenceType lhs, ConstReferenceType rhs) { return lhs == rhs; }
 
-    static constexpr auto lexicographical_compare(ConstReferenceReturnType lhs, ConstReferenceReturnType rhs)
-    {
-        return lhs < rhs;
-    }
+    static constexpr auto lexicographical_compare(ConstReferenceType lhs, ConstReferenceType rhs) { return lhs < rhs; }
 
-    static constexpr void destroy(ReferenceReturnType value) noexcept { value.~T(); }
+    static constexpr void destroy(ReferenceType value) noexcept { value.~T(); }
 };
 
 template <class T, std::size_t Alignment>
@@ -124,25 +114,22 @@ struct BaseContiguousParameterTraits
 {
     using Self = BaseContiguousParameterTraits<T, Alignment>;
 
-    static auto start_address(const cntgs::Span<std::add_const_t<T>>& value) noexcept
+    static auto data_begin(const cntgs::Span<std::add_const_t<T>>& value) noexcept
     {
         return reinterpret_cast<const std::byte*>(Self::begin(value));
     }
 
-    static auto start_address(const cntgs::Span<T>& value) noexcept
+    static auto data_begin(const cntgs::Span<T>& value) noexcept
     {
         return reinterpret_cast<std::byte*>(Self::begin(value));
     }
 
-    static auto end_address(const cntgs::Span<std::add_const_t<T>>& value) noexcept
+    static auto data_end(const cntgs::Span<std::add_const_t<T>>& value) noexcept
     {
         return reinterpret_cast<const std::byte*>(std::end(value));
     }
 
-    static auto end_address(const cntgs::Span<T>& value) noexcept
-    {
-        return reinterpret_cast<std::byte*>(std::end(value));
-    }
+    static auto data_end(const cntgs::Span<T>& value) noexcept { return reinterpret_cast<std::byte*>(std::end(value)); }
 
     static constexpr void uninitialized_copy(
         const cntgs::Span<std::add_const_t<T>>& source,
@@ -233,9 +220,9 @@ template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T, Alignment>
 {
     using ValueType = T;
-    using PointerReturnType = cntgs::Span<T>;
-    using ReferenceReturnType = cntgs::Span<T>;
-    using ConstReferenceReturnType = cntgs::Span<std::add_const_t<T>>;
+    using PointerType = cntgs::Span<T>;
+    using ReferenceType = cntgs::Span<T>;
+    using ConstReferenceType = cntgs::Span<std::add_const_t<T>>;
     using IteratorType = T*;
 
     static constexpr auto TYPE = detail::ParameterType::VARYING_SIZE;
@@ -251,7 +238,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
         const auto first_byte = static_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         const auto first = std::launder(reinterpret_cast<IteratorType>(first_byte));
         const auto last = std::launder(reinterpret_cast<IteratorType>(first_byte + size));
-        return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
+        return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
     template <bool NeedsAlignment, bool IgnoreAliasing, class Range>
@@ -278,9 +265,9 @@ template <class T, std::size_t Alignment>
 struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseContiguousParameterTraits<T, Alignment>
 {
     using ValueType = T;
-    using PointerReturnType = cntgs::Span<T>;
-    using ReferenceReturnType = cntgs::Span<T>;
-    using ConstReferenceReturnType = cntgs::Span<std::add_const_t<T>>;
+    using PointerType = cntgs::Span<T>;
+    using ReferenceType = cntgs::Span<T>;
+    using ConstReferenceType = cntgs::Span<std::add_const_t<T>>;
     using IteratorType = T*;
 
     static constexpr auto TYPE = detail::ParameterType::FIXED_SIZE;
@@ -293,7 +280,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
         const auto first =
             std::launder(static_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
         const auto last = first + size;
-        return std::pair{PointerReturnType{first, last}, reinterpret_cast<std::byte*>(last)};
+        return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
     template <bool NeedsAlignment, bool IgnoreAliasing, class RangeOrIterator>

@@ -49,8 +49,8 @@ class BasicContiguousVector
 
   public:
     using value_type = cntgs::BasicContiguousElement<Allocator, Types...>;
-    using reference = typename VectorTraits::ReferenceReturnType;
-    using const_reference = typename VectorTraits::ConstReferenceReturnType;
+    using reference = typename VectorTraits::ReferenceType;
+    using const_reference = typename VectorTraits::ConstReferenceType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
     using const_iterator = cntgs::ContiguousVectorIterator<std::add_const_t<Self>>;
     using difference_type = std::ptrdiff_t;
@@ -173,10 +173,10 @@ class BasicContiguousVector
     iterator erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         iterator it_position{*this, position.index()};
-        const auto end_address = it_position->end_address();
+        const auto data_end = it_position->data_end();
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
-        this->move_elements_forward_to(it_position, next_position, end_address);
+        this->move_elements_forward_to(it_position, next_position, data_end);
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
         return it_position;
     }
@@ -191,7 +191,7 @@ class BasicContiguousVector
         this->destruct(it_first, it_last);
         if (last_index != current_size && first_index != last_index)
         {
-            this->move_elements_forward_to(it_first, last_index, it_last->start_address());
+            this->move_elements_forward_to(it_first, last_index, it_last->data_begin());
         }
         this->locator.resize(current_size - std::distance(it_first, it_last), this->memory.get());
         return it_first;
@@ -221,15 +221,25 @@ class BasicContiguousVector
         return std::get<I>(this->fixed_sizes);
     }
 
-    [[nodiscard]] bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
+    [[nodiscard]] constexpr bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
 
-    [[nodiscard]] std::byte* data() const noexcept { return this->locator.element_address({}, this->memory.get()); }
+    [[nodiscard]] constexpr std::byte* data() const noexcept
+    {
+        return this->locator.element_address({}, this->memory.get());
+    }
 
-    [[nodiscard]] size_type size() const noexcept { return this->locator.size(this->memory.get()); }
+    [[nodiscard]] constexpr std::byte* data_begin() const noexcept { return this->data(); }
+
+    [[nodiscard]] constexpr std::byte* data_end() const noexcept
+    {
+        return this->memory.get() + this->memory_consumption();
+    }
+
+    [[nodiscard]] constexpr size_type size() const noexcept { return this->locator.size(this->memory.get()); }
 
     [[nodiscard]] constexpr size_type capacity() const noexcept { return this->max_element_count; }
 
-    [[nodiscard]] size_type memory_consumption() const noexcept { return this->memory.size(); }
+    [[nodiscard]] constexpr size_type memory_consumption() const noexcept { return this->memory.size(); }
 
     [[nodiscard]] constexpr iterator begin() noexcept { return iterator{*this}; }
 
@@ -243,7 +253,7 @@ class BasicContiguousVector
 
     [[nodiscard]] constexpr const_iterator cend() const noexcept { return this->end(); }
 
-    [[nodiscard]] allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
+    [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
 
     // private API
   private:
@@ -324,14 +334,13 @@ class BasicContiguousVector
     }
 
     void move_elements_forward_to(const iterator& position, [[maybe_unused]] std::size_t from,
-                                  [[maybe_unused]] std::byte* from_start_address)
+                                  [[maybe_unused]] std::byte* from_data_begin)
     {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
                       (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL))
         {
-            const auto target = position->start_address();
-            std::memmove(target, from_start_address,
-                         (this->memory.get() + this->memory_consumption()) - from_start_address);
+            const auto target = position->data_begin();
+            std::memmove(target, from_data_begin, this->data_end() - from_data_begin);
         }
         else
         {
