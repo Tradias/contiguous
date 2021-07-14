@@ -10,4 +10,13 @@ struct DereferenceEqual
         return *lhs == *rhs;
     }
 };
+
+struct Identity
+{
+    template <class T>
+    auto operator()(T&& t) -> decltype(std::forward<T>(t))
+    {
+        return std::forward<T>(t);
+    }
+};
 }  // namespace cntgs::test

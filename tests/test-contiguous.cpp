@@ -30,6 +30,16 @@ using OneFixedOneVarying = cntgs::ContiguousVector<cntgs::FixedSize<float>, uint
 using OneFixedUniquePtr = cntgs::ContiguousVector<cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>>;
 using OneVaryingUniquePtr = cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>>;
 
+template <class Vector = OneVarying>
+struct ToValueType
+{
+    template <class T>
+    auto operator()(T&& t)
+    {
+        return typename Vector::value_type{std::forward<T>(t)};
+    }
+};
+
 static constexpr std::array FLOATS1{1.f, 2.f};
 static constexpr std::array FLOATS1_ALT{11.f, 22.f};
 static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
@@ -478,55 +488,112 @@ TEST_CASE("ContiguousTest: FixedSize swap partially trivial")
     }
 }
 
-TEST_CASE("ContiguousTest: OneFixed::reference equality comparison")
+auto make_varying_size_vector()
 {
     OneVarying vector{4, 4 * (FLOATS1.size() * 2 + FLOATS1_ALT.size() + 3) * sizeof(float)};
     vector.emplace_back(10u, FLOATS1);
     vector.emplace_back(20u, FLOATS1_ALT);
     vector.emplace_back(10u, FLOATS1);
     vector.emplace_back(15u, floats1(10.f, 20.f, 30.f));
-    SUBCASE("equal")
-    {
-        CHECK_EQ(vector[0], vector[2]);
-        CHECK_EQ(std::as_const(vector)[0], vector[2]);
-        CHECK_EQ(vector[0], std::as_const(vector)[2]);
-        CHECK_EQ(std::as_const(vector)[0], std::as_const(vector)[2]);
-    }
-    SUBCASE("not equal")
-    {
-        CHECK_NE(vector[0], vector[1]);
-        CHECK_NE(std::as_const(vector)[0], vector[1]);
-        CHECK_NE(vector[0], std::as_const(vector)[1]);
-        CHECK_NE(std::as_const(vector)[0], std::as_const(vector)[1]);
-    }
-    SUBCASE("less")
-    {
-        CHECK_LT(vector[2], vector[1]);
-        CHECK_LT(std::as_const(vector)[0], vector[1]);
-        CHECK_LT(vector[2], std::as_const(vector)[3]);
-        CHECK_FALSE(std::as_const(vector)[0] < std::as_const(vector)[2]);
-    }
-    SUBCASE("less equal")
-    {
-        CHECK_LE(vector[0], vector[1]);
-        CHECK_LE(std::as_const(vector)[0], vector[1]);
-        CHECK_LE(vector[2], std::as_const(vector)[3]);
-        CHECK_FALSE(std::as_const(vector)[1] <= std::as_const(vector)[2]);
-    }
-    SUBCASE("greater")
-    {
-        CHECK_GT(vector[1], vector[0]);
-        CHECK_GT(std::as_const(vector)[1], vector[0]);
-        CHECK_GT(vector[3], std::as_const(vector)[2]);
-        CHECK_FALSE(std::as_const(vector)[2] >= std::as_const(vector)[1]);
-    }
-    SUBCASE("greater equal")
-    {
-        CHECK_GE(vector[1], vector[0]);
-        CHECK_GE(std::as_const(vector)[0], vector[2]);
-        CHECK_FALSE(vector[0] >= std::as_const(vector)[1]);
-        CHECK_GE(std::as_const(vector)[3], std::as_const(vector)[2]);
-    }
+    return vector;
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_equality(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_EQ(lhs_transformer(vector[0]), rhs_transformer(vector[2]));
+    CHECK_EQ(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[2]));
+    CHECK_EQ(lhs_transformer(vector[0]), rhs_transformer(std::as_const(vector)[2]));
+    CHECK_EQ(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(std::as_const(vector)[2]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_inequality(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_NE(lhs_transformer(vector[0]), rhs_transformer(vector[1]));
+    CHECK_NE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[1]));
+    CHECK_NE(lhs_transformer(vector[0]), rhs_transformer(std::as_const(vector)[1]));
+    CHECK_NE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(std::as_const(vector)[1]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_less(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_LT(lhs_transformer(vector[2]), rhs_transformer(vector[1]));
+    CHECK_LT(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[1]));
+    CHECK_LT(lhs_transformer(vector[2]), rhs_transformer(std::as_const(vector)[3]));
+    CHECK_FALSE(lhs_transformer(std::as_const(vector)[0]) < rhs_transformer(std::as_const(vector)[2]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_less_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_LE(lhs_transformer(vector[0]), rhs_transformer(vector[1]));
+    CHECK_LE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[1]));
+    CHECK_LE(lhs_transformer(vector[2]), rhs_transformer(std::as_const(vector)[3]));
+    CHECK_FALSE(lhs_transformer(std::as_const(vector)[1]) <= rhs_transformer(std::as_const(vector)[2]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_greater(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_GT(lhs_transformer(vector[1]), rhs_transformer(vector[0]));
+    CHECK_GT(lhs_transformer(std::as_const(vector)[1]), rhs_transformer(vector[0]));
+    CHECK_GT(lhs_transformer(vector[3]), rhs_transformer(std::as_const(vector)[2]));
+    CHECK_FALSE(lhs_transformer(std::as_const(vector)[2]) >= rhs_transformer(std::as_const(vector)[1]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_greater_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_GE(lhs_transformer(vector[1]), rhs_transformer(vector[0]));
+    CHECK_GE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[2]));
+    CHECK_FALSE(lhs_transformer(vector[0]) >= rhs_transformer(std::as_const(vector)[1]));
+    CHECK_GE(lhs_transformer(std::as_const(vector)[3]), rhs_transformer(std::as_const(vector)[2]));
+}
+
+TEST_CASE("ContiguousTest: OneFixed::(const_)reference comparison operators")
+{
+    auto vector = make_varying_size_vector();
+    SUBCASE("equal") { check_equality(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("not equal") { check_inequality(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("less") { check_less(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("less equal") { check_less_equal(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("greater") { check_greater(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, test::Identity{}); }
+}
+
+TEST_CASE("ContiguousTest: OneFixed::value_type comparison operators")
+{
+    auto vector = make_varying_size_vector();
+    SUBCASE("equal") { check_equality(vector, ToValueType{}, ToValueType{}); }
+    SUBCASE("not equal") { check_inequality(vector, ToValueType{}, ToValueType{}); }
+    SUBCASE("less") { check_less(vector, ToValueType{}, ToValueType{}); }
+    SUBCASE("less equal") { check_less_equal(vector, ToValueType{}, ToValueType{}); }
+    SUBCASE("greater") { check_greater(vector, ToValueType{}, ToValueType{}); }
+    SUBCASE("greater equal") { check_greater_equal(vector, ToValueType{}, ToValueType{}); }
+}
+
+TEST_CASE("ContiguousTest: OneFixed::(const_)reference to OneFixed::value_type comparison operators")
+{
+    auto vector = make_varying_size_vector();
+    SUBCASE("equal") { check_equality(vector, test::Identity{}, ToValueType{}); }
+    SUBCASE("not equal") { check_inequality(vector, test::Identity{}, ToValueType{}); }
+    SUBCASE("less") { check_less(vector, test::Identity{}, ToValueType{}); }
+    SUBCASE("less equal") { check_less_equal(vector, test::Identity{}, ToValueType{}); }
+    SUBCASE("greater") { check_greater(vector, test::Identity{}, ToValueType{}); }
+    SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, ToValueType{}); }
+}
+
+TEST_CASE("ContiguousTest: OneFixed::value_type to OneFixed::(const_)reference comparison operators")
+{
+    auto vector = make_varying_size_vector();
+    SUBCASE("equal") { check_equality(vector, ToValueType{}, test::Identity{}); }
+    SUBCASE("not equal") { check_inequality(vector, ToValueType{}, test::Identity{}); }
+    SUBCASE("less") { check_less(vector, ToValueType{}, test::Identity{}); }
+    SUBCASE("less equal") { check_less_equal(vector, ToValueType{}, test::Identity{}); }
+    SUBCASE("greater") { check_greater(vector, ToValueType{}, test::Identity{}); }
+    SUBCASE("greater equal") { check_greater_equal(vector, ToValueType{}, test::Identity{}); }
 }
 
 TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy elements")

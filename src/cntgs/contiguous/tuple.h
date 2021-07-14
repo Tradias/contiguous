@@ -141,10 +141,22 @@ class ContiguousTuple
         return ElementTraits::equal(*this, other);
     }
 
+    template <class Allocator>
+    constexpr auto operator==(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    {
+        return *this == other.tuple;
+    }
+
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr auto operator!=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
     {
         return !(*this == other);
+    }
+
+    template <class Allocator>
+    constexpr auto operator!=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    {
+        return !(*this == other.tuple);
     }
 
     template <detail::ContiguousTupleQualifier TQualifier>
@@ -153,22 +165,46 @@ class ContiguousTuple
         return ElementTraits::lexicographical_compare(*this, other);
     }
 
+    template <class Allocator>
+    constexpr auto operator<(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    {
+        return *this < other.tuple;
+    }
+
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr auto operator<=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
     {
-        return !(*this > other);
+        return !(other < *this);
+    }
+
+    template <class Allocator>
+    constexpr auto operator<=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    {
+        return !(other.tuple < *this);
     }
 
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr auto operator>(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
     {
-        return (other < *this);
+        return other < *this;
+    }
+
+    template <class Allocator>
+    constexpr auto operator>(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    {
+        return other.tuple < *this;
     }
 
     template <detail::ContiguousTupleQualifier TQualifier>
     constexpr auto operator>=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
     {
         return !(*this < other);
+    }
+
+    template <class Allocator>
+    constexpr auto operator>=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    {
+        return !(*this < other.tuple);
     }
 
   private:

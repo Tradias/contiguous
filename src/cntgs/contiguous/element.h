@@ -92,6 +92,17 @@ class BasicContiguousElement
     {
     }
 
+    ~BasicContiguousElement() noexcept
+    {
+        if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+        {
+            if (this->memory)
+            {
+                ElementTraits::destruct(this->tuple);
+            }
+        }
+    }
+
     BasicContiguousElement& operator=(const BasicContiguousElement& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
@@ -140,22 +151,59 @@ class BasicContiguousElement
 
     constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
 
-    ~BasicContiguousElement() noexcept
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator==(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
     {
-        if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
-        {
-            if (this->memory)
-            {
-                ElementTraits::destruct(this->tuple);
-            }
-        }
+        return this->tuple == other;
     }
 
-  private:
-    template <class Tuple>
-    auto store_and_load(Tuple& source, std::size_t memory_size)
+    constexpr auto operator==(const BasicContiguousElement& other) const { return this->tuple == other.tuple; }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator!=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
     {
-        static constexpr auto USE_MOVE = !std::is_const_v<Tuple> && !Tuple::IS_CONST;
+        return !(this->tuple == other);
+    }
+
+    constexpr auto operator!=(const BasicContiguousElement& other) const { return !(this->tuple == other.tuple); }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator<(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return this->tuple < other;
+    }
+
+    constexpr auto operator<(const BasicContiguousElement& other) const { return this->tuple < other.tuple; }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator<=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return !(other < this->tuple);
+    }
+
+    constexpr auto operator<=(const BasicContiguousElement& other) const { return !(other.tuple < this->tuple); }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator>(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return other < this->tuple;
+    }
+
+    constexpr auto operator>(const BasicContiguousElement& other) const { return other.tuple < this->tuple; }
+
+    template <detail::ContiguousTupleQualifier TQualifier>
+    constexpr auto operator>=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    {
+        return !(this->tuple < other);
+    }
+
+    constexpr auto operator>=(const BasicContiguousElement& other) const { return !(this->tuple < other.tuple); }
+
+  private:
+    template <class SourceTuple>
+    auto store_and_load(SourceTuple& source, std::size_t memory_size)
+    {
+        static constexpr auto USE_MOVE = !std::is_const_v<SourceTuple> && !SourceTuple::IS_CONST;
         const auto begin = this->memory_begin();
         std::memcpy(begin, source.data_begin(), memory_size);
         auto target = ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentNeeds,
