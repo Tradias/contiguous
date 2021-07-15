@@ -13,5 +13,5 @@ constexpr auto max_size_t_of() noexcept
 }
 
 template <std::size_t... I>
-static constexpr auto MAX_SIZE_T_OF = detail::max_size_t_of<I...>();
+inline constexpr auto MAX_SIZE_T_OF = detail::max_size_t_of<I...>();
 }  // namespace cntgs::detail

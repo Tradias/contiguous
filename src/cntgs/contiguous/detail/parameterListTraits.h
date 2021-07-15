@@ -12,9 +12,9 @@
 namespace cntgs::detail
 {
 #ifdef CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER
-static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER;
+inline constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER;
 #else
-static constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 15;
+inline constexpr auto MAX_FIXED_SIZE_VECTOR_PARAMETER = 15;
 #endif
 
 template <class... Types>

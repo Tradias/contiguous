@@ -20,7 +20,7 @@ template <class Derived, class Base>
 concept DerivedFrom = std::derived_from<Derived, Base>;
 #else
 template <class Derived, class Base>
-static constexpr auto DerivedFrom =
+inline constexpr auto DerivedFrom =
     std::is_base_of_v<Base, Derived>&& std::is_convertible_v<const volatile Derived*, const volatile Base*>;
 #endif
 
@@ -53,11 +53,11 @@ struct EqualSizeof<false>
 };
 
 template <class T, class U>
-static constexpr auto EQUAL_SIZEOF =
+inline constexpr auto EQUAL_SIZEOF =
     EqualSizeof<(std::is_same_v<void, T> || std::is_same_v<void, U>)>::template VALUE<T, U>;
 
 template <class...>
-static constexpr auto FALSE_V = false;
+inline constexpr auto FALSE_V = false;
 
 namespace has_adl_swap_detail
 {
@@ -98,7 +98,41 @@ template <bool B, class T, class U>
 using ConditionalT = typename detail::Conditional<B>::template Type<T, U>;
 
 template <class T, class U>
-static constexpr auto MEMCPY_COMPATIBLE =
+inline constexpr auto MEMCPY_COMPATIBLE =
     detail::EQUAL_SIZEOF<T, U>&& std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<U>&&
         std::is_floating_point_v<T> == std::is_floating_point_v<U>;
+
+// Implementation taken from MSVC _Can_memcmp_elements
+template <class T, class U,
+          bool = (detail::EQUAL_SIZEOF<T, U> && std::is_integral_v<T> && !std::is_volatile_v<T> &&
+                  std::is_integral_v<U> && !std::is_volatile_v<U>)>
+inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE = std::is_same_v<T, bool> || std::is_same_v<U, bool> ||
+                                                   static_cast<T>(-1) == static_cast<U>(-1);
+
+template <>
+inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE<std::byte, std::byte, false> = true;
+
+template <class T, class U>
+inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE<T*, U*, false> =
+    std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>>;
+
+template <class T, class U>
+inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE<T, U, false> = false;
+
+template <class T, class U = T>
+struct EqualityMemcmpCompatible : std::bool_constant<detail::EQUALITY_MEMCMP_COMPATIBLE<T, U>>
+{
+};
+
+// Implementation taken from MSVC _Lex_compare_check_element_types_helper
+template <class T, class U = T>
+struct LexicographicalMemcmpCompatible
+    : std::bool_constant<(std::is_same_v<unsigned char, T> && std::is_same_v<unsigned char, U>)>
+{
+};
+
+template <>
+struct LexicographicalMemcmpCompatible<std::byte, std::byte> : std::true_type
+{
+};
 }  // namespace cntgs::detail

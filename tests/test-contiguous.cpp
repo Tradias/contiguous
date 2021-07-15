@@ -552,7 +552,7 @@ void check_greater_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTran
     CHECK_GE(lhs_transformer(std::as_const(vector)[3]), rhs_transformer(std::as_const(vector)[2]));
 }
 
-TEST_CASE("ContiguousTest: OneFixed::(const_)reference comparison operators")
+TEST_CASE("ContiguousTest: OneVarying::(const_)reference comparison operators")
 {
     auto vector = make_varying_size_vector();
     SUBCASE("equal") { check_equality(vector, test::Identity{}, test::Identity{}); }
@@ -563,7 +563,7 @@ TEST_CASE("ContiguousTest: OneFixed::(const_)reference comparison operators")
     SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, test::Identity{}); }
 }
 
-TEST_CASE("ContiguousTest: OneFixed::value_type comparison operators")
+TEST_CASE("ContiguousTest: OneVarying::value_type comparison operators")
 {
     auto vector = make_varying_size_vector();
     SUBCASE("equal") { check_equality(vector, ToValueType{}, ToValueType{}); }
@@ -574,7 +574,7 @@ TEST_CASE("ContiguousTest: OneFixed::value_type comparison operators")
     SUBCASE("greater equal") { check_greater_equal(vector, ToValueType{}, ToValueType{}); }
 }
 
-TEST_CASE("ContiguousTest: OneFixed::(const_)reference to OneFixed::value_type comparison operators")
+TEST_CASE("ContiguousTest: OneVarying::(const_)reference to OneVarying::value_type comparison operators")
 {
     auto vector = make_varying_size_vector();
     SUBCASE("equal") { check_equality(vector, test::Identity{}, ToValueType{}); }
@@ -585,7 +585,7 @@ TEST_CASE("ContiguousTest: OneFixed::(const_)reference to OneFixed::value_type c
     SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, ToValueType{}); }
 }
 
-TEST_CASE("ContiguousTest: OneFixed::value_type to OneFixed::(const_)reference comparison operators")
+TEST_CASE("ContiguousTest: OneVarying::value_type to OneVarying::(const_)reference comparison operators")
 {
     auto vector = make_varying_size_vector();
     SUBCASE("equal") { check_equality(vector, ToValueType{}, test::Identity{}); }
@@ -594,6 +594,23 @@ TEST_CASE("ContiguousTest: OneFixed::value_type to OneFixed::(const_)reference c
     SUBCASE("less equal") { check_less_equal(vector, ToValueType{}, test::Identity{}); }
     SUBCASE("greater") { check_greater(vector, ToValueType{}, test::Identity{}); }
     SUBCASE("greater equal") { check_greater_equal(vector, ToValueType{}, test::Identity{}); }
+}
+
+TEST_CASE(
+    "ContiguousTest: ContiguousVector::value_type to ContiguousVector::(const_)reference for memcmp-compatible "
+    "lexicographical comparisons")
+{
+    cntgs::ContiguousVector<unsigned char, cntgs::FixedSize<std::byte>> vector{4, {2}};
+    vector.emplace_back(unsigned char{10}, std::array{std::byte{1}, std::byte{2}});
+    vector.emplace_back(unsigned char{20}, std::array{std::byte{11}, std::byte{22}});
+    vector.emplace_back(unsigned char{10}, std::array{std::byte{1}, std::byte{2}});
+    vector.emplace_back(unsigned char{15}, std::array{std::byte{10}, std::byte{20}});
+    SUBCASE("equal") { check_equality(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("not equal") { check_inequality(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("less") { check_less(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("less equal") { check_less_equal(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("greater") { check_greater(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, test::Identity{}); }
 }
 
 TEST_CASE("ContiguousTest: OneFixed::const_reference can be used to copy elements")

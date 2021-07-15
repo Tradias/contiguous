@@ -103,6 +103,22 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto CONSECUTIVE_TRIVIALLY_SWAPPABLE_INDICES{
         calculate_consecutive_indices<detail::IsTriviallySwappable>()};
 
+    static constexpr auto CONSECUTIVE_EQUALITY_MEMCMPABLE_INDICES{
+        calculate_consecutive_indices<detail::EqualityMemcmpCompatible>()};
+
+    static constexpr auto CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES{
+        calculate_consecutive_indices<detail::LexicographicalMemcmpCompatible>()};
+
+    template <std::size_t K, std::size_t L, detail::ContiguousTupleQualifier LhsQualifier,
+              detail::ContiguousTupleQualifier RhsQualifier>
+    static constexpr auto get_data_begin_and_end(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
+                                                 const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs) noexcept
+    {
+        return std::tuple{ParameterTraitsAt<K>::data_begin(std::get<K>(lhs.tuple)),
+                          ParameterTraitsAt<L>::data_end(std::get<L>(lhs.tuple)),
+                          ParameterTraitsAt<K>::data_begin(std::get<K>(rhs.tuple))};
+    }
+
     template <bool IgnoreAliasing, class... Args>
     static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes, Args&&... args)
     {
@@ -188,9 +204,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto target_start = ParameterTraitsAt<K>::data_begin(std::get<K>(target.tuple));
-            const auto source_start = ParameterTraitsAt<K>::data_begin(std::get<K>(source.tuple));
-            const auto source_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(source.tuple));
+            const auto [source_start, source_end, target_start] = get_data_begin_and_end<K, INDEX>(source, target);
             std::memmove(target_start, source_start, source_end - source_start);
         }
     }
@@ -213,9 +227,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto rhs_start = ParameterTraitsAt<K>::data_begin(std::get<K>(rhs.tuple));
-            const auto lhs_start = ParameterTraitsAt<K>::data_begin(std::get<K>(lhs.tuple));
-            const auto lhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(lhs.tuple));
+            const auto [lhs_start, lhs_end, rhs_start] = get_data_begin_and_end<K, INDEX>(lhs, rhs);
             // some compilers (e.g. MSVC) perform handrolled optimizations if the argument type
             // to swap_ranges are trivially_swappable which includes that is has
             // no ADL discovered swap function. std::byte has such function, but
@@ -228,20 +240,61 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
     static void swap(const ContiguousReference& lhs, const ContiguousReference& rhs) { (swap<I>(lhs, rhs), ...); }
 
+    template <std::size_t K, detail::ContiguousTupleQualifier LhsQualifier,
+              detail::ContiguousTupleQualifier RhsQualifier>
+    static constexpr auto equal(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
+                                const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs)
+    {
+        static constexpr auto INDEX = std::get<K>(CONSECUTIVE_EQUALITY_MEMCMPABLE_INDICES);
+        if constexpr (INDEX == MANUAL)
+        {
+            return ParameterTraitsAt<K>::equal(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+        }
+        else if constexpr (INDEX != SKIP)
+        {
+            const auto [lhs_start, lhs_end, rhs_start] = get_data_begin_and_end<K, INDEX>(lhs, rhs);
+            return std::equal(lhs_start, lhs_end, rhs_start);
+        }
+        else
+        {
+            return true;
+        }
+    }
+
     template <detail::ContiguousTupleQualifier LhsQualifier, detail::ContiguousTupleQualifier RhsQualifier>
     static constexpr auto equal(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
                                 const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs)
     {
-        return (detail::ParameterTraits<Types>::equal(std::get<I>(lhs.tuple), std::get<I>(rhs.tuple)) && ...);
+        return (equal<I>(lhs, rhs) && ...);
+    }
+
+    template <std::size_t K, detail::ContiguousTupleQualifier LhsQualifier,
+              detail::ContiguousTupleQualifier RhsQualifier>
+    static constexpr auto lexicographical_compare(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
+                                                  const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs)
+    {
+        static constexpr auto INDEX = std::get<K>(CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES);
+        if constexpr (INDEX == MANUAL)
+        {
+            return ParameterTraitsAt<K>::lexicographical_compare(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+        }
+        else if constexpr (INDEX != SKIP)
+        {
+            const auto [lhs_start, lhs_end, rhs_start] = get_data_begin_and_end<K, INDEX>(lhs, rhs);
+            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(rhs.tuple));
+            return std::lexicographical_compare(lhs_start, lhs_end, rhs_start, rhs_end);
+        }
+        else
+        {
+            return true;
+        }
     }
 
     template <detail::ContiguousTupleQualifier LhsQualifier, detail::ContiguousTupleQualifier RhsQualifier>
     static constexpr auto lexicographical_compare(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
                                                   const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs)
     {
-        return (
-            detail::ParameterTraits<Types>::lexicographical_compare(std::get<I>(lhs.tuple), std::get<I>(rhs.tuple)) &&
-            ...);
+        return (lexicographical_compare<I>(lhs, rhs) && ...);
     }
 
     static void destruct(const ContiguousReference& reference) noexcept
