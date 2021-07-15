@@ -245,7 +245,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto equal(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
                                 const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs)
     {
-        static constexpr auto INDEX = std::get<K>(CONSECUTIVE_EQUALITY_MEMCMPABLE_INDICES);
+        constexpr auto INDEX = std::get<K>(CONSECUTIVE_EQUALITY_MEMCMPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
         {
             return ParameterTraitsAt<K>::equal(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
@@ -273,7 +273,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto lexicographical_compare(const cntgs::ContiguousTuple<LhsQualifier, Types...>& lhs,
                                                   const cntgs::ContiguousTuple<RhsQualifier, Types...>& rhs)
     {
-        static constexpr auto INDEX = std::get<K>(CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES);
+        constexpr auto INDEX = std::get<K>(CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
         {
             return ParameterTraitsAt<K>::lexicographical_compare(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
