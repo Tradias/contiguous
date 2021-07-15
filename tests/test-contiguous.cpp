@@ -600,11 +600,12 @@ TEST_CASE(
     "ContiguousTest: ContiguousVector::value_type to ContiguousVector::(const_)reference for memcmp-compatible "
     "lexicographical comparisons")
 {
-    cntgs::ContiguousVector<unsigned char, cntgs::FixedSize<std::byte>> vector{4, {2}};
-    vector.emplace_back(unsigned char{10}, std::array{std::byte{1}, std::byte{2}});
-    vector.emplace_back(unsigned char{20}, std::array{std::byte{11}, std::byte{22}});
-    vector.emplace_back(unsigned char{10}, std::array{std::byte{1}, std::byte{2}});
-    vector.emplace_back(unsigned char{15}, std::array{std::byte{10}, std::byte{20}});
+    using UInt8 = unsigned char;
+    cntgs::ContiguousVector<UInt8, cntgs::FixedSize<std::byte>> vector{4, {2}};
+    vector.emplace_back(UInt8{10}, std::array{std::byte{1}, std::byte{2}});
+    vector.emplace_back(UInt8{20}, std::array{std::byte{11}, std::byte{22}});
+    vector.emplace_back(UInt8{10}, std::array{std::byte{1}, std::byte{2}});
+    vector.emplace_back(UInt8{15}, std::array{std::byte{10}, std::byte{20}});
     SUBCASE("equal") { check_equality(vector, test::Identity{}, test::Identity{}); }
     SUBCASE("not equal") { check_inequality(vector, test::Identity{}, test::Identity{}); }
     SUBCASE("less") { check_less(vector, test::Identity{}, test::Identity{}); }
