@@ -391,6 +391,102 @@ TEST_CASE("ContiguousTest: std::string emplace_back with iterator")
     CHECK_EQ(STRING2, *string_ptr);
 }
 
+template <class Vector1, class Vector2>
+void check_equality(Vector1& lhs, Vector2& rhs)
+{
+    CHECK_EQ(lhs, rhs);
+    CHECK_FALSE((lhs < rhs));
+    CHECK_LE(lhs, rhs);
+    CHECK_FALSE((rhs > lhs));
+    CHECK_GE(lhs, rhs);
+}
+
+template <class Vector1, class Vector2>
+void check_less(Vector1& lhs, Vector2& rhs)
+{
+    CHECK_NE(lhs, rhs);
+    CHECK_LT(lhs, rhs);
+    CHECK_LE(lhs, rhs);
+    CHECK_GT(rhs, lhs);
+    CHECK_GE(rhs, lhs);
+}
+
+TEST_CASE("ContiguousTest: ContiguousVector of std::string comparison operators")
+{
+    using Vector = cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string>;
+    Vector lhs{2, {1}};
+    lhs.emplace_back(std::vector{"a"}, "a");
+    SUBCASE("equal")
+    {
+        Vector rhs{1, {1}};
+        rhs.emplace_back(std::vector{"a"}, "a");
+        check_equality(lhs, rhs);
+    }
+    SUBCASE("empty vectors are equal")
+    {
+        Vector rhs{1, {1}};
+        CHECK_NE(lhs, rhs);
+        Vector empty{1, {1}};
+        CHECK_EQ(empty, rhs);
+    }
+    SUBCASE("less")
+    {
+        Vector rhs{1, {1}};
+        rhs.emplace_back(std::vector{"b"}, "b");
+        check_less(lhs, rhs);
+    }
+    SUBCASE("empty vectors are less")
+    {
+        Vector empty{1, {1}};
+        CHECK_LT(empty, lhs);
+        CHECK_LE(empty, lhs);
+    }
+    SUBCASE("greater with greater size")
+    {
+        lhs.emplace_back(std::vector{"a"}, "a");
+        Vector rhs{1, {1}};
+        rhs.emplace_back(std::vector{"b"}, "a");
+        CHECK_NE(lhs, rhs);
+        CHECK_FALSE((lhs < rhs));
+        CHECK_FALSE((lhs <= rhs));
+        CHECK_GT(lhs, rhs);
+        CHECK_GE(lhs, rhs);
+    }
+}
+
+TEST_CASE("ContiguousTest: ContiguousVector of unsigned char comparison operators")
+{
+    using UInt8 = unsigned char;
+    using Vector = cntgs::ContiguousVector<cntgs::VaryingSize<UInt8>>;
+    Vector lhs{2, 5};
+    lhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
+    SUBCASE("equal")
+    {
+        Vector rhs{1, 3};
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
+        check_equality(lhs, rhs);
+    }
+    SUBCASE("not equal size")
+    {
+        Vector rhs{1, 2};
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}});
+        CHECK_NE(lhs, rhs);
+    }
+    SUBCASE("less")
+    {
+        Vector rhs{1, 4};
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}, UInt8{3}});
+        check_less(lhs, rhs);
+    }
+    SUBCASE("not equal across varying size boundaries")
+    {
+        lhs.emplace_back(std::array{UInt8{3}, UInt8{4}});
+        Vector rhs{1, 5};
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}, UInt8{3}, UInt8{4}});
+        CHECK_NE(lhs, rhs);
+    }
+}
+
 TEST_CASE("ContiguousTest: ContiguousVector::value_type is conditionally nothrow")
 {
     CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::FixedSize<float>, float>::value_type>);

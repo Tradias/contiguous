@@ -255,6 +255,42 @@ class BasicContiguousVector
 
     [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
 
+    template <class TAllocator>
+    constexpr auto operator==(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    {
+        return this->equal(other);
+    }
+
+    template <class TAllocator>
+    constexpr auto operator!=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    {
+        return !(*this == other);
+    }
+
+    template <class TAllocator>
+    constexpr auto operator<(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    {
+        return this->lexicographical_compare(other);
+    }
+
+    template <class TAllocator>
+    constexpr auto operator<=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    {
+        return !(other < *this);
+    }
+
+    template <class TAllocator>
+    constexpr auto operator>(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    {
+        return other < *this;
+    }
+
+    template <class TAllocator>
+    constexpr auto operator>=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    {
+        return !(*this < other);
+    }
+
     // private API
   private:
     BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned, size_type max_element_count,
@@ -356,6 +392,26 @@ class BasicContiguousVector
     {
         this->locator.emplace_at(i, this->memory.get(), this->fixed_sizes, std::move(cntgs::get<I>(element))...);
         ElementTraits::destruct(element);
+    }
+
+    template <class TAllocator>
+    constexpr auto equal(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    {
+        if constexpr (ListTraits::IS_EQUALITY_MEMCMPABLE)
+        {
+            return (this->size() == 0 && this->size() == other.size()) ||
+                   std::equal(static_cast<const std::byte*>(this->data_begin()), (*this)[this->size() - 1].data_end(),
+                              static_cast<const std::byte*>(other.data_begin()));
+        }
+        else
+        {
+            return std::equal(this->begin(), this->end(), other.begin());
+        }
+    }
+    template <class TAllocator>
+    constexpr auto lexicographical_compare(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    {
+        return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
     }
 
     void destruct() noexcept { this->destruct(this->begin(), this->end()); }

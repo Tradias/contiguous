@@ -80,6 +80,9 @@ using IsTriviallySwappable =
     std::conjunction<std::is_trivially_destructible<T>, std::is_trivially_move_constructible<T>,
                      std::is_trivially_move_assignable<T>, std::negation<HasADLSwap<T>>>;
 
+template <class T>
+inline constexpr auto IS_TRIVIALLY_SWAPPABLE = detail::IsTriviallySwappable<T>::value;
+
 template <bool B>
 struct Conditional
 {
@@ -103,7 +106,7 @@ inline constexpr auto MEMCPY_COMPATIBLE =
         std::is_floating_point_v<T> == std::is_floating_point_v<U>;
 
 // Implementation taken from MSVC _Can_memcmp_elements
-template <class T, class U,
+template <class T, class U = T,
           bool = (detail::EQUAL_SIZEOF<T, U> && std::is_integral_v<T> && !std::is_volatile_v<T> &&
                   std::is_integral_v<U> && !std::is_volatile_v<U>)>
 inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE = std::is_same_v<T, bool> || std::is_same_v<U, bool> ||
@@ -135,4 +138,7 @@ template <>
 struct LexicographicalMemcmpCompatible<std::byte, std::byte> : std::true_type
 {
 };
+
+template <class T, class U = T>
+inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatible<T, U>::value;
 }  // namespace cntgs::detail
