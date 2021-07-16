@@ -21,6 +21,8 @@ namespace test_contiguous
 {
 using namespace cntgs;
 
+using UInt8 = unsigned char;
+
 using Plain = cntgs::ContiguousVector<uint32_t, float>;
 using OneVarying = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<float>>;
 using TwoVarying = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<float>, cntgs::VaryingSize<float>>;
@@ -454,9 +456,8 @@ TEST_CASE("ContiguousTest: ContiguousVector of std::string comparison operators"
     }
 }
 
-TEST_CASE("ContiguousTest: ContiguousVector of unsigned char comparison operators")
+TEST_CASE("ContiguousTest: ContiguousVector of VaryingSize unsigned char comparison operators")
 {
-    using UInt8 = unsigned char;
     using Vector = cntgs::ContiguousVector<cntgs::VaryingSize<UInt8>>;
     Vector lhs{2, 5};
     lhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
@@ -484,6 +485,45 @@ TEST_CASE("ContiguousTest: ContiguousVector of unsigned char comparison operator
         Vector rhs{1, 5};
         rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}, UInt8{3}, UInt8{4}});
         CHECK_NE(lhs, rhs);
+    }
+}
+
+TEST_CASE("ContiguousTest: ContiguousVector of FixedSize unsigned char comparison operators")
+{
+    using Vector = cntgs::ContiguousVector<cntgs::FixedSize<UInt8>>;
+    Vector lhs{2, {3}};
+    lhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
+    SUBCASE("equal")
+    {
+        Vector rhs{1, {3}};
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
+        check_equality(lhs, rhs);
+    }
+    SUBCASE("not equal size")
+    {
+        Vector rhs{1, {3}};
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}});
+        CHECK_NE(lhs, rhs);
+    }
+    SUBCASE("less")
+    {
+        Vector rhs{1, {3}};
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{3}});
+        check_less(lhs, rhs);
+    }
+    SUBCASE("not equal across fixed size boundaries")
+    {
+        Vector rhs{1, {3}};
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
+        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
+        CHECK_NE(lhs, rhs);
+    }
+    SUBCASE("empyt ranges are equal and not less")
+    {
+        Vector empty{0, {3}};
+        Vector rhs{0, {3}};
+        CHECK_EQ(empty, rhs);
+        CHECK_FALSE((empty < rhs));
     }
 }
 
@@ -696,7 +736,6 @@ TEST_CASE(
     "ContiguousTest: ContiguousVector::value_type to ContiguousVector::(const_)reference for memcmp-compatible "
     "lexicographical comparisons")
 {
-    using UInt8 = unsigned char;
     cntgs::ContiguousVector<UInt8, cntgs::FixedSize<std::byte>> vector{4, {2}};
     vector.emplace_back(UInt8{10}, std::array{std::byte{1}, std::byte{2}});
     vector.emplace_back(UInt8{20}, std::array{std::byte{11}, std::byte{22}});

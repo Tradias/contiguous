@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/algorithm.h"
 #include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/memory.h"
@@ -107,7 +108,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         calculate_consecutive_indices<detail::EqualityMemcmpCompatible>()};
 
     static constexpr auto CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES{
-        calculate_consecutive_indices<detail::LexicographicalMemcmpCompatible>()};
+        calculate_consecutive_indices<detail::LexicographicalMemcmpCompatibleT>()};
 
     template <std::size_t K, std::size_t L, detail::ContiguousTupleQualifier LhsQualifier,
               detail::ContiguousTupleQualifier RhsQualifier>
@@ -228,13 +229,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         else if constexpr (INDEX != SKIP)
         {
             const auto [lhs_start, lhs_end, rhs_start] = get_data_begin_and_end<K, INDEX>(lhs, rhs);
-            // some compilers (e.g. MSVC) perform handrolled optimizations if the argument type
-            // to swap_ranges are trivially_swappable which includes that is has
-            // no ADL discovered swap function. std::byte has such function, but
-            // raw pointers do not
-            using UnderlyingType = std::underlying_type_t<std::byte>;
-            std::swap_ranges(reinterpret_cast<UnderlyingType*>(lhs_start), reinterpret_cast<UnderlyingType*>(lhs_end),
-                             reinterpret_cast<UnderlyingType*>(rhs_start));
+            detail::trivial_swap_ranges(lhs_start, lhs_end, rhs_start);
         }
     }
 
@@ -253,7 +248,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         else if constexpr (INDEX != SKIP)
         {
             const auto [lhs_start, lhs_end, rhs_start] = get_data_begin_and_end<K, INDEX>(lhs, rhs);
-            return std::equal(lhs_start, lhs_end, rhs_start);
+            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(rhs.tuple));
+            return detail::trivial_equal(lhs_start, lhs_end, rhs_start, rhs_end);
         }
         else
         {
@@ -282,7 +278,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         {
             const auto [lhs_start, lhs_end, rhs_start] = get_data_begin_and_end<K, INDEX>(lhs, rhs);
             const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(rhs.tuple));
-            return std::lexicographical_compare(lhs_start, lhs_end, rhs_start, rhs_end);
+            return detail::trivial_lexicographical_compare(lhs_start, lhs_end, rhs_start, rhs_end);
         }
         else
         {

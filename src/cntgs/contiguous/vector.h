@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cntgs/contiguous/detail/algorithm.h"
 #include "cntgs/contiguous/detail/array.h"
 #include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/forward.h"
@@ -223,14 +224,20 @@ class BasicContiguousVector
 
     [[nodiscard]] constexpr bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
 
-    [[nodiscard]] constexpr std::byte* data() const noexcept
+    [[nodiscard]] constexpr std::byte* data() noexcept { return this->locator.element_address({}, this->memory.get()); }
+
+    [[nodiscard]] constexpr const std::byte* data() const noexcept
     {
         return this->locator.element_address({}, this->memory.get());
     }
 
-    [[nodiscard]] constexpr std::byte* data_begin() const noexcept { return this->data(); }
+    [[nodiscard]] constexpr std::byte* data_begin() noexcept { return this->data(); }
 
-    [[nodiscard]] constexpr std::byte* data_end() const noexcept
+    [[nodiscard]] constexpr const std::byte* data_begin() const noexcept { return this->data(); }
+
+    [[nodiscard]] constexpr std::byte* data_end() noexcept { return this->memory.get() + this->memory_consumption(); }
+
+    [[nodiscard]] constexpr const std::byte* data_end() const noexcept
     {
         return this->memory.get() + this->memory_consumption();
     }
@@ -399,9 +406,16 @@ class BasicContiguousVector
     {
         if constexpr (ListTraits::IS_EQUALITY_MEMCMPABLE)
         {
-            return (this->size() == 0 && this->size() == other.size()) ||
-                   std::equal(static_cast<const std::byte*>(this->data_begin()), (*this)[this->size() - 1].data_end(),
-                              static_cast<const std::byte*>(other.data_begin()));
+            if (this->empty())
+            {
+                return other.empty();
+            }
+            if (other.empty())
+            {
+                return false;
+            }
+            return detail::trivial_equal(this->data_begin(), this->back().data_end(), other.data_begin(),
+                                         other.back().data_end());
         }
         else
         {
@@ -411,7 +425,24 @@ class BasicContiguousVector
     template <class TAllocator>
     constexpr auto lexicographical_compare(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
     {
-        return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
+        if constexpr (ListTraits::IS_LEXICOGRAPHICAL_MEMCMPABLE &&
+                      (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL))
+        {
+            if (this->empty())
+            {
+                return !other.empty();
+            }
+            if (other.empty())
+            {
+                return false;
+            }
+            return detail::trivial_lexicographical_compare(this->data_begin(), this->back().data_end(),
+                                                           other.data_begin(), other.back().data_end());
+        }
+        else
+        {
+            return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
+        }
     }
 
     void destruct() noexcept { this->destruct(this->begin(), this->end()); }

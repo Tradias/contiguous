@@ -14,6 +14,7 @@ list(
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/tuple.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/typeErasedVector.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/vector.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/algorithm.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/array.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/attributes.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementLocator.h

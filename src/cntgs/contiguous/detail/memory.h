@@ -17,6 +17,7 @@
 
 namespace cntgs::detail
 {
+using Byte = std::underlying_type_t<std::byte>;
 using TypeErasedAllocator = std::aligned_storage_t<32>;
 
 template <std::size_t N>
@@ -248,9 +249,7 @@ auto uninitialized_range_construct(Range&& range, std::byte* CNTGS_RESTRICT addr
     if constexpr (IgnoreAliasing && detail::HasDataAndSize<std::decay_t<Range>>{} &&
                   detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
-        const auto size = std::size(range);
-        std::memcpy(address, std::data(range), size * sizeof(TargetType));
-        return address + size * sizeof(TargetType);
+        return detail::copy_using_memcpy(std::data(range), address, std::size(range));
     }
     else
     {

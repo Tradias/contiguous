@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 #include <version>
@@ -59,6 +60,38 @@ inline constexpr auto EQUAL_SIZEOF =
 template <class...>
 inline constexpr auto FALSE_V = false;
 
+template <typename _Tp>
+struct IsByte : std::false_type
+{
+};
+
+template <>
+struct IsByte<char> : std::true_type
+{
+};
+
+template <>
+struct IsByte<signed char> : std::true_type
+{
+};
+
+template <>
+struct IsByte<unsigned char> : std::true_type
+{
+};
+
+template <>
+struct IsByte<std::byte> : std::true_type
+{
+};
+
+#ifdef __cpp_char8_t
+template <>
+struct IsByte<char8_t> : std::true_type
+{
+};
+#endif
+
 namespace has_adl_swap_detail
 {
 void swap();  // undefined (deliberate shadowing)
@@ -109,8 +142,7 @@ inline constexpr auto MEMCPY_COMPATIBLE =
 template <class T, class U = T,
           bool = (detail::EQUAL_SIZEOF<T, U> && std::is_integral_v<T> && !std::is_volatile_v<T> &&
                   std::is_integral_v<U> && !std::is_volatile_v<U>)>
-inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE = std::is_same_v<T, bool> || std::is_same_v<U, bool> ||
-                                                   static_cast<T>(-1) == static_cast<U>(-1);
+inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE = std::is_same_v<T, bool> || std::is_same_v<U, bool> || T(-1) == U(-1);
 
 template <>
 inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE<std::byte, std::byte, false> = true;
@@ -127,18 +159,25 @@ struct EqualityMemcmpCompatible : std::bool_constant<detail::EQUALITY_MEMCMP_COM
 {
 };
 
-// Implementation taken from MSVC _Lex_compare_check_element_types_helper
-template <class T, class U = T>
-struct LexicographicalMemcmpCompatible
-    : std::bool_constant<(std::is_same_v<unsigned char, T> && std::is_same_v<unsigned char, U>)>
+// Implementation taken from MSVC+GCC _Lex_compare_check_element_types_helper and __is_memcmp_ordered
+template <class T, bool = detail::IsByte<T>::value>
+struct LexicographicalMemcmpCompatible : std::bool_constant<((T(-1) > T(1)) && !std::is_volatile_v<T>)>
 {
 };
 
 template <>
-struct LexicographicalMemcmpCompatible<std::byte, std::byte> : std::true_type
+struct LexicographicalMemcmpCompatible<std::byte, false> : std::true_type
 {
 };
 
-template <class T, class U = T>
-inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatible<T, U>::value;
+template <class T>
+struct LexicographicalMemcmpCompatible<T, false> : std::false_type
+{
+};
+
+template <class T>
+using LexicographicalMemcmpCompatibleT = detail::LexicographicalMemcmpCompatible<std::remove_const_t<T>>;
+
+template <class T>
+inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatibleT<T>::value;
 }  // namespace cntgs::detail
