@@ -62,7 +62,8 @@ struct ParameterListTraits
     static constexpr bool IS_ALL_FIXED_SIZE =
         CONTIGUOUS_FIXED_SIZE_COUNT != 0 && CONTIGUOUS_FIXED_SIZE_COUNT == CONTIGUOUS_COUNT;
     static constexpr bool IS_ALL_VARYING_SIZE = CONTIGUOUS_FIXED_SIZE_COUNT == 0 && CONTIGUOUS_COUNT != 0;
-    static constexpr bool IS_NONE_SPECIAL = CONTIGUOUS_COUNT == 0;
+    static constexpr bool IS_ALL_PLAIN = CONTIGUOUS_COUNT == 0;
+    static constexpr bool IS_FIXED_OR_PLAIN = IS_ALL_FIXED_SIZE || IS_ALL_PLAIN;
 
     using FixedSizes = std::array<std::size_t, CONTIGUOUS_FIXED_SIZE_COUNT>;
 

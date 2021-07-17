@@ -46,7 +46,7 @@ class BasicContiguousVector
     static constexpr bool IS_MIXED = ListTraits::IS_MIXED;
     static constexpr bool IS_ALL_FIXED_SIZE = ListTraits::IS_ALL_FIXED_SIZE;
     static constexpr bool IS_ALL_VARYING_SIZE = ListTraits::IS_ALL_VARYING_SIZE;
-    static constexpr bool IS_NONE_SPECIAL = ListTraits::IS_NONE_SPECIAL;
+    static constexpr bool IS_ALL_PLAIN = ListTraits::IS_ALL_PLAIN;
 
   public:
     using value_type = cntgs::BasicContiguousElement<Allocator, Types...>;
@@ -115,14 +115,14 @@ class BasicContiguousVector
     {
     }
 
-    template <bool IsNoneSpecial = IS_NONE_SPECIAL>
+    template <bool IsNoneSpecial = IS_ALL_PLAIN>
     BasicContiguousVector(size_type max_element_count, allocator_type allocator = {},
                           std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, std::move(allocator))
     {
     }
 
-    template <bool IsNoneSpecial = IS_NONE_SPECIAL>
+    template <bool IsNoneSpecial = IS_ALL_PLAIN>
     BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size, size_type max_element_count,
                           allocator_type allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, FixedSizes{},
@@ -130,7 +130,7 @@ class BasicContiguousVector
     {
     }
 
-    template <bool IsNoneSpecial = IS_NONE_SPECIAL>
+    template <bool IsNoneSpecial = IS_ALL_PLAIN>
     BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
                           allocator_type allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, FixedSizes{},
@@ -380,7 +380,7 @@ class BasicContiguousVector
                                   [[maybe_unused]] std::byte* from_data_begin)
     {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
-                      (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL))
+                      ListTraits::IS_FIXED_OR_PLAIN)
         {
             const auto target = position->data_begin();
             std::memmove(target, from_data_begin, this->data_end() - from_data_begin);
@@ -414,8 +414,8 @@ class BasicContiguousVector
             {
                 return false;
             }
-            return detail::trivial_equal(this->data_begin(), this->back().data_end(), other.data_begin(),
-                                         other.back().data_end());
+            return detail::trivial_equal(this->data_begin(), Self::last_element_data_end(*this), other.data_begin(),
+                                         Self::last_element_data_end(other));
         }
         else
         {
@@ -425,8 +425,7 @@ class BasicContiguousVector
     template <class TAllocator>
     constexpr auto lexicographical_compare(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
     {
-        if constexpr (ListTraits::IS_LEXICOGRAPHICAL_MEMCMPABLE &&
-                      (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL))
+        if constexpr (ListTraits::IS_LEXICOGRAPHICAL_MEMCMPABLE && ListTraits::IS_FIXED_OR_PLAIN)
         {
             if (this->empty())
             {
@@ -436,12 +435,26 @@ class BasicContiguousVector
             {
                 return false;
             }
-            return detail::trivial_lexicographical_compare(this->data_begin(), this->back().data_end(),
-                                                           other.data_begin(), other.back().data_end());
+            return detail::trivial_lexicographical_compare(this->data_begin(), Self::last_element_data_end(*this),
+                                                           other.data_begin(), Self::last_element_data_end(other));
         }
         else
         {
             return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
+        }
+    }
+
+    template <class TAllocator>
+    static constexpr auto last_element_data_end(
+        const cntgs::BasicContiguousVector<TAllocator, Types...>& vector) noexcept
+    {
+        if constexpr (ListTraits::IS_FIXED_OR_PLAIN)
+        {
+            return vector.locator.element_address(vector.size(), vector.memory.get());
+        }
+        else
+        {
+            return vector.back().data_end();
         }
     }
 

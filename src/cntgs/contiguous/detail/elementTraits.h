@@ -162,7 +162,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto calculate_element_size(const FixedSizes& fixed_sizes) noexcept
     {
         std::size_t result{};
-        if constexpr (ListTraits::IS_ALL_FIXED_SIZE || ListTraits::IS_NONE_SPECIAL)
+        if constexpr (ListTraits::IS_FIXED_OR_PLAIN)
         {
             ((result += detail::ParameterTraits<Types>::guaranteed_size_in_memory(
                             FixedSizeGetter::template get<Types, I>(fixed_sizes)) +
