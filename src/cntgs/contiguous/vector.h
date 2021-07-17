@@ -66,9 +66,8 @@ class BasicContiguousVector
     BasicContiguousVector() = default;
 
     explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : BasicContiguousVector(vector, vector.is_memory_owned.value)
+        : BasicContiguousVector(vector, std::exchange(vector.is_memory_owned.value, false))
     {
-        vector.is_memory_owned.value = false;
     }
 
     explicit BasicContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
