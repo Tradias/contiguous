@@ -66,9 +66,8 @@ class BasicContiguousVector
     BasicContiguousVector() = default;
 
     explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : BasicContiguousVector(vector, vector.is_memory_owned.value)
+        : BasicContiguousVector(vector, std::exchange(vector.is_memory_owned.value, false))
     {
-        vector.is_memory_owned.value = false;
     }
 
     explicit BasicContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
@@ -351,7 +350,7 @@ class BasicContiguousVector
         {
             ElementLocator new_locator{new_max_element_count, new_memory.get(), this->locator, this->max_element_count,
                                        this->memory.get()};
-            this->uninitialized_move(new_memory.get(), new_locator, ListTraits::make_index_sequence());
+            this->uninitialized_move(new_memory.get(), new_locator);
             this->locator = std::move(new_locator);
         }
         this->max_element_count = new_max_element_count;
@@ -359,9 +358,7 @@ class BasicContiguousVector
         this->memory.get_impl().size() = new_memory_size;
     }
 
-    template <std::size_t... I>
-    void uninitialized_move([[maybe_unused]] std::byte* new_memory, [[maybe_unused]] ElementLocator& new_locator,
-                            std::index_sequence<I...>)
+    void uninitialized_move([[maybe_unused]] std::byte* new_memory, [[maybe_unused]] ElementLocator& new_locator)
     {
         if constexpr (!ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE)
         {
