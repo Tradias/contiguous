@@ -513,7 +513,7 @@ TEST_CASE("ContiguousTest: ContiguousVector of FixedSize unsigned char compariso
     }
     SUBCASE("not equal across fixed size boundaries")
     {
-        Vector rhs{1, {3}};
+        Vector rhs{2, {3}};
         rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
         rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
         CHECK_NE(lhs, rhs);
