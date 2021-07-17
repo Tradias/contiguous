@@ -78,15 +78,13 @@ class AllocatorAwarePointer
     }
 
     constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other) noexcept
-        : impl(other.get(), other.size(), other.get_allocator())
+        : impl(std::exchange(other.get(), nullptr), other.size(), other.get_allocator())
     {
-        other.get() = nullptr;
     }
 
     constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other, Allocator allocator) noexcept
-        : impl(other.get(), other.size(), allocator)
+        : impl(std::exchange(other.get(), nullptr), other.size(), allocator)
     {
-        other.get() = nullptr;
     }
 
     ~AllocatorAwarePointer() noexcept { this->deallocate(); }
@@ -114,9 +112,8 @@ class AllocatorAwarePointer
             {
                 this->get_allocator() = std::move(other.get_allocator());
             }
-            this->get() = other.get();
+            this->get() = std::exchange(other.get(), nullptr);
             this->size() = other.size();
-            other.get() = nullptr;
         }
         return *this;
     }
@@ -135,12 +132,7 @@ class AllocatorAwarePointer
 
     explicit constexpr operator bool() const noexcept { return bool(this->get()); }
 
-    constexpr auto release() noexcept
-    {
-        auto ptr = this->impl.ptr;
-        this->impl.ptr = nullptr;
-        return ptr;
-    }
+    constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
 
     constexpr void allocate() { AllocatorTraits::allocate(this->get_allocator(), this->size()); }
 

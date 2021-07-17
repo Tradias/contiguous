@@ -182,7 +182,7 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
     {
     }
 
-    ElementLocator(std::size_t, std::byte* memory_begin, ElementLocator& other, std::size_t, std::byte*) noexcept
+    ElementLocator(std::size_t, std::byte* memory_begin, ElementLocator& other, std::size_t, const std::byte*) noexcept
         : BaseAllFixedSizeElementLocator(other.element_count, other.stride, {})
     {
         this->copy_from(memory_begin, other);

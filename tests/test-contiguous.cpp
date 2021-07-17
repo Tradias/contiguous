@@ -491,6 +491,15 @@ TEST_CASE("ContiguousTest: ContiguousVector of VaryingSize unsigned char compari
 TEST_CASE("ContiguousTest: ContiguousVector of FixedSize unsigned char comparison operators")
 {
     using Vector = cntgs::ContiguousVector<cntgs::FixedSize<UInt8>>;
+    SUBCASE("empty ranges are equal and not less")
+    {
+        Vector empty{0, {3}};
+        Vector rhs{0, {3}};
+        CHECK_EQ(empty, rhs);
+        CHECK_EQ(rhs, empty);
+        CHECK_FALSE((empty < rhs));
+        CHECK_FALSE((rhs < empty));
+    }
     Vector lhs{2, {3}};
     lhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
     SUBCASE("equal")
@@ -517,13 +526,6 @@ TEST_CASE("ContiguousTest: ContiguousVector of FixedSize unsigned char compariso
         rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
         rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
         CHECK_NE(lhs, rhs);
-    }
-    SUBCASE("empyt ranges are equal and not less")
-    {
-        Vector empty{0, {3}};
-        Vector rhs{0, {3}};
-        CHECK_EQ(empty, rhs);
-        CHECK_FALSE((empty < rhs));
     }
 }
 
