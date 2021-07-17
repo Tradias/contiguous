@@ -48,6 +48,8 @@ class BaseElementLocator
         return element_addresses_begin[index];
     }
 
+    constexpr auto data_end() const noexcept { return last_element; }
+
     void resize(std::size_t new_size, std::byte* memory_begin) noexcept
     {
         this->last_element = BaseElementLocator::element_address(new_size, memory_begin);
@@ -161,6 +163,8 @@ class BaseAllFixedSizeElementLocator
     {
         return this->start + this->stride * index;
     }
+
+    constexpr auto data_end() const noexcept { return this->start + this->stride * this->element_count; }
 
     constexpr void resize(std::size_t new_size, const std::byte*) noexcept { this->element_count = new_size; }
 };
