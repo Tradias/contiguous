@@ -246,10 +246,11 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     {
         const auto size = reinterpret_cast<std::size_t*>(address);
         address += MEMORY_OVERHEAD;
-        address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        const auto aligned_address =
+            reinterpret_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         auto* new_address =
-            detail::uninitialized_range_construct<T, IgnoreAliasing>(std::forward<Range>(range), address);
-        *size = new_address - address;
+            detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), aligned_address);
+        *size = new_address - reinterpret_cast<std::byte*>(aligned_address);
         return new_address;
     }
 
@@ -287,9 +288,10 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     CNTGS_RESTRICT_RETURN static std::byte* store(RangeOrIterator&& range_or_iterator,
                                                   std::byte* CNTGS_RESTRICT address, std::size_t size)
     {
-        address = reinterpret_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
-        return detail::uninitialized_construct<T, IgnoreAliasing>(std::forward<RangeOrIterator>(range_or_iterator),
-                                                                  address, size);
+        const auto aligned_address =
+            reinterpret_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        return detail::uninitialized_construct<IgnoreAliasing>(std::forward<RangeOrIterator>(range_or_iterator),
+                                                               aligned_address, size);
     }
 
     static constexpr auto aligned_size_in_memory(std::size_t fixed_size) noexcept

@@ -195,8 +195,8 @@ class MaybeOwnedAllocatorAwarePointer
         if (this != &other)
         {
             this->release_ptr_if_not_owned();
-            ptr = std::move(other.ptr);
-            owned = other.owned;
+            this->ptr = std::move(other.ptr);
+            this->owned = other.owned;
         }
         return *this;
     }
@@ -213,6 +213,8 @@ class MaybeOwnedAllocatorAwarePointer
 
     constexpr auto release() noexcept { return this->ptr.release(); }
 
+    constexpr auto reset() noexcept { this->ptr = nullptr; }
+
     constexpr auto get_allocator() const noexcept { return this->ptr.get_allocator(); }
 
     constexpr auto& get_impl() noexcept { return this->ptr; }
@@ -220,7 +222,7 @@ class MaybeOwnedAllocatorAwarePointer
   private:
     constexpr void release_ptr_if_not_owned() noexcept
     {
-        if (!owned)
+        if (!this->owned)
         {
             (void)this->ptr.release();
         }
@@ -234,57 +236,53 @@ auto copy_using_memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT
     return target + size * sizeof(T);
 }
 
-template <class TargetType, bool IgnoreAliasing, class Range>
-auto uninitialized_range_construct(Range&& range, std::byte* CNTGS_RESTRICT address)
+template <bool IgnoreAliasing, class TargetType, class Range>
+auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address)
 {
     using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
     if constexpr (IgnoreAliasing && detail::HasDataAndSize<std::decay_t<Range>>{} &&
                   detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
-        return detail::copy_using_memcpy(std::data(range), address, std::size(range));
+        return detail::copy_using_memcpy(std::data(range), reinterpret_cast<std::byte*>(address), std::size(range));
     }
     else
     {
-        const auto prev_address = reinterpret_cast<std::add_pointer_t<TargetType>>(address);
         if constexpr (!std::is_lvalue_reference_v<Range>)
         {
-            return reinterpret_cast<std::byte*>(
-                std::uninitialized_move(std::begin(range), std::end(range), prev_address));
+            return reinterpret_cast<std::byte*>(std::uninitialized_move(std::begin(range), std::end(range), address));
         }
         else
         {
-            return reinterpret_cast<std::byte*>(
-                std::uninitialized_copy(std::begin(range), std::end(range), prev_address));
+            return reinterpret_cast<std::byte*>(std::uninitialized_copy(std::begin(range), std::end(range), address));
         }
     }
 }
 
-template <class TargetType, bool IgnoreAliasing, class Range>
-auto uninitialized_construct(Range&& range, std::byte* CNTGS_RESTRICT address, std::size_t)
+template <bool IgnoreAliasing, class TargetType, class Range>
+auto uninitialized_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address, std::size_t)
     -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
 {
-    return uninitialized_range_construct<TargetType, IgnoreAliasing>(std::forward<Range>(range), address);
+    return uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), address);
 }
 
-template <class TargetType, bool IgnoreAliasing, class Iterator>
-auto uninitialized_construct(const Iterator& iterator, std::byte* CNTGS_RESTRICT address, std::size_t size)
-    -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
+template <bool IgnoreAliasing, class TargetType, class Iterator>
+auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType* CNTGS_RESTRICT address,
+                             std::size_t size) -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
     if constexpr (IgnoreAliasing && std::is_pointer_v<Iterator> &&
                   detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
-        return detail::copy_using_memcpy(iterator, address, size);
+        return detail::copy_using_memcpy(iterator, reinterpret_cast<std::byte*>(address), size);
     }
     else if constexpr (IgnoreAliasing && detail::CONTIGUOUS_ITERATOR_V<Iterator> &&
                        detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
-        return detail::copy_using_memcpy(iterator.operator->(), address, size);
+        return detail::copy_using_memcpy(iterator.operator->(), reinterpret_cast<std::byte*>(address), size);
     }
     else
     {
-        const auto prev_address = reinterpret_cast<std::add_pointer_t<TargetType>>(address);
-        return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, prev_address));
+        return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, address));
     }
 }
 
