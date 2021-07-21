@@ -42,6 +42,24 @@ struct ToValueType
     }
 };
 
+struct TestMemoryResource
+{
+    std::array<std::byte, 256> buffer{};
+    std::pmr::monotonic_buffer_resource resource{buffer.data(), buffer.size()};
+
+    auto get_allocator() noexcept { return std::pmr::polymorphic_allocator<std::byte>{&resource}; }
+
+    auto check_was_used(const std::pmr::polymorphic_allocator<std::byte>& allocator)
+    {
+        CHECK_EQ(&resource, allocator.resource());
+        CHECK(std::any_of(buffer.begin(), buffer.end(),
+                          [](auto&& byte)
+                          {
+                              return byte != std::byte{};
+                          }));
+    }
+};
+
 static constexpr std::array FLOATS1{1.f, 2.f};
 static constexpr std::array FLOATS1_ALT{11.f, 22.f};
 static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
@@ -1256,44 +1274,82 @@ TEST_CASE("ContiguousTest: OneFixedOneVaryingAligned emplace_back() and subscrip
     }
 }
 
-template <class Allocator, std::size_t N>
-auto check_memory_resource_was_used(const Allocator& allocator, const std::array<std::byte, N>& buffer,
-                                    const std::pmr::monotonic_buffer_resource& resource)
-{
-    CHECK_EQ(&resource, allocator.resource());
-    CHECK(std::any_of(buffer.begin(), buffer.end(),
-                      [](auto&& byte)
-                      {
-                          return byte != std::byte{};
-                      }));
-}
-
 TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
 {
     using Alloc = std::pmr::polymorphic_allocator<int>;
-    std::array<std::byte, 256> buffer{};
-    std::pmr::monotonic_buffer_resource resource{buffer.data(), buffer.size()};
+    TestMemoryResource resource;
     SUBCASE("vector")
     {
-        auto vector = fixed_vector_of_unique_ptrs<Alloc>(&resource);
-        check_memory_resource_was_used(vector.get_allocator(), buffer, resource);
+        auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
+        resource.check_was_used(vector.get_allocator());
     }
     SUBCASE("value_type")
     {
         auto vector = fixed_vector_of_unique_ptrs();
-        using ValueType = typename decltype(fixed_vector_of_unique_ptrs<Alloc>(&resource))::value_type;
-        ValueType value{std::move(vector[0]), &resource};
-        SUBCASE("move construct from tuple and allocator")
-        {
-            check_memory_resource_was_used(value.get_allocator(), buffer, resource);
-        }
+        using ValueType = typename decltype(fixed_vector_of_unique_ptrs(resource.get_allocator()))::value_type;
+        ValueType value{std::move(vector[0]), resource.get_allocator()};
+        SUBCASE("move construct from tuple and allocator") { resource.check_was_used(value.get_allocator()); }
         SUBCASE("move construct from element and allocator")
         {
-            ValueType value2{std::move(value), &resource};
-            check_memory_resource_was_used(value2.get_allocator(), buffer, resource);
+            ValueType value2{std::move(value), resource.get_allocator()};
+            resource.check_was_used(value2.get_allocator());
             ValueType value3{std::move(value2), Alloc{}};
             CHECK_EQ(Alloc{}, value3.get_allocator());
         }
+    }
+}
+
+template <class Allocator = std::allocator<int>>
+auto varying_vector_of_unique_ptrs(Allocator allocator = {})
+{
+    cntgs::BasicContiguousVector<Allocator, cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
+        2, 2 * sizeof(std::unique_ptr<int>), allocator};
+    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
+    return vector;
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator move assignment")
+{
+    using Alloc = std::pmr::polymorphic_allocator<int>;
+    TestMemoryResource resource;
+    auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
+    TestMemoryResource resource2;
+    SUBCASE("move into smaller vector")
+    {
+        decltype(vector) vector2{0, 0, resource2.get_allocator()};
+        vector2 = std::move(vector);
+        resource2.check_was_used(vector2.get_allocator());
+        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+    }
+    SUBCASE("move into larger vector")
+    {
+        decltype(vector) vector2{3, 10, resource2.get_allocator()};
+        vector2 = std::move(vector);
+        resource2.check_was_used(vector2.get_allocator());
+        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+    }
+}
+
+TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator move assignment")
+{
+    using Alloc = std::pmr::polymorphic_allocator<int>;
+    TestMemoryResource resource;
+    auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
+    TestMemoryResource resource2;
+    SUBCASE("move into smaller vector")
+    {
+        decltype(vector) vector2{0, {}, resource2.get_allocator()};
+        vector2 = std::move(vector);
+        resource2.check_was_used(vector2.get_allocator());
+        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+    }
+    SUBCASE("move into larger vector")
+    {
+        decltype(vector) vector2{3, {1}, resource2.get_allocator()};
+        vector2 = std::move(vector);
+        resource2.check_was_used(vector2.get_allocator());
+        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
     }
 }
 }  // namespace test_contiguous

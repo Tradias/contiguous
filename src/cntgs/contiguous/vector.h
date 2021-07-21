@@ -39,8 +39,9 @@ class BasicContiguousVector
     using VectorTraits = detail::ContiguousVectorTraits<Types...>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using StorageType = detail::MaybeOwnedAllocatorAwarePointer<
-        typename std::allocator_traits<Allocator>::template rebind_alloc<std::byte>>;
+    using AllocatorTraits = std::allocator_traits<Allocator>;
+    using StorageType =
+        detail::MaybeOwnedAllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
     using FixedSizes = typename ListTraits::FixedSizes;
 
     static constexpr bool IS_MIXED = ListTraits::IS_MIXED;
@@ -140,15 +141,17 @@ class BasicContiguousVector
     BasicContiguousVector(const BasicContiguousVector&) = delete;
     BasicContiguousVector(BasicContiguousVector&&) = default;
     BasicContiguousVector& operator=(const BasicContiguousVector&) = delete;
-    BasicContiguousVector& operator=(BasicContiguousVector&&) = default;
 
-    ~BasicContiguousVector() noexcept
+    BasicContiguousVector& operator=(BasicContiguousVector&& other)
     {
-        if (this->memory && this->memory.is_owned())
+        if (this != std::addressof(other))
         {
-            this->destruct();
+            this->move_assign(std::move(other));
         }
+        return *this;
     }
+
+    ~BasicContiguousVector() noexcept { this->destruct_if_owned(); }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -338,6 +341,15 @@ class BasicContiguousVector
         const auto new_memory_size =
             this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
         StorageType new_memory{new_memory_size, this->get_allocator()};
+        this->template move_into<true>(new_max_element_count, new_memory);
+        this->max_element_count = new_max_element_count;
+        this->memory.get_impl().get() = new_memory.release();
+        this->memory.get_impl().size() = new_memory_size;
+    }
+
+    template <bool IsDestruct = false>
+    void move_into(size_type new_max_element_count, StorageType& new_memory)
+    {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
             this->locator.copy_from(new_max_element_count, new_memory.get(), this->max_element_count,
@@ -348,11 +360,12 @@ class BasicContiguousVector
             ElementLocator new_locator{new_max_element_count, new_memory.get(), this->locator, this->max_element_count,
                                        this->memory.get()};
             this->uninitialized_move(new_memory.get(), new_locator);
+            if constexpr (IsDestruct)
+            {
+                this->destruct_if_owned();
+            }
             this->locator = std::move(new_locator);
         }
-        this->max_element_count = new_max_element_count;
-        this->memory.get_impl().get() = new_memory.release();
-        this->memory.get_impl().size() = new_memory_size;
     }
 
     void uninitialized_move([[maybe_unused]] std::byte* new_memory, [[maybe_unused]] ElementLocator& new_locator)
@@ -367,7 +380,6 @@ class BasicContiguousVector
                 ElementTraits::template construct_if_non_trivial<true>(source, target);
             }
         }
-        this->destruct();
     }
 
     void move_elements_forward_to(const iterator& position, [[maybe_unused]] std::size_t from,
@@ -393,6 +405,53 @@ class BasicContiguousVector
     {
         this->locator.emplace_at(i, this->memory.get(), this->fixed_sizes, std::move(cntgs::get<I>(element))...);
         ElementTraits::destruct(element);
+    }
+
+    void steal(BasicContiguousVector&& other)
+    {
+        this->destruct_if_owned();
+        this->max_element_count = other.max_element_count;
+        this->memory = std::move(other.memory);
+        this->fixed_sizes = other.fixed_sizes;
+        this->locator = std::move(other.locator);
+    }
+
+    void move_assign(BasicContiguousVector&& other)
+    {
+        if constexpr (AllocatorTraits::is_always_equal::value ||
+                      AllocatorTraits::propagate_on_container_move_assignment::value)
+        {
+            this->steal(std::move(other));
+        }
+        else
+        {
+            if (this->get_allocator() == other.get_allocator())
+            {
+                this->steal(std::move(other));
+            }
+            else
+            {
+                const auto new_used_memory_size = static_cast<size_type>(other.data_end() - other.memory.get());
+                const auto new_max_element_count = std::max(this->max_element_count, other.max_element_count);
+                auto other_locator = other.locator;
+                if (new_used_memory_size > this->memory_consumption())
+                {
+                    StorageType new_memory{new_used_memory_size, this->get_allocator()};
+                    this->destruct_if_owned();
+                    other.move_into(new_max_element_count, new_memory);
+                    this->memory = std::move(new_memory);
+                }
+                else
+                {
+                    this->destruct_if_owned();
+                    other.move_into(new_max_element_count, this->memory);
+                }
+                this->max_element_count = other.max_element_count;
+                this->fixed_sizes = other.fixed_sizes;
+                this->locator = other.locator;
+                other.locator = std::move(other_locator);
+            }
+        }
     }
 
     template <class TAllocator>
@@ -434,6 +493,14 @@ class BasicContiguousVector
         else
         {
             return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
+        }
+    }
+
+    void destruct_if_owned() noexcept
+    {
+        if (this->memory && this->memory.is_owned())
+        {
+            this->destruct();
         }
     }
 
