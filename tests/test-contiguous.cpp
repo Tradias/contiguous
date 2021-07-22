@@ -999,7 +999,7 @@ TEST_CASE("ContiguousTest: std::string TypeErasedVector")
     CHECK_EQ(STRING2, string_two);
 }
 
-TEST_CASE("ContiguousTest: std::any OneFixed emplace_back->reserve->emplace_back")
+TEST_CASE("ContiguousTest: std::string OneFixed emplace_back->reserve->emplace_back")
 {
     cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string, int> vector{1, {1}};
     vector.emplace_back(std::array{STRING1}, STRING1, 42);
@@ -1350,6 +1350,105 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator move ass
         vector2 = std::move(vector);
         resource2.check_was_used(vector2.get_allocator());
         CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+    }
+}
+
+template <class Allocator = std::allocator<int>>
+auto varying_vector_of_strings(Allocator allocator = {})
+{
+    cntgs::BasicContiguousVector<Allocator, cntgs::VaryingSize<std::string>, std::string> vector{
+        2, 3 * sizeof(std::string), allocator};
+    vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
+    vector.emplace_back(std::array{STRING1}, STRING2);
+    return vector;
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr with std::allocator copy assignment")
+{
+    auto vector = varying_vector_of_strings();
+    SUBCASE("copy into smaller vector")
+    {
+        decltype(vector) vector2{0, 0};
+        vector2 = vector;
+        CHECK_EQ(vector, vector2);
+    }
+    SUBCASE("copy into larger vector")
+    {
+        decltype(vector) vector2{3, 10};
+        vector2 = vector;
+        CHECK_EQ(vector, vector2);
+    }
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator copy assignment")
+{
+    using Alloc = std::pmr::polymorphic_allocator<int>;
+    TestMemoryResource resource;
+    auto vector = varying_vector_of_strings(resource.get_allocator());
+    TestMemoryResource resource2;
+    SUBCASE("copy into smaller vector")
+    {
+        decltype(vector) vector2{0, 0, resource2.get_allocator()};
+        vector2 = vector;
+        resource2.check_was_used(vector2.get_allocator());
+        CHECK_EQ(vector, vector2);
+    }
+    SUBCASE("copy into larger vector")
+    {
+        decltype(vector) vector2{3, 10, resource2.get_allocator()};
+        vector2 = vector;
+        CHECK_EQ(&resource2.resource, vector2.get_allocator().resource());
+        CHECK_EQ(vector, vector2);
+    }
+}
+
+template <class Allocator = std::allocator<int>>
+auto fixed_vector_of_strings(Allocator allocator = {})
+{
+    cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::string>, std::string> vector{2, {2}, allocator};
+    vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
+    vector.emplace_back(std::array{STRING1, STRING2}, STRING2);
+    return vector;
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr with std::allocator copy assignment")
+{
+    auto vector = fixed_vector_of_strings();
+    SUBCASE("copy into smaller vector")
+    {
+        decltype(vector) vector2{0, {}};
+        vector2 = vector;
+        CHECK_EQ(vector, vector2);
+    }
+    SUBCASE("copy into larger vector")
+    {
+        decltype(vector) vector2{3, {3}};
+        vector2 = vector;
+        CHECK_EQ(vector, vector2);
+        CHECK_EQ(2, vector2.get_fixed_size<0>());
+    }
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator copy assignment")
+{
+    using Alloc = std::pmr::polymorphic_allocator<int>;
+    TestMemoryResource resource;
+    auto vector = fixed_vector_of_strings(resource.get_allocator());
+    TestMemoryResource resource2;
+    SUBCASE("copy into smaller vector")
+    {
+        decltype(vector) vector2{0, {}, resource2.get_allocator()};
+        vector2 = vector;
+        resource2.check_was_used(vector2.get_allocator());
+        CHECK_EQ(vector, vector2);
+    }
+    SUBCASE("copy into larger vector")
+    {
+        decltype(vector) vector2{3, {3}, resource2.get_allocator()};
+        vector2 = vector;
+        CHECK_EQ(&resource2.resource, vector2.get_allocator().resource());
+        CHECK_EQ(vector, vector2);
+        CHECK_EQ(2, vector2.get_fixed_size<0>());
     }
 }
 }  // namespace test_contiguous

@@ -64,7 +64,10 @@ class AllocatorAwarePointer
     {
     }
 
-    constexpr AllocatorAwarePointer(pointer ptr, std::size_t size, Allocator allocator) : impl(ptr, size, allocator) {}
+    constexpr AllocatorAwarePointer(pointer ptr, std::size_t size, Allocator allocator) noexcept
+        : impl(ptr, size, allocator)
+    {
+    }
 
     constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other)
         : AllocatorAwarePointer(other.size(),
@@ -89,24 +92,44 @@ class AllocatorAwarePointer
 
     ~AllocatorAwarePointer() noexcept { this->deallocate(); }
 
+    constexpr void propagate_on_container_copy_assignment(const AllocatorAwarePointer& other) noexcept
+    {
+        if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value)
+        {
+            this->get_allocator() = other.get_allocator();
+        }
+    }
+
     constexpr AllocatorAwarePointer& operator=(const AllocatorAwarePointer& other)
     {
-        if (this != &other)
+        if (this != std::addressof(other))
         {
-            this->deallocate();
-            if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value)
+            if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value &&
+                          !AllocatorTraits::is_always_equal::value)
             {
-                this->get_allocator() = other.get_allocator();
+                if (this->get_allocator() != other.get_allocator())
+                {
+                    this->deallocate();
+                    this->propagate_on_container_copy_assignment(other);
+                    this->size() = other.size();
+                    this->get() = this->allocate();
+                    return;
+                }
             }
-            this->size() = other.size();
-            this->get() = this->allocate();
+            this->propagate_on_container_copy_assignment(other);
+            if (this->size() < other.size())
+            {
+                this->deallocate();
+                this->size() = other.size();
+                this->get() = this->allocate();
+            }
         }
         return *this;
     }
 
     constexpr AllocatorAwarePointer& operator=(AllocatorAwarePointer&& other) noexcept
     {
-        if (this != &other)
+        if (this != std::addressof(other))
         {
             if constexpr (AllocatorTraits::propagate_on_container_move_assignment::value)
             {
@@ -134,7 +157,7 @@ class AllocatorAwarePointer
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
 
-    constexpr void allocate() { AllocatorTraits::allocate(this->get_allocator(), this->size()); }
+    constexpr auto allocate() { return AllocatorTraits::allocate(this->get_allocator(), this->size()); }
 
     constexpr void deallocate() noexcept
     {
@@ -192,7 +215,7 @@ class MaybeOwnedAllocatorAwarePointer
 
     constexpr MaybeOwnedAllocatorAwarePointer& operator=(MaybeOwnedAllocatorAwarePointer&& other) noexcept
     {
-        if (this != &other)
+        if (this != std::addressof(other))
         {
             this->release_ptr_if_not_owned();
             this->ptr = std::move(other.ptr);

@@ -140,7 +140,15 @@ class BasicContiguousVector
 
     BasicContiguousVector(const BasicContiguousVector&) = delete;
     BasicContiguousVector(BasicContiguousVector&&) = default;
-    BasicContiguousVector& operator=(const BasicContiguousVector&) = delete;
+
+    BasicContiguousVector& operator=(const BasicContiguousVector& other)
+    {
+        if (this != std::addressof(other))
+        {
+            this->copy_assign(other);
+        }
+        return *this;
+    }
 
     BasicContiguousVector& operator=(BasicContiguousVector&& other)
     {
@@ -341,43 +349,47 @@ class BasicContiguousVector
         const auto new_memory_size =
             this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
         StorageType new_memory{new_memory_size, this->get_allocator()};
-        this->template move_into<true>(new_max_element_count, new_memory);
+        this->template insert_into<true, true>(new_max_element_count, new_memory, this->locator);
         this->max_element_count = new_max_element_count;
         this->memory.get_impl().get() = new_memory.release();
         this->memory.get_impl().size() = new_memory_size;
     }
 
-    template <bool IsDestruct = false>
-    void move_into(size_type new_max_element_count, StorageType& new_memory)
+    template <bool UseMove, bool IsDestruct = false>
+    void insert_into(size_type new_max_element_count, StorageType& new_memory, ElementLocator& locator)
     {
-        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+        static constexpr auto IS_TRIVIAL =
+            UseMove ? ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE : ListTraits::IS_TRIVIALLY_COPY_CONSTRUCTIBLE;
+        if constexpr (IS_TRIVIAL && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            this->locator.copy_from(new_max_element_count, new_memory.get(), this->max_element_count,
-                                    this->memory.get());
+            locator.copy_from(new_max_element_count, new_memory.get(), this->max_element_count, this->memory.get());
         }
         else
         {
-            ElementLocator new_locator{new_max_element_count, new_memory.get(), this->locator, this->max_element_count,
+            ElementLocator new_locator{new_max_element_count, new_memory.get(), locator, this->max_element_count,
                                        this->memory.get()};
-            this->uninitialized_move(new_memory.get(), new_locator);
+            this->template uninitialized_construct<UseMove>(new_memory.get(), new_locator);
             if constexpr (IsDestruct)
             {
                 this->destruct_if_owned();
             }
-            this->locator = std::move(new_locator);
+            locator = std::move(new_locator);
         }
     }
 
-    void uninitialized_move([[maybe_unused]] std::byte* new_memory, [[maybe_unused]] ElementLocator& new_locator)
+    template <bool UseMove>
+    void uninitialized_construct([[maybe_unused]] std::byte* new_memory, [[maybe_unused]] ElementLocator& new_locator)
     {
-        if constexpr (!ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE)
+        static constexpr auto IS_TRIVIAL =
+            UseMove ? ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE : ListTraits::IS_TRIVIALLY_COPY_CONSTRUCTIBLE;
+        if constexpr (!IS_TRIVIAL)
         {
             for (size_type i{}; i < this->size(); ++i)
             {
                 auto&& source = (*this)[i];
                 auto&& target =
                     ElementTraits::load_element_at(new_locator.element_address(i, new_memory), this->fixed_sizes);
-                ElementTraits::template construct_if_non_trivial<true>(source, target);
+                ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }
     }
@@ -393,7 +405,7 @@ class BasicContiguousVector
         }
         else
         {
-            for (auto i = position.index(); from != this->size(); ++i, ++from)
+            for (auto i = position.index(); from != this->size(); ++i, (void)++from)
             {
                 this->emplace_at(i, (*this)[from], ListTraits::make_index_sequence());
             }
@@ -431,27 +443,35 @@ class BasicContiguousVector
             }
             else
             {
-                const auto new_used_memory_size = static_cast<size_type>(other.data_end() - other.memory.get());
-                const auto new_max_element_count = std::max(this->max_element_count, other.max_element_count);
                 auto other_locator = other.locator;
-                if (new_used_memory_size > this->memory_consumption())
+                this->destruct_if_owned();
+                if (other.memory_consumption() > this->memory_consumption())
                 {
-                    StorageType new_memory{new_used_memory_size, this->get_allocator()};
-                    this->destruct_if_owned();
-                    other.move_into(new_max_element_count, new_memory);
+                    StorageType new_memory{other.memory_consumption(), this->get_allocator()};
+                    other.template insert_into<true>(other.max_element_count, new_memory, other_locator);
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
-                    this->destruct_if_owned();
-                    other.move_into(new_max_element_count, this->memory);
+                    other.template insert_into<true>(other.max_element_count, this->memory, other_locator);
                 }
                 this->max_element_count = other.max_element_count;
                 this->fixed_sizes = other.fixed_sizes;
-                this->locator = other.locator;
-                other.locator = std::move(other_locator);
+                this->locator = std::move(other_locator);
             }
         }
+    }
+
+    void copy_assign(const BasicContiguousVector& other)
+    {
+        this->destruct_if_owned();
+        this->memory = other.memory;
+        auto other_locator = other.locator;
+        const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
+                                                                              other_locator);
+        this->max_element_count = other.max_element_count;
+        this->fixed_sizes = other.fixed_sizes;
+        this->locator = std::move(other_locator);
     }
 
     template <class TAllocator>
