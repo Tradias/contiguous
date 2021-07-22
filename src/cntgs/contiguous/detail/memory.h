@@ -113,7 +113,7 @@ class AllocatorAwarePointer
                     this->propagate_on_container_copy_assignment(other);
                     this->size() = other.size();
                     this->get() = this->allocate();
-                    return;
+                    return *this;
                 }
             }
             this->propagate_on_container_copy_assignment(other);

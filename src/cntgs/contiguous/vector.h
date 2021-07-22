@@ -373,7 +373,7 @@ class BasicContiguousVector
             {
                 this->destruct_if_owned();
             }
-            locator = std::move(new_locator);
+            locator = new_locator;
         }
     }
 
@@ -425,7 +425,7 @@ class BasicContiguousVector
         this->max_element_count = other.max_element_count;
         this->memory = std::move(other.memory);
         this->fixed_sizes = other.fixed_sizes;
-        this->locator = std::move(other.locator);
+        this->locator = other.locator;
     }
 
     void move_assign(BasicContiguousVector&& other)
@@ -443,8 +443,8 @@ class BasicContiguousVector
             }
             else
             {
-                auto other_locator = other.locator;
                 this->destruct_if_owned();
+                auto other_locator = other.locator;
                 if (other.memory_consumption() > this->memory_consumption())
                 {
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
@@ -457,7 +457,7 @@ class BasicContiguousVector
                 }
                 this->max_element_count = other.max_element_count;
                 this->fixed_sizes = other.fixed_sizes;
-                this->locator = std::move(other_locator);
+                this->locator = other_locator;
             }
         }
     }
@@ -471,7 +471,7 @@ class BasicContiguousVector
                                                                               other_locator);
         this->max_element_count = other.max_element_count;
         this->fixed_sizes = other.fixed_sizes;
-        this->locator = std::move(other_locator);
+        this->locator = other_locator;
     }
 
     template <class TAllocator>
