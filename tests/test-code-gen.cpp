@@ -59,4 +59,9 @@ TEST_CASE("CodeGenTest: two FixedSize reserve growth")
     check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 12);
 }
 #endif
+
+TEST_CASE("CodeGenTest: two FixedSize erase at the end vs. std::vector")
+{
+    check_code_gen_sizes("std_vector_erase_at_the_end", "contiguous_two_erase_at_the_end");
+}
 }  // namespace test_contiguous

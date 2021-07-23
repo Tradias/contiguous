@@ -1,6 +1,10 @@
 #include "cntgs/contiguous.h"
 #include "reference.h"
 
+#include <array>
+#include <tuple>
+#include <vector>
+
 auto reference_two_fixed_lookup_and_accumulate(ReferenceFixedSizeVector& vector, uint32_t& out, size_t i,
                                                const std::vector<char>& first, const std::vector<uint32_t>& second,
                                                uint32_t third)
@@ -112,4 +116,16 @@ auto reference_two_fixed_reserve_growth(ReferenceFixedSizeVector& vector, uint32
 auto contiguous_two_fixed_reserve_growth(CntgsFixedSizeVector& vector, uint32_t new_capacity)
 {
     vector.reserve(new_capacity);
+}
+
+auto std_vector_erase_at_the_end(
+    std::vector<std::tuple<std::array<char, 15>, std::array<uint32_t, 15>, uint32_t>>& vector,
+    std::vector<std::tuple<std::array<char, 15>, std::array<uint32_t, 15>, uint32_t>>::const_iterator begin)
+{
+    vector.erase(begin, vector.end());
+}
+
+auto contiguous_two_erase_at_the_end(CntgsFixedSizeVector& vector, CntgsFixedSizeVector::const_iterator begin)
+{
+    vector.erase(begin, vector.end());
 }

@@ -202,14 +202,12 @@ class BasicContiguousVector
     iterator erase(const_iterator first, const_iterator last) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         const auto current_size = this->size();
-        const auto first_index = first.index();
-        iterator it_first{*this, first_index};
-        const auto last_index = last.index();
-        iterator it_last{*this, last_index};
+        iterator it_first{*this, first.index()};
+        iterator it_last{*this, last.index()};
         this->destruct(it_first, it_last);
-        if (last_index != current_size && first_index != last_index)
+        if (last.index() != current_size && first.index() != last.index())
         {
-            this->move_elements_forward_to(it_first, last_index, it_last->data_begin());
+            this->move_elements_forward_to(it_first, last.index(), it_last->data_begin());
         }
         this->locator.resize(current_size - std::distance(it_first, it_last), this->memory.get());
         return it_first;
@@ -451,16 +449,17 @@ class BasicContiguousVector
             }
             else
             {
-                this->destruct_if_owned();
                 auto other_locator = other.locator;
                 if (other.memory_consumption() > this->memory_consumption())
                 {
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
+                    this->destruct_if_owned();
                     other.template insert_into<true>(other.max_element_count, new_memory, other_locator);
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
+                    this->destruct();
                     other.template insert_into<true>(other.max_element_count, this->memory, other_locator);
                 }
                 this->max_element_count = other.max_element_count;
