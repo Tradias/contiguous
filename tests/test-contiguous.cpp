@@ -1363,7 +1363,14 @@ auto varying_vector_of_strings(Allocator allocator = {})
     return vector;
 }
 
-TEST_CASE("ContiguousTest: OneVaryingUniquePtr with std::allocator copy assignment")
+TEST_CASE("ContiguousTest: OneVaryingString copy construct")
+{
+    auto vector = varying_vector_of_strings();
+    decltype(vector) vector2{vector};
+    CHECK_EQ(vector, vector2);
+}
+
+TEST_CASE("ContiguousTest: OneVaryingString with std::allocator copy assignment")
 {
     auto vector = varying_vector_of_strings();
     SUBCASE("copy into smaller vector")
@@ -1380,7 +1387,7 @@ TEST_CASE("ContiguousTest: OneVaryingUniquePtr with std::allocator copy assignme
     }
 }
 
-TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator copy assignment")
+TEST_CASE("ContiguousTest: OneVaryingString with polymorphic_allocator copy assignment")
 {
     using Alloc = std::pmr::polymorphic_allocator<int>;
     TestMemoryResource resource;
@@ -1411,7 +1418,15 @@ auto fixed_vector_of_strings(Allocator allocator = {})
     return vector;
 }
 
-TEST_CASE("ContiguousTest: OneVaryingUniquePtr with std::allocator copy assignment")
+TEST_CASE("ContiguousTest: OneFixedString copy construct")
+{
+    auto vector = fixed_vector_of_strings();
+    decltype(vector) vector2{vector};
+    CHECK_EQ(vector, vector2);
+    CHECK_EQ(2, vector2.get_fixed_size<0>());
+}
+
+TEST_CASE("ContiguousTest: OneFixedString with std::allocator copy assignment")
 {
     auto vector = fixed_vector_of_strings();
     SUBCASE("copy into smaller vector")
@@ -1429,7 +1444,7 @@ TEST_CASE("ContiguousTest: OneVaryingUniquePtr with std::allocator copy assignme
     }
 }
 
-TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator copy assignment")
+TEST_CASE("ContiguousTest: OneFixedString with polymorphic_allocator copy assignment")
 {
     using Alloc = std::pmr::polymorphic_allocator<int>;
     TestMemoryResource resource;

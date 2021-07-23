@@ -74,10 +74,10 @@ class ElementLocator : public BaseElementLocator
     {
     }
 
-    ElementLocator(std::size_t max_element_count, std::byte* memory_begin, ElementLocator& other,
-                   std::size_t other_max_element_count, std::byte* other_memory_begin) noexcept
+    ElementLocator(ElementLocator& old_locator, std::size_t old_max_element_count, std::byte* old_memory_begin,
+                   std::size_t new_max_element_count, std::byte* new_memory_begin) noexcept
     {
-        this->copy_from(max_element_count, memory_begin, other, other_max_element_count, other_memory_begin);
+        this->copy_into(old_locator, old_max_element_count, old_memory_begin, new_max_element_count, new_memory_begin);
     }
 
     template <class... Args>
@@ -96,15 +96,15 @@ class ElementLocator : public BaseElementLocator
             ElementTraits::emplace_at_aliased(element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
     }
 
-    void copy_from(std::size_t new_max_element_count, std::byte* new_memory_begin, std::size_t old_max_element_count,
-                   std::byte* old_memory_begin) noexcept
+    void copy_into(std::size_t old_max_element_count, std::byte* old_memory_begin, std::size_t new_max_element_count,
+                   std::byte* new_memory_begin) noexcept
     {
-        this->copy_from(new_max_element_count, new_memory_begin, *this, old_max_element_count, old_memory_begin);
+        this->copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count, new_memory_begin);
     }
 
   private:
-    void copy_from(std::size_t new_max_element_count, std::byte* new_memory_begin, ElementLocator& old_locator,
-                   std::size_t old_max_element_count, std::byte* old_memory_begin) noexcept
+    void copy_into(ElementLocator& old_locator, std::size_t old_max_element_count, std::byte* old_memory_begin,
+                   std::size_t new_max_element_count, std::byte* new_memory_begin) noexcept
     {
         const auto new_start = Self::calculate_element_start(new_max_element_count, new_memory_begin);
         const auto old_start = Self::calculate_element_start(old_max_element_count, old_memory_begin);
@@ -186,10 +186,11 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
     {
     }
 
-    ElementLocator(std::size_t, std::byte* memory_begin, ElementLocator& other, std::size_t, const std::byte*) noexcept
-        : BaseAllFixedSizeElementLocator(other.element_count, other.stride, {})
+    ElementLocator(ElementLocator& old_locator, std::size_t, const std::byte*, std::size_t,
+                   std::byte* new_memory_begin) noexcept
+        : BaseAllFixedSizeElementLocator(old_locator.element_count, old_locator.stride, {})
     {
-        this->copy_from(memory_begin, other);
+        this->copy_into(old_locator, new_memory_begin);
     }
 
     template <class... Args>
@@ -206,16 +207,16 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
         ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
     }
 
-    void copy_from(std::size_t, std::byte* new_memory_begin, std::size_t, const std::byte*) noexcept
+    void copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
     {
-        this->copy_from(new_memory_begin, *this);
+        this->copy_into(*this, new_memory_begin);
     }
 
   private:
-    void copy_from(std::byte* new_memory_begin, ElementLocator& old) noexcept
+    void copy_into(ElementLocator& old_locator, std::byte* new_memory_begin) noexcept
     {
         const auto new_start = Self::calculate_element_start(new_memory_begin);
-        std::memcpy(new_start, old.start, old.element_count * old.stride);
+        std::memcpy(new_start, old_locator.start, old_locator.element_count * old_locator.stride);
         this->start = new_start;
     }
 
