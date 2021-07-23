@@ -8,7 +8,7 @@
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 #include "cntgs/contiguous/detail/utility.h"
 #include "cntgs/contiguous/detail/vectorTraits.h"
-#include "cntgs/contiguous/tuple.h"
+#include "cntgs/contiguous/reference.h"
 
 #include <cstddef>
 #include <cstring>
@@ -31,45 +31,47 @@ class BasicContiguousElement
     using StorageElementType = detail::AlignedByte<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>;
     using StorageType = detail::AllocatorAwarePointer<
         typename std::allocator_traits<Allocator>::template rebind_alloc<StorageElementType>>;
-    using Tuple = typename VectorTraits::ReferenceType;
+    using Reference = typename VectorTraits::ReferenceType;
 
   public:
     using allocator_type = Allocator;
 
     StorageType memory;
-    Tuple tuple;
+    Reference reference;
 
     BasicContiguousElement() = default;
 
-    template <detail::ContiguousTupleQualifier Qualifier>
-    /*implicit*/ BasicContiguousElement(const cntgs::ContiguousTuple<Qualifier, Types...>& other,
+    template <detail::ContiguousReferenceQualifier Qualifier>
+    /*implicit*/ BasicContiguousElement(const cntgs::ContiguousReference<Qualifier, Types...>& other,
                                         allocator_type allocator = {})
-        : memory(other.size_in_bytes(), std::move(allocator)), tuple(this->store_and_load(other, other.size_in_bytes()))
+        : memory(other.size_in_bytes(), std::move(allocator)),
+          reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
-    template <detail::ContiguousTupleQualifier Qualifier>
-    /*implicit*/ BasicContiguousElement(cntgs::ContiguousTuple<Qualifier, Types...>&& other,
+    template <detail::ContiguousReferenceQualifier Qualifier>
+    /*implicit*/ BasicContiguousElement(cntgs::ContiguousReference<Qualifier, Types...>&& other,
                                         allocator_type allocator = {})
-        : memory(other.size_in_bytes(), std::move(allocator)), tuple(this->store_and_load(other, other.size_in_bytes()))
+        : memory(other.size_in_bytes(), std::move(allocator)),
+          reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     /*implicit*/ BasicContiguousElement(const BasicContiguousElement& other)
-        : memory(other.memory), tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
+        : memory(other.memory), reference(this->store_and_load(other.reference, other.reference.size_in_bytes()))
     {
     }
 
     template <class TAllocator>
     /*implicit*/ BasicContiguousElement(const BasicContiguousElement<TAllocator, Types...>& other)
-        : memory(other.memory), tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
+        : memory(other.memory), reference(this->store_and_load(other.reference, other.reference.size_in_bytes()))
     {
     }
 
     template <class TAllocator>
     BasicContiguousElement(const BasicContiguousElement<TAllocator, Types...>& other, allocator_type allocator)
-        : memory(other.tuple.size_in_bytes(), std::move(allocator)),
-          tuple(this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
+        : memory(other.reference.size_in_bytes(), std::move(allocator)),
+          reference(this->store_and_load(other.reference, other.reference.size_in_bytes()))
     {
     }
 
@@ -77,7 +79,7 @@ class BasicContiguousElement
 
     template <class TAllocator>
     BasicContiguousElement(BasicContiguousElement<TAllocator, Types...>&& other)
-        : memory(std::move(other.memory)), tuple(std::move(other.tuple))
+        : memory(std::move(other.memory)), reference(std::move(other.reference))
     {
     }
 
@@ -85,10 +87,10 @@ class BasicContiguousElement
     BasicContiguousElement(BasicContiguousElement<TAllocator, Types...>&& other, allocator_type allocator)
         : memory(allocator == other.memory.get_allocator()
                      ? std::move(other.memory)
-                     : StorageType(other.tuple.size_in_bytes(), std::move(allocator))),
-          tuple(allocator == other.memory.get_allocator()
-                    ? std::move(other.tuple)
-                    : this->store_and_load(other.tuple, other.tuple.size_in_bytes()))
+                     : StorageType(other.reference.size_in_bytes(), std::move(allocator))),
+          reference(allocator == other.memory.get_allocator()
+                        ? std::move(other.reference)
+                        : this->store_and_load(other.reference, other.reference.size_in_bytes()))
     {
     }
 
@@ -98,7 +100,7 @@ class BasicContiguousElement
         {
             if (this->memory)
             {
-                ElementTraits::destruct(this->tuple);
+                ElementTraits::destruct(this->reference);
             }
         }
     }
@@ -106,7 +108,7 @@ class BasicContiguousElement
     BasicContiguousElement& operator=(const BasicContiguousElement& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->tuple = other.tuple;
+        this->reference = other.reference;
         return *this;
     }
 
@@ -114,13 +116,13 @@ class BasicContiguousElement
     BasicContiguousElement& operator=(const BasicContiguousElement<TAllocator, Types...>& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->tuple = other.tuple;
+        this->reference = other.reference;
         return *this;
     }
 
     BasicContiguousElement& operator=(BasicContiguousElement&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        this->tuple = std::move(other.tuple);
+        this->reference = std::move(other.reference);
         return *this;
     }
 
@@ -128,88 +130,98 @@ class BasicContiguousElement
     BasicContiguousElement& operator=(BasicContiguousElement<TAllocator, Types...>&& other) noexcept(
         ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        this->tuple = std::move(other.tuple);
+        this->reference = std::move(other.reference);
         return *this;
     }
 
-    template <detail::ContiguousTupleQualifier Qualifier>
-    constexpr BasicContiguousElement& operator=(const cntgs::ContiguousTuple<Qualifier, Types...>& other) noexcept(
+    template <detail::ContiguousReferenceQualifier Qualifier>
+    constexpr BasicContiguousElement& operator=(const cntgs::ContiguousReference<Qualifier, Types...>& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->tuple = other;
+        this->reference = other;
         return *this;
     }
 
-    template <detail::ContiguousTupleQualifier Qualifier>
-    constexpr BasicContiguousElement& operator=(cntgs::ContiguousTuple<Qualifier, Types...>&& other) noexcept(
-        ContiguousTuple<Qualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
-                                                       : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    template <detail::ContiguousReferenceQualifier Qualifier>
+    constexpr BasicContiguousElement& operator=(cntgs::ContiguousReference<Qualifier, Types...>&& other) noexcept(
+        ContiguousReference<Qualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
+                                                           : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->tuple = std::move(other);
+        this->reference = std::move(other);
         return *this;
     }
 
     constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
 
-    template <detail::ContiguousTupleQualifier TQualifier>
-    constexpr auto operator==(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    template <detail::ContiguousReferenceQualifier TQualifier>
+    constexpr auto operator==(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
-        return this->tuple == other;
+        return this->reference == other;
     }
 
-    constexpr auto operator==(const BasicContiguousElement& other) const { return this->tuple == other.tuple; }
+    constexpr auto operator==(const BasicContiguousElement& other) const { return this->reference == other.reference; }
 
-    template <detail::ContiguousTupleQualifier TQualifier>
-    constexpr auto operator!=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    template <detail::ContiguousReferenceQualifier TQualifier>
+    constexpr auto operator!=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
-        return !(this->tuple == other);
+        return !(this->reference == other);
     }
 
-    constexpr auto operator!=(const BasicContiguousElement& other) const { return !(this->tuple == other.tuple); }
-
-    template <detail::ContiguousTupleQualifier TQualifier>
-    constexpr auto operator<(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    constexpr auto operator!=(const BasicContiguousElement& other) const
     {
-        return this->tuple < other;
+        return !(this->reference == other.reference);
     }
 
-    constexpr auto operator<(const BasicContiguousElement& other) const { return this->tuple < other.tuple; }
-
-    template <detail::ContiguousTupleQualifier TQualifier>
-    constexpr auto operator<=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    template <detail::ContiguousReferenceQualifier TQualifier>
+    constexpr auto operator<(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
-        return !(other < this->tuple);
+        return this->reference < other;
     }
 
-    constexpr auto operator<=(const BasicContiguousElement& other) const { return !(other.tuple < this->tuple); }
+    constexpr auto operator<(const BasicContiguousElement& other) const { return this->reference < other.reference; }
 
-    template <detail::ContiguousTupleQualifier TQualifier>
-    constexpr auto operator>(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    template <detail::ContiguousReferenceQualifier TQualifier>
+    constexpr auto operator<=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
-        return other < this->tuple;
+        return !(other < this->reference);
     }
 
-    constexpr auto operator>(const BasicContiguousElement& other) const { return other.tuple < this->tuple; }
-
-    template <detail::ContiguousTupleQualifier TQualifier>
-    constexpr auto operator>=(const cntgs::ContiguousTuple<TQualifier, Types...>& other) const
+    constexpr auto operator<=(const BasicContiguousElement& other) const
     {
-        return !(this->tuple < other);
+        return !(other.reference < this->reference);
     }
 
-    constexpr auto operator>=(const BasicContiguousElement& other) const { return !(this->tuple < other.tuple); }
+    template <detail::ContiguousReferenceQualifier TQualifier>
+    constexpr auto operator>(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    {
+        return other < this->reference;
+    }
+
+    constexpr auto operator>(const BasicContiguousElement& other) const { return other.reference < this->reference; }
+
+    template <detail::ContiguousReferenceQualifier TQualifier>
+    constexpr auto operator>=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    {
+        return !(this->reference < other);
+    }
+
+    constexpr auto operator>=(const BasicContiguousElement& other) const
+    {
+        return !(this->reference < other.reference);
+    }
 
   private:
-    template <class SourceTuple>
-    auto store_and_load(SourceTuple& source, std::size_t memory_size)
+    template <class SourceReference>
+    auto store_and_load(SourceReference& source, std::size_t memory_size)
     {
-        static constexpr auto USE_MOVE = !std::is_const_v<SourceTuple> && !SourceTuple::IS_CONST;
+        static constexpr auto USE_MOVE = !std::is_const_v<SourceReference> && !SourceReference::IS_CONST;
         const auto begin = this->memory_begin();
         std::memcpy(begin, source.data_begin(), memory_size);
-        auto target = ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentNeeds,
-                                                              detail::ContiguousTupleSizeGetter>(begin, source.tuple);
+        auto target =
+            ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentNeeds,
+                                                    detail::ContiguousReferenceSizeGetter>(begin, source.tuple);
         ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
-        return Tuple{target};
+        return Reference{target};
     }
 
     [[nodiscard]] auto memory_begin() const noexcept
@@ -225,33 +237,33 @@ constexpr void swap(cntgs::BasicContiguousElement<Allocator, T...>& lhs,
 {
     using std::swap;
     swap(lhs.memory, rhs.memory);
-    auto temp{lhs.tuple.tuple};
-    detail::construct_at(&lhs.tuple.tuple, rhs.tuple.tuple);
-    detail::construct_at(&rhs.tuple.tuple, temp);
+    auto temp{lhs.reference.tuple};
+    detail::construct_at(&lhs.reference.tuple, rhs.reference.tuple);
+    detail::construct_at(&rhs.reference.tuple, temp);
 }
 
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousElement<Allocator, Types...>& element) noexcept
 {
-    return cntgs::get<I>(element.tuple);
+    return cntgs::get<I>(element.reference);
 }
 
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(const cntgs::BasicContiguousElement<Allocator, Types...>& element) noexcept
 {
-    return detail::as_const(cntgs::get<I>(element.tuple));
+    return detail::as_const(cntgs::get<I>(element.reference));
 }
 
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousElement<Allocator, Types...>&& element) noexcept
 {
-    return cntgs::get<I>(std::move(element.tuple));
+    return cntgs::get<I>(std::move(element.reference));
 }
 
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(const cntgs::BasicContiguousElement<Allocator, Types...>&& element) noexcept
 {
-    return detail::as_const(cntgs::get<I>(std::move(element.tuple)));
+    return detail::as_const(cntgs::get<I>(std::move(element.reference)));
 }
 }  // namespace cntgs
 
@@ -259,7 +271,7 @@ namespace std
 {
 template <std::size_t I, class Allocator, class... Types>
 struct tuple_element<I, ::cntgs::BasicContiguousElement<Allocator, Types...>>
-    : std::tuple_element<I, decltype(::cntgs::BasicContiguousElement<Allocator, Types...>::tuple)>
+    : std::tuple_element<I, decltype(::cntgs::BasicContiguousElement<Allocator, Types...>::reference)>
 {
 };
 

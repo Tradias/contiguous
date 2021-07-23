@@ -53,19 +53,19 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 
     static constexpr auto guaranteed_size_in_memory(std::size_t) noexcept { return VALUE_BYTES; }
 
-    static auto data_begin(ConstReferenceType return_type) noexcept
+    static auto data_begin(ConstReferenceType reference) noexcept
     {
-        return detail::assume_aligned<ALIGNMENT>(reinterpret_cast<const std::byte*>(std::addressof(return_type)));
+        return detail::assume_aligned<ALIGNMENT>(reinterpret_cast<const std::byte*>(std::addressof(reference)));
     }
 
-    static auto data_begin(ReferenceType return_type) noexcept
+    static auto data_begin(ReferenceType reference) noexcept
     {
-        return detail::assume_aligned<ALIGNMENT>(reinterpret_cast<std::byte*>(std::addressof(return_type)));
+        return detail::assume_aligned<ALIGNMENT>(reinterpret_cast<std::byte*>(std::addressof(reference)));
     }
 
-    static auto data_end(ConstReferenceType return_type) noexcept { return data_begin(return_type) + VALUE_BYTES; }
+    static auto data_end(ConstReferenceType reference) noexcept { return data_begin(reference) + VALUE_BYTES; }
 
-    static auto data_end(ReferenceType return_type) noexcept { return data_begin(return_type) + VALUE_BYTES; }
+    static auto data_end(ReferenceType reference) noexcept { return data_begin(reference) + VALUE_BYTES; }
 
     static constexpr void copy(ConstReferenceType source,
                                ReferenceType target) noexcept(std::is_nothrow_copy_assignable_v<T>)

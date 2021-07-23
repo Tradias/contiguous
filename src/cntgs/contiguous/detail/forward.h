@@ -23,8 +23,8 @@ class TypeErasedVector;
 template <class T, std::size_t Alignment = 1>
 struct AlignAs;
 
-template <detail::ContiguousTupleQualifier Qualifier, class... Types>
-class ContiguousTuple;
+template <detail::ContiguousReferenceQualifier Qualifier, class... Types>
+class ContiguousReference;
 
 template <class Allocator, class... Types>
 class BasicContiguousElement;

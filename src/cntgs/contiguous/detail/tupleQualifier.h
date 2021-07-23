@@ -2,9 +2,9 @@
 
 namespace cntgs::detail
 {
-enum class ContiguousTupleQualifier
+enum class ContiguousReferenceQualifier
 {
-    REFERENCE,
-    CONST_REFERENCE
+    MUTABLE,
+    CONST
 };
 }  // namespace cntgs::detail

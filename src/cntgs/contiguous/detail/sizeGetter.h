@@ -48,7 +48,7 @@ struct FixedSizeGetter
     }
 };
 
-struct ContiguousTupleSizeGetter
+struct ContiguousReferenceSizeGetter
 {
     template <class Type, std::size_t I, class... U>
     static constexpr auto get([[maybe_unused]] const std::tuple<U...>& tuple) noexcept

@@ -10,8 +10,8 @@ list(
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/element.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/iterator.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/parameter.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/reference.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/span.h
-    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/tuple.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/typeErasedVector.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/vector.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/algorithm.h
@@ -19,7 +19,6 @@ list(
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/attributes.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementLocator.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementTraits.h
-    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/sizeGetter.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/forward.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/iterator.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/math.h
@@ -28,6 +27,7 @@ list(
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterTraits.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterType.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/range.h
+    ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/sizeGetter.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/tuple.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/tupleQualifier.h
     ${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/typeUtils.h
