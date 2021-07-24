@@ -43,16 +43,16 @@ class BasicContiguousElement
 
     template <detail::ContiguousReferenceQualifier Qualifier>
     /*implicit*/ BasicContiguousElement(const cntgs::ContiguousReference<Qualifier, Types...>& other,
-                                        allocator_type allocator = {})
-        : memory(other.size_in_bytes(), std::move(allocator)),
+                                        const allocator_type& allocator = {})
+        : memory(other.size_in_bytes(), allocator),
           reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     template <detail::ContiguousReferenceQualifier Qualifier>
     /*implicit*/ BasicContiguousElement(cntgs::ContiguousReference<Qualifier, Types...>&& other,
-                                        allocator_type allocator = {})
-        : memory(other.size_in_bytes(), std::move(allocator)),
+                                        const allocator_type& allocator = {})
+        : memory(other.size_in_bytes(), allocator),
           reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
@@ -69,8 +69,8 @@ class BasicContiguousElement
     }
 
     template <class TAllocator>
-    BasicContiguousElement(const BasicContiguousElement<TAllocator, Types...>& other, allocator_type allocator)
-        : memory(other.reference.size_in_bytes(), std::move(allocator)),
+    BasicContiguousElement(const BasicContiguousElement<TAllocator, Types...>& other, const allocator_type& allocator)
+        : memory(other.reference.size_in_bytes(), allocator),
           reference(this->store_and_load(other.reference, other.reference.size_in_bytes()))
     {
     }
@@ -84,13 +84,8 @@ class BasicContiguousElement
     }
 
     template <class TAllocator>
-    BasicContiguousElement(BasicContiguousElement<TAllocator, Types...>&& other, allocator_type allocator)
-        : memory(allocator == other.memory.get_allocator()
-                     ? std::move(other.memory)
-                     : StorageType(other.reference.size_in_bytes(), std::move(allocator))),
-          reference(allocator == other.memory.get_allocator()
-                        ? std::move(other.reference)
-                        : this->store_and_load(other.reference, other.reference.size_in_bytes()))
+    BasicContiguousElement(BasicContiguousElement<TAllocator, Types...>&& other, const allocator_type& allocator)
+        : memory(this->acquire_memory(other, allocator)), reference(this->acquire_reference(other, allocator))
     {
     }
 
@@ -212,7 +207,7 @@ class BasicContiguousElement
 
   private:
     template <class SourceReference>
-    auto store_and_load(SourceReference& source, std::size_t memory_size)
+    auto store_and_load(SourceReference& source, std::size_t memory_size) const
     {
         static constexpr auto USE_MOVE = !std::is_const_v<SourceReference> && !SourceReference::IS_CONST;
         const auto begin = this->memory_begin();
@@ -224,7 +219,27 @@ class BasicContiguousElement
         return Reference{target};
     }
 
-    [[nodiscard]] auto memory_begin() const noexcept
+    template <class TAllocator>
+    auto acquire_memory(BasicContiguousElement<TAllocator, Types...>& other, const allocator_type& allocator) const
+    {
+        if (allocator == other.memory.get_allocator())
+        {
+            return std::move(other.memory);
+        }
+        return StorageType(other.reference.size_in_bytes(), allocator);
+    }
+
+    template <class TAllocator>
+    auto acquire_reference(BasicContiguousElement<TAllocator, Types...>& other, const allocator_type& allocator) const 
+    {
+        if (allocator == other.memory.get_allocator())
+        {
+            return std::move(other.reference);
+        }
+        return this->store_and_load(other.reference, other.reference.size_in_bytes());
+    }
+
+    auto memory_begin() const noexcept
     {
         return detail::assume_aligned<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
             reinterpret_cast<std::byte*>(this->memory.get()));

@@ -78,63 +78,61 @@ class BasicContiguousVector
 
     template <bool IsMixed = IS_MIXED>
     BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
-                          allocator_type allocator = {}, std::enable_if_t<IsMixed>* = nullptr)
-        : BasicContiguousVector(max_element_count, varying_size_bytes, fixed_sizes, std::move(allocator))
+                          const allocator_type& allocator = {}, std::enable_if_t<IsMixed>* = nullptr)
+        : BasicContiguousVector(max_element_count, varying_size_bytes, fixed_sizes, allocator)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes, allocator_type allocator = {},
-                          std::enable_if_t<IsAllFixedSize>* = nullptr)
-        : BasicContiguousVector(max_element_count, size_type{}, fixed_sizes, std::move(allocator))
+    BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
+                          const allocator_type& allocator = {}, std::enable_if_t<IsAllFixedSize>* = nullptr)
+        : BasicContiguousVector(max_element_count, size_type{}, fixed_sizes, allocator)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
     BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, allocator_type allocator = {},
+                          const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
                           std::enable_if_t<IsAllFixedSize>* = nullptr)
-        : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, fixed_sizes,
-                                std::move(allocator))
+        : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, fixed_sizes, allocator)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
     BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, allocator_type allocator = {},
+                          const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
                           std::enable_if_t<IsAllFixedSize>* = nullptr)
         : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, fixed_sizes,
-                                std::move(allocator))
+                                allocator)
     {
     }
 
     template <bool IsAllVaryingSize = IS_ALL_VARYING_SIZE>
-    BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, allocator_type allocator = {},
-                          std::enable_if_t<IsAllVaryingSize>* = nullptr)
-        : BasicContiguousVector(max_element_count, varying_size_bytes, FixedSizes{}, std::move(allocator))
+    BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
+                          const allocator_type& allocator = {}, std::enable_if_t<IsAllVaryingSize>* = nullptr)
+        : BasicContiguousVector(max_element_count, varying_size_bytes, FixedSizes{}, allocator)
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    BasicContiguousVector(size_type max_element_count, allocator_type allocator = {},
+    BasicContiguousVector(size_type max_element_count, const allocator_type& allocator = {},
                           std::enable_if_t<IsNoneSpecial>* = nullptr)
-        : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, std::move(allocator))
+        : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator)
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
     BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size, size_type max_element_count,
-                          allocator_type allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
-        : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, FixedSizes{},
-                                std::move(allocator))
+                          const allocator_type& allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, FixedSizes{}, allocator)
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
     BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                          allocator_type allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
+                          const allocator_type& allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, FixedSizes{},
-                                std::move(allocator))
+                                allocator)
     {
     }
 
@@ -313,19 +311,18 @@ class BasicContiguousVector
     // private API
   private:
     BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, allocator_type allocator)
+                          const FixedSizes& fixed_sizes, const allocator_type& allocator)
         : max_element_count(max_element_count),
-          memory(memory, memory_size, is_memory_owned, std::move(allocator)),
+          memory(memory, memory_size, is_memory_owned, allocator),
           fixed_sizes(fixed_sizes),
           locator(max_element_count, this->memory.get(), fixed_sizes)
     {
     }
 
     BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
-                          allocator_type allocator)
+                          const allocator_type& allocator)
         : max_element_count(max_element_count),
-          memory(Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes),
-                 std::move(allocator)),
+          memory(Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes), allocator),
           fixed_sizes(fixed_sizes),
           locator(max_element_count, this->memory.get(), fixed_sizes)
     {

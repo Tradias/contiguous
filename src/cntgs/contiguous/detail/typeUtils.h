@@ -154,8 +154,8 @@ inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE<T*, U*, false> =
 template <class T, class U>
 inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE<T, U, false> = false;
 
-template <class T, class U = T>
-struct EqualityMemcmpCompatible : std::bool_constant<detail::EQUALITY_MEMCMP_COMPATIBLE<T, U>>
+template <class T>
+struct EqualityMemcmpCompatible : std::bool_constant<detail::EQUALITY_MEMCMP_COMPATIBLE<std::remove_const_t<T>, std::remove_const_t<T>>>
 {
 };
 

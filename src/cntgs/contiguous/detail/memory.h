@@ -48,8 +48,8 @@ class AllocatorAwarePointer
 
         Impl() = default;
 
-        constexpr Impl(Pointer ptr, std::size_t size, Allocator allocator) noexcept
-            : Base{std::move(allocator)}, ptr(ptr), size(size)
+        constexpr Impl(Pointer ptr, std::size_t size, const Allocator& allocator) noexcept
+            : Base{allocator}, ptr(ptr), size(size)
         {
         }
     };
@@ -64,7 +64,7 @@ class AllocatorAwarePointer
     {
     }
 
-    constexpr AllocatorAwarePointer(pointer ptr, std::size_t size, Allocator allocator) noexcept
+    constexpr AllocatorAwarePointer(pointer ptr, std::size_t size, const Allocator& allocator) noexcept
         : impl(ptr, size, allocator)
     {
     }
@@ -85,7 +85,7 @@ class AllocatorAwarePointer
     {
     }
 
-    constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other, Allocator allocator) noexcept
+    constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other, const Allocator& allocator) noexcept
         : impl(std::exchange(other.get(), nullptr), other.size(), allocator)
     {
     }
@@ -197,12 +197,12 @@ class MaybeOwnedAllocatorAwarePointer
     MaybeOwnedAllocatorAwarePointer() = default;
 
     constexpr MaybeOwnedAllocatorAwarePointer(pointer ptr, std::size_t size, bool is_owned,
-                                              allocator_type allocator) noexcept
+                                              const allocator_type& allocator) noexcept
         : ptr(ptr, size, allocator), owned(is_owned)
     {
     }
 
-    constexpr MaybeOwnedAllocatorAwarePointer(std::size_t size, allocator_type allocator) noexcept
+    constexpr MaybeOwnedAllocatorAwarePointer(std::size_t size, const allocator_type& allocator) noexcept
         : ptr(size, allocator), owned(true)
     {
     }
