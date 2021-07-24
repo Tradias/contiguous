@@ -1435,7 +1435,6 @@ struct FixedSizeGetter
     static constexpr auto calculate_fixed_size_indices(std::index_sequence<I...>) noexcept
     {
         std::array<std::size_t, sizeof...(Types)> fixed_size_indices{};
-        int a{};
         [[maybe_unused]] std::size_t index{};
         (
             [&]

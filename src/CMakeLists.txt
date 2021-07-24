@@ -63,18 +63,20 @@ if(CNTGS_BUILD_TESTS)
         set(CNTGS_AMALGAMATE_PY
             ""
             CACHE FILEPATH "Path to amalgamate.py from https://github.com/edlund/amalgamate")
-        add_custom_command(
-            OUTPUT "${CMAKE_CURRENT_LIST_DIR}/cntgs.h"
-            COMMAND Python::Interpreter ARGS "${CNTGS_AMALGAMATE_PY}" "-c" "${CMAKE_CURRENT_LIST_DIR}/amalgamate.json"
-                    "-s" "${CMAKE_CURRENT_LIST_DIR}"
-            DEPENDS "${CNTGS_SOURCE_FILES}"
-            WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
-        add_custom_target(
-            cntgs-amalgamate
-            DEPENDS "${CMAKE_CURRENT_LIST_DIR}/cntgs.h"
-            SOURCES "${CMAKE_CURRENT_LIST_DIR}/amalgamate.json")
+        if(CNTGS_AMALGAMATE_PY)
+            add_custom_command(
+                OUTPUT "${CMAKE_CURRENT_LIST_DIR}/cntgs.h"
+                COMMAND Python::Interpreter ARGS "${CNTGS_AMALGAMATE_PY}" "-c"
+                        "${CMAKE_CURRENT_LIST_DIR}/amalgamate.json" "-s" "${CMAKE_CURRENT_LIST_DIR}"
+                DEPENDS "${CNTGS_SOURCE_FILES}"
+                WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
+            add_custom_target(
+                cntgs-amalgamate
+                DEPENDS "${CMAKE_CURRENT_LIST_DIR}/cntgs.h"
+                SOURCES "${CMAKE_CURRENT_LIST_DIR}/amalgamate.json")
 
-        target_sources(cntgs-objects PRIVATE cntgs.h)
+            target_sources(cntgs-objects PRIVATE cntgs.h)
+        endif()
     endif()
 endif()
 
