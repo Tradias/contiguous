@@ -10,7 +10,7 @@
 
 namespace cntgs::detail
 {
-// Some compilers (e.g. MSVC) perform handrolled optimizations or call C functions if the argument type
+// Some compilers (e.g. MSVC) perform hand rolled optimizations or call C functions if the argument type
 // fulfills certain criteria. These checks are not always performed correctly for std::byte, therefore
 // cast it to a more reliable type.
 

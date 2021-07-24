@@ -1,7 +1,6 @@
 #ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_H
 #define CNTGS_DETAIL_PARAMETERLISTTRAITS_H
 
-#include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/parameterType.h"
 #include "cntgs/contiguous/detail/typeUtils.h"

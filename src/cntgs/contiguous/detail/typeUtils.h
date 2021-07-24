@@ -12,11 +12,6 @@
 
 namespace cntgs::detail
 {
-template <class...>
-struct TypeList
-{
-};
-
 #ifdef __cpp_lib_concepts
 template <class Derived, class Base>
 concept DerivedFrom = std::derived_from<Derived, Base>;
@@ -57,9 +52,6 @@ struct EqualSizeof<false>
 template <class T, class U>
 inline constexpr auto EQUAL_SIZEOF =
     EqualSizeof<(std::is_same_v<void, T> || std::is_same_v<void, U>)>::template VALUE<T, U>;
-
-template <class...>
-inline constexpr auto FALSE_V = false;
 
 template <class>
 struct IsByte : std::false_type
@@ -120,14 +112,14 @@ inline constexpr auto IS_TRIVIALLY_SWAPPABLE = detail::IsTriviallySwappable<T>::
 template <bool B>
 struct Conditional
 {
-    template <class T, class U>
+    template <class T, class>
     using Type = T;
 };
 
 template <>
 struct Conditional<false>
 {
-    template <class T, class U>
+    template <class, class U>
     using Type = U;
 };
 
@@ -184,4 +176,4 @@ template <class T>
 inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatibleT<T>::value;
 }  // namespace cntgs::detail
 
-#endif // CNTGS_DETAIL_TYPEUTILS_H
+#endif  // CNTGS_DETAIL_TYPEUTILS_H

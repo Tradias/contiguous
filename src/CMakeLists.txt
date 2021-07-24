@@ -21,7 +21,6 @@ list(
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementTraits.h"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/forward.h"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/iteratorUtils.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/math.h"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/memory.h"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterListTraits.h"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterTraits.h"

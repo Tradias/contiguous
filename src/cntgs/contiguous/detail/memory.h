@@ -237,8 +237,6 @@ class MaybeOwnedAllocatorAwarePointer
 
     constexpr auto release() noexcept { return this->ptr.release(); }
 
-    constexpr auto reset() noexcept { this->ptr = nullptr; }
-
     constexpr auto get_allocator() const noexcept { return this->ptr.get_allocator(); }
 
     constexpr auto& get_impl() noexcept { return this->ptr; }
