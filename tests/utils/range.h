@@ -1,7 +1,5 @@
 #pragma once
 
-#include "cntgs/contiguous/detail/range.h"
-
 #include <algorithm>
 #include <type_traits>
 

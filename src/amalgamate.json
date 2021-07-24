@@ -1,0 +1,10 @@
+{
+	"project": "contiguous",
+	"target": "cntgs.h",
+	"sources": [
+		"cntgs/contiguous.h"
+	],
+	"include_paths": [
+		"./"
+	]
+}

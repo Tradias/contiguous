@@ -1,9 +1,9 @@
 #pragma once
 
-#include "contiguous/element.h"
-#include "contiguous/iterator.h"
-#include "contiguous/parameter.h"
-#include "contiguous/reference.h"
-#include "contiguous/span.h"
-#include "contiguous/typeErasedVector.h"
-#include "contiguous/vector.h"
+#include "cntgs/contiguous/element.h"
+#include "cntgs/contiguous/iterator.h"
+#include "cntgs/contiguous/parameter.h"
+#include "cntgs/contiguous/reference.h"
+#include "cntgs/contiguous/span.h"
+#include "cntgs/contiguous/typeErasedVector.h"
+#include "cntgs/contiguous/vector.h"
