@@ -297,7 +297,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
 
     static constexpr auto aligned_size_in_memory(std::size_t fixed_size) noexcept
     {
-        if constexpr (ALIGNMENT == 0)
+        if constexpr (ALIGNMENT == 1)
         {
             return fixed_size * VALUE_BYTES;
         }
