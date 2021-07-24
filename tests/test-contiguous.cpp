@@ -1065,10 +1065,13 @@ TEST_CASE("ContiguousTest: std::unique_ptr VaryingSize reserve and shrink")
 
 TEST_CASE("ContiguousTest: trivial OneFixed reserve with polymorphic_allocator")
 {
-    cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, cntgs::FixedSize<float>, int> vector{0,
-                                                                                                                  {10}};
+    TestMemoryResource resource;
+    cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, cntgs::FixedSize<float>, int> vector{
+        0, {10}, resource.get_allocator()};
     vector.reserve(2);
     CHECK_EQ(2, vector.capacity());
+    vector.emplace_back(std::array{1.f}, 10);
+    resource.check_was_used(vector.get_allocator());
 }
 
 #ifdef __cpp_lib_span
@@ -1311,7 +1314,6 @@ auto varying_vector_of_unique_ptrs(Allocator allocator = {})
 
 TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator move assignment")
 {
-    using Alloc = std::pmr::polymorphic_allocator<int>;
     TestMemoryResource resource;
     auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
     TestMemoryResource resource2;
@@ -1333,7 +1335,6 @@ TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator move a
 
 TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator move assignment")
 {
-    using Alloc = std::pmr::polymorphic_allocator<int>;
     TestMemoryResource resource;
     auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
     TestMemoryResource resource2;
@@ -1389,7 +1390,6 @@ TEST_CASE("ContiguousTest: OneVaryingString with std::allocator copy assignment"
 
 TEST_CASE("ContiguousTest: OneVaryingString with polymorphic_allocator copy assignment")
 {
-    using Alloc = std::pmr::polymorphic_allocator<int>;
     TestMemoryResource resource;
     auto vector = varying_vector_of_strings(resource.get_allocator());
     TestMemoryResource resource2;
@@ -1446,7 +1446,6 @@ TEST_CASE("ContiguousTest: OneFixedString with std::allocator copy assignment")
 
 TEST_CASE("ContiguousTest: OneFixedString with polymorphic_allocator copy assignment")
 {
-    using Alloc = std::pmr::polymorphic_allocator<int>;
     TestMemoryResource resource;
     auto vector = fixed_vector_of_strings(resource.get_allocator());
     TestMemoryResource resource2;

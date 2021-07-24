@@ -73,6 +73,8 @@ if(CNTGS_BUILD_TESTS)
             cntgs-amalgamate
             DEPENDS "${CMAKE_CURRENT_LIST_DIR}/cntgs.h"
             SOURCES "${CMAKE_CURRENT_LIST_DIR}/amalgamate.json")
+
+        target_sources(cntgs-objects PRIVATE cntgs.h)
     endif()
 endif()
 
