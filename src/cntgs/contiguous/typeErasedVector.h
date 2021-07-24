@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
+#define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
 
 #include "cntgs/contiguous/detail/elementLocator.h"
 #include "cntgs/contiguous/detail/memory.h"
@@ -45,3 +46,5 @@ class TypeErasedVector
     ~TypeErasedVector() noexcept { destructor(*this); }
 };
 }  // namespace cntgs
+
+#endif  // CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H

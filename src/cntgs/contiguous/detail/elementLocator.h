@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_ELEMENTLOCATOR_H
+#define CNTGS_DETAIL_ELEMENTLOCATOR_H
 
 #include "cntgs/contiguous/detail/elementTraits.h"
 #include "cntgs/contiguous/detail/memory.h"
@@ -244,3 +245,5 @@ auto type_erase_element_locator(T&& locator) noexcept
     return result;
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_ELEMENTLOCATOR_H

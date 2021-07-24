@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_TUPLE_H
+#define CNTGS_DETAIL_TUPLE_H
 
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
@@ -50,3 +51,5 @@ constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexce
     return detail::convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_TUPLE_H

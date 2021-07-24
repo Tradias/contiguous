@@ -1,6 +1,7 @@
-#pragma once
+#ifndef CNTGS_CONTIGUOUS_ITERATOR_H
+#define CNTGS_CONTIGUOUS_ITERATOR_H
 
-#include "cntgs/contiguous/detail/iterator.h"
+#include "cntgs/contiguous/detail/iteratorUtils.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
 
 #include <iterator>
@@ -156,3 +157,5 @@ class ContiguousVectorIterator
     typename Vector::size_type i{};
 };
 }  // namespace cntgs
+
+#endif  // CNTGS_CONTIGUOUS_ITERATOR_H

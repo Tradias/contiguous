@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_ITERATORUTILS_H
+#define CNTGS_DETAIL_ITERATORUTILS_H
 
 #include "cntgs/contiguous/detail/typeUtils.h"
 
@@ -24,3 +25,5 @@ inline constexpr auto CONTIGUOUS_ITERATOR_V =
                 std::is_same_v<decltype(std::declval<const I&>().operator->()),
                                std::add_pointer_t<typename std::iterator_traits<I>::reference>>;
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_ITERATORUTILS_H

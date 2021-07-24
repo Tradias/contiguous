@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_TYPEUTILS_H
+#define CNTGS_DETAIL_TYPEUTILS_H
 
 #include <cstddef>
 #include <type_traits>
@@ -60,7 +61,7 @@ inline constexpr auto EQUAL_SIZEOF =
 template <class...>
 inline constexpr auto FALSE_V = false;
 
-template <typename _Tp>
+template <class>
 struct IsByte : std::false_type
 {
 };
@@ -155,7 +156,8 @@ template <class T, class U>
 inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE<T, U, false> = false;
 
 template <class T>
-struct EqualityMemcmpCompatible : std::bool_constant<detail::EQUALITY_MEMCMP_COMPATIBLE<std::remove_const_t<T>, std::remove_const_t<T>>>
+struct EqualityMemcmpCompatible
+    : std::bool_constant<detail::EQUALITY_MEMCMP_COMPATIBLE<std::remove_const_t<T>, std::remove_const_t<T>>>
 {
 };
 
@@ -181,3 +183,5 @@ using LexicographicalMemcmpCompatibleT = detail::LexicographicalMemcmpCompatible
 template <class T>
 inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatibleT<T>::value;
 }  // namespace cntgs::detail
+
+#endif // CNTGS_DETAIL_TYPEUTILS_H

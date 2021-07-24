@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_H
+#define CNTGS_DETAIL_PARAMETERLISTTRAITS_H
 
 #include "cntgs/contiguous/detail/math.h"
 #include "cntgs/contiguous/detail/parameterTraits.h"
@@ -74,3 +75,5 @@ struct ParameterListTraits
     static constexpr auto make_index_sequence() noexcept { return std::make_index_sequence<sizeof...(Types)>{}; }
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_PARAMETERLISTTRAITS_H

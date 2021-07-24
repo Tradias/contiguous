@@ -1,7 +1,8 @@
-#pragma once
+#ifndef CNTGS_DETAIL_MEMORY_H
+#define CNTGS_DETAIL_MEMORY_H
 
 #include "cntgs/contiguous/detail/attributes.h"
-#include "cntgs/contiguous/detail/iterator.h"
+#include "cntgs/contiguous/detail/iteratorUtils.h"
 #include "cntgs/contiguous/detail/range.h"
 #include "cntgs/contiguous/detail/typeUtils.h"
 #include "cntgs/contiguous/detail/utility.h"
@@ -373,3 +374,5 @@ auto type_erase_allocator(T&& allocator) noexcept
     return result;
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_MEMORY_H

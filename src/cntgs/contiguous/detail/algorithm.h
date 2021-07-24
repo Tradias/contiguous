@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_ALGORITHM_H
+#define CNTGS_DETAIL_ALGORITHM_H
 
 #include "cntgs/contiguous/detail/memory.h"
 
@@ -35,3 +36,5 @@ constexpr auto trivial_lexicographical_compare(const T* begin, const T* end, con
         reinterpret_cast<const detail::Byte*>(begin2), reinterpret_cast<const detail::Byte*>(end2));
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_ALGORITHM_H

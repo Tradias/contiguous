@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_ARRAY_H
+#define CNTGS_DETAIL_ARRAY_H
 
 #include <algorithm>
 #include <array>
@@ -19,3 +20,5 @@ constexpr auto convert_array_to_size(const std::array<T, K>& array)
     return detail::convert_array_to_size<N>(array, std::make_index_sequence<std::min(N, K)>{});
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_ARRAY_H

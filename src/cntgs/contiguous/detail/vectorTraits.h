@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_VECTORTRAITS_H
+#define CNTGS_DETAIL_VECTORTRAITS_H
 
 #include "cntgs/contiguous/detail/forward.h"
 #include "cntgs/contiguous/detail/memory.h"
@@ -16,3 +17,5 @@ struct ContiguousVectorTraits
     using PointerType = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_VECTORTRAITS_H

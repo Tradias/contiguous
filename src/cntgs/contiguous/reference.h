@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_CONTIGUOUS_REFERENCE_H
+#define CNTGS_CONTIGUOUS_REFERENCE_H
 
 #include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/elementTraits.h"
@@ -23,7 +24,7 @@ class ContiguousReference
     using PointerTuple = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
 
   public:
-    using Tuple = detail::ConditionalT<(Qualifier == detail::ContiguousReferenceQualifier::MUTABLE),
+    using Tuple = detail::ConditionalT<(detail::ContiguousReferenceQualifier::MUTABLE == Qualifier),
                                        detail::ToTupleOfContiguousReference<std::tuple<Types...>>,
                                        detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>>;
 
@@ -265,3 +266,5 @@ struct tuple_size<::cntgs::ContiguousReference<Qualifier, Types...>>
 {
 };
 }  // namespace std
+
+#endif  // CNTGS_CONTIGUOUS_REFERENCE_H

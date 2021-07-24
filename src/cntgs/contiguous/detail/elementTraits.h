@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_ELEMENTTRAITS_H
+#define CNTGS_DETAIL_ELEMENTTRAITS_H
 
 #include "cntgs/contiguous/detail/algorithm.h"
 #include "cntgs/contiguous/detail/attributes.h"
@@ -307,3 +308,5 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 template <class... Types>
 using ElementTraitsT = detail::ElementTraits<std::make_index_sequence<sizeof...(Types)>, Types...>;
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_ELEMENTTRAITS_H

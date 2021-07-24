@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_PARAMETERTRAITS_H
+#define CNTGS_DETAIL_PARAMETERTRAITS_H
 
 #include "cntgs/contiguous/detail/attributes.h"
 #include "cntgs/contiguous/detail/memory.h"
@@ -335,3 +336,5 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     }
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_PARAMETERTRAITS_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_CONTIGUOUS_VECTOR_H
+#define CNTGS_CONTIGUOUS_VECTOR_H
 
 #include "cntgs/contiguous/detail/algorithm.h"
 #include "cntgs/contiguous/detail/array.h"
@@ -564,3 +565,5 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
         }};
 }
 }  // namespace cntgs
+
+#endif  // CNTGS_CONTIGUOUS_VECTOR_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_CONTIGUOUS_ELEMENT_H
+#define CNTGS_CONTIGUOUS_ELEMENT_H
 
 #include "cntgs/contiguous/detail/elementTraits.h"
 #include "cntgs/contiguous/detail/forward.h"
@@ -44,16 +45,14 @@ class BasicContiguousElement
     template <detail::ContiguousReferenceQualifier Qualifier>
     /*implicit*/ BasicContiguousElement(const cntgs::ContiguousReference<Qualifier, Types...>& other,
                                         const allocator_type& allocator = {})
-        : memory(other.size_in_bytes(), allocator),
-          reference(this->store_and_load(other, other.size_in_bytes()))
+        : memory(other.size_in_bytes(), allocator), reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     template <detail::ContiguousReferenceQualifier Qualifier>
     /*implicit*/ BasicContiguousElement(cntgs::ContiguousReference<Qualifier, Types...>&& other,
                                         const allocator_type& allocator = {})
-        : memory(other.size_in_bytes(), allocator),
-          reference(this->store_and_load(other, other.size_in_bytes()))
+        : memory(other.size_in_bytes(), allocator), reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
@@ -230,7 +229,7 @@ class BasicContiguousElement
     }
 
     template <class TAllocator>
-    auto acquire_reference(BasicContiguousElement<TAllocator, Types...>& other, const allocator_type& allocator) const 
+    auto acquire_reference(BasicContiguousElement<TAllocator, Types...>& other, const allocator_type& allocator) const
     {
         if (allocator == other.memory.get_allocator())
         {
@@ -296,3 +295,5 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 {
 };
 }  // namespace std
+
+#endif  // CNTGS_CONTIGUOUS_ELEMENT_H

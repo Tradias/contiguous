@@ -1,19 +1,25 @@
-#pragma once
+#ifndef CNTGS_CONTIGUOUS_H
+#define CNTGS_CONTIGUOUS_H
 
 // #include "cntgs/contiguous/element.h"
-
+#ifndef CNTGS_CONTIGUOUS_ELEMENT_H
+#define CNTGS_CONTIGUOUS_ELEMENT_H
 
 // #include "cntgs/contiguous/detail/elementTraits.h"
-
+#ifndef CNTGS_DETAIL_ELEMENTTRAITS_H
+#define CNTGS_DETAIL_ELEMENTTRAITS_H
 
 // #include "cntgs/contiguous/detail/algorithm.h"
-
+#ifndef CNTGS_DETAIL_ALGORITHM_H
+#define CNTGS_DETAIL_ALGORITHM_H
 
 // #include "cntgs/contiguous/detail/memory.h"
-
+#ifndef CNTGS_DETAIL_MEMORY_H
+#define CNTGS_DETAIL_MEMORY_H
 
 // #include "cntgs/contiguous/detail/attributes.h"
-
+#ifndef CNTGS_DETAIL_ATTRIBUTES_H
+#define CNTGS_DETAIL_ATTRIBUTES_H
 
 #ifdef NDEBUG
 #ifdef _MSC_VER
@@ -33,11 +39,15 @@
 
 #define CNTGS_RESTRICT __restrict
 
-// #include "cntgs/contiguous/detail/iterator.h"
+#endif  // CNTGS_DETAIL_ATTRIBUTES_H
 
+// #include "cntgs/contiguous/detail/iteratorUtils.h"
+#ifndef CNTGS_DETAIL_ITERATORUTILS_H
+#define CNTGS_DETAIL_ITERATORUTILS_H
 
 // #include "cntgs/contiguous/detail/typeUtils.h"
-
+#ifndef CNTGS_DETAIL_TYPEUTILS_H
+#define CNTGS_DETAIL_TYPEUTILS_H
 
 #include <cstddef>
 #include <type_traits>
@@ -99,7 +109,7 @@ inline constexpr auto EQUAL_SIZEOF =
 template <class...>
 inline constexpr auto FALSE_V = false;
 
-template <typename _Tp>
+template <class>
 struct IsByte : std::false_type
 {
 };
@@ -194,7 +204,8 @@ template <class T, class U>
 inline constexpr auto EQUALITY_MEMCMP_COMPATIBLE<T, U, false> = false;
 
 template <class T>
-struct EqualityMemcmpCompatible : std::bool_constant<detail::EQUALITY_MEMCMP_COMPATIBLE<std::remove_const_t<T>, std::remove_const_t<T>>>
+struct EqualityMemcmpCompatible
+    : std::bool_constant<detail::EQUALITY_MEMCMP_COMPATIBLE<std::remove_const_t<T>, std::remove_const_t<T>>>
 {
 };
 
@@ -221,6 +232,9 @@ template <class T>
 inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatibleT<T>::value;
 }  // namespace cntgs::detail
 
+#endif // CNTGS_DETAIL_TYPEUTILS_H
+
+
 #include <iterator>
 #include <version>
 
@@ -243,8 +257,12 @@ inline constexpr auto CONTIGUOUS_ITERATOR_V =
                 std::is_same_v<decltype(std::declval<const I&>().operator->()),
                                std::add_pointer_t<typename std::iterator_traits<I>::reference>>;
 }  // namespace cntgs::detail
-// #include "cntgs/contiguous/detail/range.h"
 
+#endif  // CNTGS_DETAIL_ITERATORUTILS_H
+
+// #include "cntgs/contiguous/detail/range.h"
+#ifndef CNTGS_DETAIL_RANGE_H
+#define CNTGS_DETAIL_RANGE_H
 
 #include <iterator>
 #include <type_traits>
@@ -274,13 +292,18 @@ struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype
 {
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_RANGE_H
+
 // #include "cntgs/contiguous/detail/typeUtils.h"
 
 // #include "cntgs/contiguous/detail/utility.h"
-
+#ifndef CNTGS_DETAIL_UTILITY_H
+#define CNTGS_DETAIL_UTILITY_H
 
 // #include "cntgs/contiguous/span.h"
-
+#ifndef CNTGS_CONTIGUOUS_SPAN_H
+#define CNTGS_CONTIGUOUS_SPAN_H
 
 #include <cstddef>
 #include <version>
@@ -348,6 +371,9 @@ struct Span
 #endif
 };
 }  // namespace cntgs
+
+#endif  // CNTGS_CONTIGUOUS_SPAN_H
+
 
 #include <utility>
 
@@ -460,6 +486,9 @@ constexpr decltype(auto) as_const(T& value) noexcept
     return std::as_const(value);
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_UTILITY_H
+
 // #include "cntgs/contiguous/span.h"
 
 
@@ -830,6 +859,8 @@ auto type_erase_allocator(T&& allocator) noexcept
 }
 }  // namespace cntgs::detail
 
+#endif  // CNTGS_DETAIL_MEMORY_H
+
 
 #include <algorithm>
 #include <array>
@@ -864,13 +895,18 @@ constexpr auto trivial_lexicographical_compare(const T* begin, const T* end, con
         reinterpret_cast<const detail::Byte*>(begin2), reinterpret_cast<const detail::Byte*>(end2));
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_ALGORITHM_H
+
 // #include "cntgs/contiguous/detail/attributes.h"
 
 // #include "cntgs/contiguous/detail/forward.h"
-
+#ifndef CNTGS_DETAIL_FORWARD_H
+#define CNTGS_DETAIL_FORWARD_H
 
 // #include "cntgs/contiguous/detail/tupleQualifier.h"
-
+#ifndef CNTGS_DETAIL_TUPLEQUALIFIER_H
+#define CNTGS_DETAIL_TUPLEQUALIFIER_H
 
 namespace cntgs::detail
 {
@@ -880,6 +916,9 @@ enum class ContiguousReferenceQualifier
     CONST
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_TUPLEQUALIFIER_H
+
 
 #include <cstddef>
 
@@ -908,13 +947,18 @@ class ContiguousReference;
 template <class Allocator, class... Types>
 class BasicContiguousElement;
 }  // namespace cntgs
+
+#endif  // CNTGS_DETAIL_FORWARD_H
+
 // #include "cntgs/contiguous/detail/memory.h"
 
 // #include "cntgs/contiguous/detail/parameterListTraits.h"
-
+#ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_H
+#define CNTGS_DETAIL_PARAMETERLISTTRAITS_H
 
 // #include "cntgs/contiguous/detail/math.h"
-
+#ifndef CNTGS_DETAIL_MATH_H
+#define CNTGS_DETAIL_MATH_H
 
 #include <cstddef>
 
@@ -931,15 +975,20 @@ constexpr auto max_size_t_of() noexcept
 template <std::size_t... I>
 inline constexpr auto MAX_SIZE_T_OF = detail::max_size_t_of<I...>();
 }  // namespace cntgs::detail
-// #include "cntgs/contiguous/detail/parameterTraits.h"
 
+#endif  // CNTGS_DETAIL_MATH_H
+
+// #include "cntgs/contiguous/detail/parameterTraits.h"
+#ifndef CNTGS_DETAIL_PARAMETERTRAITS_H
+#define CNTGS_DETAIL_PARAMETERTRAITS_H
 
 // #include "cntgs/contiguous/detail/attributes.h"
 
 // #include "cntgs/contiguous/detail/memory.h"
 
 // #include "cntgs/contiguous/detail/parameterType.h"
-
+#ifndef CNTGS_DETAIL_PARAMETERTYPE_H
+#define CNTGS_DETAIL_PARAMETERTYPE_H
 
 namespace cntgs::detail
 {
@@ -951,10 +1000,13 @@ enum class ParameterType
 };
 }  // namespace cntgs::detail
 
+#endif  // CNTGS_DETAIL_PARAMETERTYPE_H
+
 // #include "cntgs/contiguous/detail/typeUtils.h"
 
 // #include "cntgs/contiguous/parameter.h"
-
+#ifndef CNTGS_CONTIGUOUS_PARAMETER_H
+#define CNTGS_CONTIGUOUS_PARAMETER_H
 
 #include <cstddef>
 
@@ -975,6 +1027,9 @@ struct AlignAs
 {
 };
 }  // namespace cntgs
+
+#endif  // CNTGS_CONTIGUOUS_PARAMETER_H
+
 // #include "cntgs/contiguous/span.h"
 
 
@@ -1307,6 +1362,8 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
 };
 }  // namespace cntgs::detail
 
+#endif  // CNTGS_DETAIL_PARAMETERTRAITS_H
+
 // #include "cntgs/contiguous/detail/parameterType.h"
 
 // #include "cntgs/contiguous/detail/typeUtils.h"
@@ -1382,10 +1439,13 @@ struct ParameterListTraits
 };
 }  // namespace cntgs::detail
 
+#endif  // CNTGS_DETAIL_PARAMETERLISTTRAITS_H
+
 // #include "cntgs/contiguous/detail/parameterTraits.h"
 
 // #include "cntgs/contiguous/detail/sizeGetter.h"
-
+#ifndef CNTGS_DETAIL_SIZEGETTER_H
+#define CNTGS_DETAIL_SIZEGETTER_H
 
 // #include "cntgs/contiguous/detail/parameterTraits.h"
 
@@ -1454,17 +1514,22 @@ struct ContiguousReferenceSizeGetter
     }
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_SIZEGETTER_H
+
 // #include "cntgs/contiguous/detail/typeUtils.h"
 
 // #include "cntgs/contiguous/detail/vectorTraits.h"
-
+#ifndef CNTGS_DETAIL_VECTORTRAITS_H
+#define CNTGS_DETAIL_VECTORTRAITS_H
 
 // #include "cntgs/contiguous/detail/forward.h"
 
 // #include "cntgs/contiguous/detail/memory.h"
 
 // #include "cntgs/contiguous/detail/tuple.h"
-
+#ifndef CNTGS_DETAIL_TUPLE_H
+#define CNTGS_DETAIL_TUPLE_H
 
 // #include "cntgs/contiguous/detail/forward.h"
 
@@ -1520,6 +1585,8 @@ constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexce
 }
 }  // namespace cntgs::detail
 
+#endif  // CNTGS_DETAIL_TUPLE_H
+
 
 #include <tuple>
 
@@ -1533,6 +1600,9 @@ struct ContiguousVectorTraits
     using PointerType = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_VECTORTRAITS_H
+
 
 #include <array>
 #include <cstddef>
@@ -1832,6 +1902,8 @@ template <class... Types>
 using ElementTraitsT = detail::ElementTraits<std::make_index_sequence<sizeof...(Types)>, Types...>;
 }  // namespace cntgs::detail
 
+#endif  // CNTGS_DETAIL_ELEMENTTRAITS_H
+
 // #include "cntgs/contiguous/detail/forward.h"
 
 // #include "cntgs/contiguous/detail/memory.h"
@@ -1847,7 +1919,8 @@ using ElementTraitsT = detail::ElementTraits<std::make_index_sequence<sizeof...(
 // #include "cntgs/contiguous/detail/vectorTraits.h"
 
 // #include "cntgs/contiguous/reference.h"
-
+#ifndef CNTGS_CONTIGUOUS_REFERENCE_H
+#define CNTGS_CONTIGUOUS_REFERENCE_H
 
 // #include "cntgs/contiguous/detail/attributes.h"
 
@@ -1879,7 +1952,7 @@ class ContiguousReference
     using PointerTuple = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
 
   public:
-    using Tuple = detail::ConditionalT<(Qualifier == detail::ContiguousReferenceQualifier::MUTABLE),
+    using Tuple = detail::ConditionalT<(detail::ContiguousReferenceQualifier::MUTABLE == Qualifier),
                                        detail::ToTupleOfContiguousReference<std::tuple<Types...>>,
                                        detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>>;
 
@@ -2122,6 +2195,8 @@ struct tuple_size<::cntgs::ContiguousReference<Qualifier, Types...>>
 };
 }  // namespace std
 
+#endif  // CNTGS_CONTIGUOUS_REFERENCE_H
+
 
 #include <cstddef>
 #include <cstring>
@@ -2157,16 +2232,14 @@ class BasicContiguousElement
     template <detail::ContiguousReferenceQualifier Qualifier>
     /*implicit*/ BasicContiguousElement(const cntgs::ContiguousReference<Qualifier, Types...>& other,
                                         const allocator_type& allocator = {})
-        : memory(other.size_in_bytes(), allocator),
-          reference(this->store_and_load(other, other.size_in_bytes()))
+        : memory(other.size_in_bytes(), allocator), reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     template <detail::ContiguousReferenceQualifier Qualifier>
     /*implicit*/ BasicContiguousElement(cntgs::ContiguousReference<Qualifier, Types...>&& other,
                                         const allocator_type& allocator = {})
-        : memory(other.size_in_bytes(), allocator),
-          reference(this->store_and_load(other, other.size_in_bytes()))
+        : memory(other.size_in_bytes(), allocator), reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
@@ -2343,7 +2416,7 @@ class BasicContiguousElement
     }
 
     template <class TAllocator>
-    auto acquire_reference(BasicContiguousElement<TAllocator, Types...>& other, const allocator_type& allocator) const 
+    auto acquire_reference(BasicContiguousElement<TAllocator, Types...>& other, const allocator_type& allocator) const
     {
         if (allocator == other.memory.get_allocator())
         {
@@ -2410,10 +2483,13 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 };
 }  // namespace std
 
+#endif  // CNTGS_CONTIGUOUS_ELEMENT_H
+
 // #include "cntgs/contiguous/iterator.h"
+#ifndef CNTGS_CONTIGUOUS_ITERATOR_H
+#define CNTGS_CONTIGUOUS_ITERATOR_H
 
-
-// #include "cntgs/contiguous/detail/iterator.h"
+// #include "cntgs/contiguous/detail/iteratorUtils.h"
 
 // #include "cntgs/contiguous/detail/typeUtils.h"
 
@@ -2571,6 +2647,9 @@ class ContiguousVectorIterator
     typename Vector::size_type i{};
 };
 }  // namespace cntgs
+
+#endif  // CNTGS_CONTIGUOUS_ITERATOR_H
+
 // #include "cntgs/contiguous/parameter.h"
 
 // #include "cntgs/contiguous/reference.h"
@@ -2578,10 +2657,12 @@ class ContiguousVectorIterator
 // #include "cntgs/contiguous/span.h"
 
 // #include "cntgs/contiguous/typeErasedVector.h"
-
+#ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
+#define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
 
 // #include "cntgs/contiguous/detail/elementLocator.h"
-
+#ifndef CNTGS_DETAIL_ELEMENTLOCATOR_H
+#define CNTGS_DETAIL_ELEMENTLOCATOR_H
 
 // #include "cntgs/contiguous/detail/elementTraits.h"
 
@@ -2832,6 +2913,8 @@ auto type_erase_element_locator(T&& locator) noexcept
 }
 }  // namespace cntgs::detail
 
+#endif  // CNTGS_DETAIL_ELEMENTLOCATOR_H
+
 // #include "cntgs/contiguous/detail/memory.h"
 
 // #include "cntgs/contiguous/detail/utility.h"
@@ -2879,13 +2962,18 @@ class TypeErasedVector
     ~TypeErasedVector() noexcept { destructor(*this); }
 };
 }  // namespace cntgs
-// #include "cntgs/contiguous/vector.h"
 
+#endif  // CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
+
+// #include "cntgs/contiguous/vector.h"
+#ifndef CNTGS_CONTIGUOUS_VECTOR_H
+#define CNTGS_CONTIGUOUS_VECTOR_H
 
 // #include "cntgs/contiguous/detail/algorithm.h"
 
 // #include "cntgs/contiguous/detail/array.h"
-
+#ifndef CNTGS_DETAIL_ARRAY_H
+#define CNTGS_DETAIL_ARRAY_H
 
 #include <algorithm>
 #include <array>
@@ -2906,6 +2994,9 @@ constexpr auto convert_array_to_size(const std::array<T, K>& array)
     return detail::convert_array_to_size<N>(array, std::make_index_sequence<std::min(N, K)>{});
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_ARRAY_H
+
 // #include "cntgs/contiguous/detail/elementLocator.h"
 
 // #include "cntgs/contiguous/detail/forward.h"
@@ -3481,3 +3572,8 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
         }};
 }
 }  // namespace cntgs
+
+#endif  // CNTGS_CONTIGUOUS_VECTOR_H
+
+
+#endif  // CNTGS_CONTIGUOUS_H

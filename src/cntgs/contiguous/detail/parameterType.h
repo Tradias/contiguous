@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_PARAMETERTYPE_H
+#define CNTGS_DETAIL_PARAMETERTYPE_H
 
 namespace cntgs::detail
 {
@@ -9,3 +10,5 @@ enum class ParameterType
     VARYING_SIZE
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_PARAMETERTYPE_H

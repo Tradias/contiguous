@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_SIZEGETTER_H
+#define CNTGS_DETAIL_SIZEGETTER_H
 
 #include "cntgs/contiguous/detail/parameterTraits.h"
 #include "cntgs/contiguous/detail/parameterType.h"
@@ -64,3 +65,5 @@ struct ContiguousReferenceSizeGetter
     }
 };
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_SIZEGETTER_H

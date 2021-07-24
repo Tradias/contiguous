@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_UTILITY_H
+#define CNTGS_DETAIL_UTILITY_H
 
 #include "cntgs/contiguous/span.h"
 
@@ -113,3 +114,5 @@ constexpr decltype(auto) as_const(T& value) noexcept
     return std::as_const(value);
 }
 }  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_UTILITY_H

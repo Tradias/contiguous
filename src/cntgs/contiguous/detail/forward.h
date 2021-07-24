@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_FORWARD_H
+#define CNTGS_DETAIL_FORWARD_H
 
 #include "cntgs/contiguous/detail/tupleQualifier.h"
 
@@ -29,3 +30,5 @@ class ContiguousReference;
 template <class Allocator, class... Types>
 class BasicContiguousElement;
 }  // namespace cntgs
+
+#endif  // CNTGS_DETAIL_FORWARD_H

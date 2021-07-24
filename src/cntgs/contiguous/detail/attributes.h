@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CNTGS_DETAIL_ATTRIBUTES_H
+#define CNTGS_DETAIL_ATTRIBUTES_H
 
 #ifdef NDEBUG
 #ifdef _MSC_VER
@@ -17,3 +18,5 @@
 #endif
 
 #define CNTGS_RESTRICT __restrict
+
+#endif  // CNTGS_DETAIL_ATTRIBUTES_H
