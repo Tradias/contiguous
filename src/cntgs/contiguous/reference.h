@@ -139,73 +139,73 @@ class ContiguousReference
     }
 
     template <detail::ContiguousReferenceQualifier TQualifier>
-    constexpr auto operator==(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator==(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
         return ElementTraits::equal(*this, other);
     }
 
     template <class Allocator>
-    constexpr auto operator==(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
     {
         return *this == other.reference;
     }
 
     template <detail::ContiguousReferenceQualifier TQualifier>
-    constexpr auto operator!=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator!=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
         return !(*this == other);
     }
 
     template <class Allocator>
-    constexpr auto operator!=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
     {
         return !(*this == other.reference);
     }
 
     template <detail::ContiguousReferenceQualifier TQualifier>
-    constexpr auto operator<(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
         return ElementTraits::lexicographical_compare(*this, other);
     }
 
     template <class Allocator>
-    constexpr auto operator<(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
     {
         return *this < other.reference;
     }
 
     template <detail::ContiguousReferenceQualifier TQualifier>
-    constexpr auto operator<=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
         return !(other < *this);
     }
 
     template <class Allocator>
-    constexpr auto operator<=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
     {
         return !(other.reference < *this);
     }
 
     template <detail::ContiguousReferenceQualifier TQualifier>
-    constexpr auto operator>(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
         return other < *this;
     }
 
     template <class Allocator>
-    constexpr auto operator>(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
     {
         return other.reference < *this;
     }
 
     template <detail::ContiguousReferenceQualifier TQualifier>
-    constexpr auto operator>=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
     {
         return !(*this < other);
     }
 
     template <class Allocator>
-    constexpr auto operator>=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
     {
         return !(*this < other.reference);
     }
