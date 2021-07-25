@@ -13,6 +13,9 @@ struct VaryingSize;
 template <class T>
 struct FixedSize;
 
+template <class T, std::size_t Alignment = 1>
+struct AlignAs;
+
 template <class Allocator, class... T>
 class BasicContiguousVector;
 
@@ -21,11 +24,8 @@ class ContiguousVectorIterator;
 
 class TypeErasedVector;
 
-template <class T, std::size_t Alignment = 1>
-struct AlignAs;
-
 template <cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
-class ContiguousReference;
+class BasicContiguousReference;
 
 template <class Allocator, class... Types>
 class BasicContiguousElement;

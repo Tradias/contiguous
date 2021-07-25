@@ -15,9 +15,15 @@
 
 namespace cntgs
 {
+template <class... Types>
+using ContiguousReference = cntgs::BasicContiguousReference<cntgs::ContiguousReferenceQualifier::MUTABLE, Types...>;
+
+template <class... Types>
+using ContiguousConstReference = cntgs::BasicContiguousReference<cntgs::ContiguousReferenceQualifier::CONST, Types...>;
+
 /// Reference type
 template <cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
-class ContiguousReference
+class BasicContiguousReference
 {
   private:
     using ListTraits = detail::ParameterListTraits<Types...>;
@@ -33,48 +39,51 @@ class ContiguousReference
 
     Tuple tuple;
 
-    ContiguousReference() = default;
-    ~ContiguousReference() = default;
+    BasicContiguousReference() = default;
+    ~BasicContiguousReference() = default;
 
-    ContiguousReference(const ContiguousReference&) = default;
-    ContiguousReference(ContiguousReference&&) = default;
+    BasicContiguousReference(const BasicContiguousReference&) = default;
+    BasicContiguousReference(BasicContiguousReference&&) = default;
 
-    explicit constexpr ContiguousReference(std::byte* CNTGS_RESTRICT address,
-                                           const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
-        : ContiguousReference(ElementTraits::load_element_at(address, fixed_sizes))
+    explicit constexpr BasicContiguousReference(std::byte* CNTGS_RESTRICT address,
+                                                const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
+        : BasicContiguousReference(ElementTraits::load_element_at(address, fixed_sizes))
     {
     }
 
-    explicit constexpr ContiguousReference(const PointerTuple& tuple) noexcept
+    explicit constexpr BasicContiguousReference(const PointerTuple& tuple) noexcept
         : tuple(detail::convert_tuple_to<Tuple>(tuple))
     {
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    /*implicit*/ constexpr ContiguousReference(const cntgs::ContiguousReference<TQualifier, Types...>& other) noexcept
+    /*implicit*/ constexpr BasicContiguousReference(
+        const cntgs::BasicContiguousReference<TQualifier, Types...>& other) noexcept
         : tuple(other.tuple)
     {
     }
 
     template <class Allocator>
-    /*implicit*/ constexpr ContiguousReference(const cntgs::BasicContiguousElement<Allocator, Types...>& other) noexcept
+    /*implicit*/ constexpr BasicContiguousReference(
+        const cntgs::BasicContiguousElement<Allocator, Types...>& other) noexcept
         : tuple(other.reference)
     {
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    /*implicit*/ constexpr ContiguousReference(cntgs::ContiguousReference<TQualifier, Types...>&& other) noexcept
+    /*implicit*/ constexpr BasicContiguousReference(
+        cntgs::BasicContiguousReference<TQualifier, Types...>&& other) noexcept
         : tuple(std::move(other.tuple))
     {
     }
 
     template <class Allocator>
-    /*implicit*/ constexpr ContiguousReference(cntgs::BasicContiguousElement<Allocator, Types...>&& other) noexcept
+    /*implicit*/ constexpr BasicContiguousReference(cntgs::BasicContiguousElement<Allocator, Types...>&& other) noexcept
         : tuple(std::move(other.reference))
     {
     }
 
-    constexpr ContiguousReference& operator=(const ContiguousReference& other) noexcept(
+    constexpr BasicContiguousReference& operator=(const BasicContiguousReference& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->assign(other);
@@ -82,22 +91,22 @@ class ContiguousReference
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    constexpr ContiguousReference& operator=(const cntgs::ContiguousReference<TQualifier, Types...>& other) noexcept(
-        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    constexpr BasicContiguousReference& operator=(const cntgs::BasicContiguousReference<TQualifier, Types...>&
+                                                      other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->assign(other);
         return *this;
     }
 
     template <class Allocator>
-    constexpr ContiguousReference& operator=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) noexcept(
-        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    constexpr BasicContiguousReference& operator=(const cntgs::BasicContiguousElement<Allocator, Types...>&
+                                                      other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->assign(other.reference);
         return *this;
     }
 
-    constexpr ContiguousReference& operator=(ContiguousReference&& other) noexcept(
+    constexpr BasicContiguousReference& operator=(BasicContiguousReference&& other) noexcept(
         ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
         this->assign(other);
@@ -105,23 +114,24 @@ class ContiguousReference
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    constexpr ContiguousReference& operator=(cntgs::ContiguousReference<TQualifier, Types...>&& other) noexcept(
-        ContiguousReference<TQualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
-                                                            : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    constexpr BasicContiguousReference&
+    operator=(cntgs::BasicContiguousReference<TQualifier, Types...>&& other) noexcept(
+        cntgs::BasicContiguousReference<TQualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
+                                                                        : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->assign(other);
         return *this;
     }
 
     template <class Allocator>
-    constexpr ContiguousReference& operator=(cntgs::BasicContiguousElement<Allocator, Types...>&& other) noexcept(
+    constexpr BasicContiguousReference& operator=(cntgs::BasicContiguousElement<Allocator, Types...>&& other) noexcept(
         ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
         this->assign(other.reference);
         return *this;
     }
 
-    constexpr void swap(const ContiguousReference& other) const noexcept(ListTraits::IS_NOTHROW_SWAPPABLE)
+    constexpr void swap(const BasicContiguousReference& other) const noexcept(ListTraits::IS_NOTHROW_SWAPPABLE)
     {
         ElementTraits::swap(other, *this);
     }
@@ -140,7 +150,7 @@ class ContiguousReference
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator==(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return ElementTraits::equal(*this, other);
     }
@@ -152,7 +162,7 @@ class ContiguousReference
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator!=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return !(*this == other);
     }
@@ -164,7 +174,7 @@ class ContiguousReference
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator<(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return ElementTraits::lexicographical_compare(*this, other);
     }
@@ -176,7 +186,7 @@ class ContiguousReference
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator<=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return !(other < *this);
     }
@@ -188,7 +198,7 @@ class ContiguousReference
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator>(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return other < *this;
     }
@@ -200,7 +210,7 @@ class ContiguousReference
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator>=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return !(*this < other);
     }
@@ -221,33 +231,35 @@ class ContiguousReference
 };
 
 template <cntgs::ContiguousReferenceQualifier Qualifier, class... T>
-constexpr void swap(const cntgs::ContiguousReference<Qualifier, T...>& lhs,
-                    const cntgs::ContiguousReference<Qualifier, T...>&
+constexpr void swap(const cntgs::BasicContiguousReference<Qualifier, T...>& lhs,
+                    const cntgs::BasicContiguousReference<Qualifier, T...>&
                         rhs) noexcept(detail::ParameterListTraits<T...>::IS_NOTHROW_SWAPPABLE)
 {
     lhs.swap(rhs);
 }
 
 template <std::size_t I, cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(cntgs::ContiguousReference<Qualifier, Types...>& reference) noexcept
+[[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousReference<Qualifier, Types...>& reference) noexcept
 {
     return std::get<I>(reference.tuple);
 }
 
 template <std::size_t I, cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(const cntgs::ContiguousReference<Qualifier, Types...>& reference) noexcept
+[[nodiscard]] constexpr decltype(auto) get(
+    const cntgs::BasicContiguousReference<Qualifier, Types...>& reference) noexcept
 {
     return std::get<I>(reference.tuple);
 }
 
 template <std::size_t I, cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(cntgs::ContiguousReference<Qualifier, Types...>&& reference) noexcept
+[[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousReference<Qualifier, Types...>&& reference) noexcept
 {
     return std::get<I>(std::move(reference.tuple));
 }
 
 template <std::size_t I, cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(const cntgs::ContiguousReference<Qualifier, Types...>&& reference) noexcept
+[[nodiscard]] constexpr decltype(auto) get(
+    const cntgs::BasicContiguousReference<Qualifier, Types...>&& reference) noexcept
 {
     return std::get<I>(std::move(reference.tuple));
 }
@@ -256,13 +268,13 @@ template <std::size_t I, cntgs::ContiguousReferenceQualifier Qualifier, class...
 namespace std
 {
 template <std::size_t I, ::cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
-struct tuple_element<I, ::cntgs::ContiguousReference<Qualifier, Types...>>
-    : std::tuple_element<I, typename ::cntgs::ContiguousReference<Qualifier, Types...>::Tuple>
+struct tuple_element<I, ::cntgs::BasicContiguousReference<Qualifier, Types...>>
+    : std::tuple_element<I, typename ::cntgs::BasicContiguousReference<Qualifier, Types...>::Tuple>
 {
 };
 
 template <::cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
-struct tuple_size<::cntgs::ContiguousReference<Qualifier, Types...>>
+struct tuple_size<::cntgs::BasicContiguousReference<Qualifier, Types...>>
     : std::integral_constant<std::size_t, sizeof...(Types)>
 {
 };

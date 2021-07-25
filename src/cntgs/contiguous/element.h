@@ -43,14 +43,14 @@ class BasicContiguousElement
     BasicContiguousElement() = default;
 
     template <cntgs::ContiguousReferenceQualifier Qualifier>
-    /*implicit*/ BasicContiguousElement(const cntgs::ContiguousReference<Qualifier, Types...>& other,
+    /*implicit*/ BasicContiguousElement(const cntgs::BasicContiguousReference<Qualifier, Types...>& other,
                                         const allocator_type& allocator = {})
         : memory(other.size_in_bytes(), allocator), reference(this->store_and_load(other, other.size_in_bytes()))
     {
     }
 
     template <cntgs::ContiguousReferenceQualifier Qualifier>
-    /*implicit*/ BasicContiguousElement(cntgs::ContiguousReference<Qualifier, Types...>&& other,
+    /*implicit*/ BasicContiguousElement(cntgs::BasicContiguousReference<Qualifier, Types...>&& other,
                                         const allocator_type& allocator = {})
         : memory(other.size_in_bytes(), allocator), reference(this->store_and_load(other, other.size_in_bytes()))
     {
@@ -129,17 +129,17 @@ class BasicContiguousElement
     }
 
     template <cntgs::ContiguousReferenceQualifier Qualifier>
-    constexpr BasicContiguousElement& operator=(const cntgs::ContiguousReference<Qualifier, Types...>& other) noexcept(
-        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    constexpr BasicContiguousElement& operator=(const cntgs::BasicContiguousReference<Qualifier, Types...>&
+                                                    other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->reference = other;
         return *this;
     }
 
     template <cntgs::ContiguousReferenceQualifier Qualifier>
-    constexpr BasicContiguousElement& operator=(cntgs::ContiguousReference<Qualifier, Types...>&& other) noexcept(
-        ContiguousReference<Qualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
-                                                           : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    constexpr BasicContiguousElement& operator=(cntgs::BasicContiguousReference<Qualifier, Types...>&& other) noexcept(
+        cntgs::BasicContiguousReference<Qualifier, Types...>::IS_CONST ? ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE
+                                                                       : ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->reference = std::move(other);
         return *this;
@@ -148,7 +148,7 @@ class BasicContiguousElement
     [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator==(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return this->reference == other;
     }
@@ -159,7 +159,7 @@ class BasicContiguousElement
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator!=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return !(this->reference == other);
     }
@@ -170,7 +170,7 @@ class BasicContiguousElement
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator<(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return this->reference < other;
     }
@@ -181,7 +181,7 @@ class BasicContiguousElement
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator<=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return !(other < this->reference);
     }
@@ -192,7 +192,7 @@ class BasicContiguousElement
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator>(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return other < this->reference;
     }
@@ -203,7 +203,7 @@ class BasicContiguousElement
     }
 
     template <cntgs::ContiguousReferenceQualifier TQualifier>
-    [[nodiscard]] constexpr auto operator>=(const cntgs::ContiguousReference<TQualifier, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousReference<TQualifier, Types...>& other) const
     {
         return !(this->reference < other);
     }
