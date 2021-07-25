@@ -17,13 +17,12 @@ auto to_string_view(Iterator begin, Iterator end)
 }
 
 template <class Iterator, class Arg>
-decltype(auto) format_one(std::ostringstream& stream, std::string_view format, Iterator& iterator, Arg&& arg)
+void format_one(std::ostringstream& stream, std::string_view format, Iterator& iterator, Arg&& arg)
 {
     const auto next = std::find(iterator, format.end(), '{');
     const auto next_string_view = detail::to_string_view(iterator, next);
     iterator = std::next(next, 2);
     stream << next_string_view << std::forward<Arg>(arg);
-    return stream;
 }
 }  // namespace detail
 

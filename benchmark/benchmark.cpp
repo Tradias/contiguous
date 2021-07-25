@@ -35,28 +35,24 @@ struct TwoVector
 
 struct VectorVector
 {
+    static constexpr auto MSVC_VECTOR_CONSTRUCTION_OVERHEAD = 16;
+    static constexpr auto LEEWAY = 256;
+
     std::unique_ptr<std::pmr::monotonic_buffer_resource> resource;
     std::pmr::vector<std::pmr::vector<float>> vector{resource.get()};
+
+    explicit VectorVector(std::size_t elements, std::size_t floats)
+        : resource(std::make_unique<std::pmr::monotonic_buffer_resource>(
+              floats * sizeof(float) + elements * sizeof(std::pmr::vector<float>) +
+              elements * MSVC_VECTOR_CONSTRUCTION_OVERHEAD + LEEWAY))
+    {
+    }
 };
 
 auto work(float e)
 {
     auto v = std::abs(e) + std::sqrt(e);
     ankerl::nanobench::doNotOptimizeAway(v);
-}
-
-template <class Target>
-void fill_vector(Target& target, const std::vector<std::vector<float>>& source)
-{
-    target.reserve(source.size());
-    for (size_t i = 0; i < source.size(); i++)
-    {
-        target.emplace_back();
-    }
-    for (size_t i = 0; i < source.size(); i++)
-    {
-        target[i].assign(source[i].begin(), source[i].end());
-    }
 }
 
 template <class... T>
@@ -148,8 +144,7 @@ auto random_lookup(const std::vector<std::array<float, N>>& vector, const std::v
     };
 }
 
-template <std::size_t N>
-auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_size)
+auto generate_single_element_input(std::size_t elements, std::size_t fixed_size)
 {
     std::vector<std::vector<float>> input{elements};
     for (auto&& v : input)
@@ -161,26 +156,53 @@ auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_s
                             return float_dist(gen);
                         });
     }
-    std::vector<std::array<float, N>> array_vector{input.size()};
-    for (size_t i = 0; i < input.size(); i++)
+    return input;
+}
+
+template <std::size_t N>
+void fill_vector(std::vector<std::array<float, N>>& target, const std::vector<std::vector<float>>& source)
+{
+    target.resize(source.size());
+    for (size_t i = 0; i < source.size(); i++)
     {
-        std::copy(input[i].begin(), input[i].end(), array_vector[i].begin());
+        std::copy(source[i].begin(), source[i].end(), target[i].begin());
     }
-    VectorVector vector_vector{std::make_unique<std::pmr::monotonic_buffer_resource>(
-        elements * fixed_size * 16 * sizeof(float) * sizeof(std::pmr::vector<float>))};
-    fill_vector(vector_vector.vector, input);
+}
+
+void fill_vector(VectorVector& target, const std::vector<std::vector<float>>& source)
+{
+    target.vector.reserve(source.size());
+    for (size_t i = 0; i < source.size(); i++)
+    {
+        target.vector.emplace_back();
+    }
+    for (size_t i = 0; i < source.size(); i++)
+    {
+        target.vector[i].assign(source[i].begin(), source[i].end());
+    }
+}
+
+template <class... T>
+void fill_vector(cntgs::BasicContiguousVector<T...>& target, const std::vector<std::vector<float>>& source)
+{
+    for (const auto& v : source)
+    {
+        target.emplace_back(v);
+    }
+}
+
+template <std::size_t N>
+auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_size)
+{
+    auto input = generate_single_element_input(elements, fixed_size);
+    std::vector<std::array<float, N>> array_vector;
+    fill_vector(array_vector, input);
+    VectorVector vector_vector{elements, elements * fixed_size};
+    fill_vector(vector_vector, input);
     FixedSizeVector fixed_size_vector{input.size(), {fixed_size}};
-    for (auto& v : input)
-    {
-        fixed_size_vector.emplace_back(v);
-    }
+    fill_vector(fixed_size_vector, input);
     VaryingSizeVector varying_size_vector{input.size(), input.size() * fixed_size * sizeof(float)};
-    for (auto& v : input)
-    {
-        varying_size_vector.emplace_back(v);
-    }
-    input.clear();
-    input.shrink_to_fit();
+    fill_vector(varying_size_vector, input);
     return std::tuple{std::move(array_vector), std::move(vector_vector), std::move(fixed_size_vector),
                       std::move(varying_size_vector)};
 }
@@ -219,7 +241,8 @@ void random_lookup(std::size_t elements, std::size_t fixed_size)
                       return size_t_dist(gen);
                   });
     ankerl::nanobench::Bench().run(
-        format("random_lookup: std::array<float, {}> elements: {} fixed_size: {}", N, elements, fixed_size),
+        format("random_lookup: std::vector<std::array<float, {}>> elements: {} fixed_size: {}", N, elements,
+               fixed_size),
         random_lookup(array_vector, indices));
     ankerl::nanobench::Bench().run(
         format("random_lookup: std::pmr::vector<std::pmr::vector<float>> elements: {} fixed_size: {}", elements,
@@ -233,7 +256,7 @@ void random_lookup(std::size_t elements, std::size_t fixed_size)
         random_lookup(fixed_size_vector, indices));
 }
 
-auto make_varying_since_input_vectors(std::size_t elements, uint32_t variance)
+auto make_varying_size_input_vectors(std::size_t elements, uint32_t variance)
 {
     std::uniform_int_distribution<uint32_t> int_dist(0, variance);
     std::vector<std::vector<float>> input{elements};
@@ -249,22 +272,16 @@ auto make_varying_since_input_vectors(std::size_t elements, uint32_t variance)
                           return float_dist(gen);
                       });
     }
-    VectorVector vector_vector{std::make_unique<std::pmr::monotonic_buffer_resource>(
-        total_size * sizeof(float) + elements * 16 * sizeof(std::pmr::vector<float>))};
-    fill_vector(vector_vector.vector, input);
+    VectorVector vector_vector{elements, total_size};
+    fill_vector(vector_vector, input);
     VaryingSizeVector varying_size_vector{input.size(), total_size * sizeof(float)};
-    for (auto& v : input)
-    {
-        varying_size_vector.emplace_back(v);
-    }
-    input.clear();
-    input.shrink_to_fit();
+    fill_vector(varying_size_vector, input);
     return std::tuple{std::move(vector_vector), std::move(varying_size_vector)};
 }
 
 void full_iteration_varying(std::size_t elements, std::uint32_t variance)
 {
-    auto [vector_vector, varying_size_vector] = make_varying_since_input_vectors(elements, variance);
+    auto [vector_vector, varying_size_vector] = make_varying_size_input_vectors(elements, variance);
     ankerl::nanobench::Bench().run(
         format("full_iteration: std::pmr::vector<std::pmr::vector<float>> elements: {} variance: 0-{}", elements,
                variance),
@@ -276,7 +293,7 @@ void full_iteration_varying(std::size_t elements, std::uint32_t variance)
 
 void random_lookup_varying(std::size_t elements, std::uint32_t variance)
 {
-    auto [vector_vector, varying_size_vector] = make_varying_since_input_vectors(elements, variance);
+    auto [vector_vector, varying_size_vector] = make_varying_size_input_vectors(elements, variance);
     std::uniform_int_distribution<size_t> size_t_dist(0, elements - 1);
     std::vector<size_t> indices(1000000);
     std::generate(indices.begin(), indices.end(),
@@ -417,6 +434,60 @@ void full_iteration_two(std::size_t elements, std::size_t fixed_size)
         });
 }
 
+template <std::size_t N>
+void emplace_back_and_clear(std::size_t elements, std::size_t fixed_size)
+{
+    auto input = generate_single_element_input(elements, fixed_size);
+    {
+        std::vector<std::array<float, N>> array_vector{input.size()};
+        ankerl::nanobench::Bench().batch(elements).run(
+            format("emplace_back_and_clear: std::array<float, {}> elements: {} fixed_size: {}", N, elements,
+                   fixed_size),
+            [&]
+            {
+                fill_vector(array_vector, input);
+                ankerl::nanobench::doNotOptimizeAway(array_vector);
+                array_vector.clear();
+            });
+    }
+    {
+        VectorVector vector_vector{elements, elements * fixed_size};
+        ankerl::nanobench::Bench().batch(elements).run(
+            format("emplace_back_and_clear: std::pmr::vector<std::pmr::vector<float>> elements: {} fixed_size: {}",
+                   elements, fixed_size),
+            [&]
+            {
+                fill_vector(vector_vector, input);
+                ankerl::nanobench::doNotOptimizeAway(vector_vector);
+                vector_vector.vector.clear();
+            });
+    }
+    {
+        FixedSizeVector fixed_size_vector{input.size(), {fixed_size}};
+        ankerl::nanobench::Bench().batch(elements).run(
+            format("emplace_back_and_clear: ContiguousVector<FixedSize<float>> elements: {} fixed_size: {}", elements,
+                   fixed_size),
+            [&]
+            {
+                fill_vector(fixed_size_vector, input);
+                ankerl::nanobench::doNotOptimizeAway(fixed_size_vector);
+                fixed_size_vector.clear();
+            });
+    }
+    {
+        VaryingSizeVector varying_size_vector{input.size(), input.size() * fixed_size * sizeof(float)};
+        ankerl::nanobench::Bench().batch(elements).run(
+            format("emplace_back_and_clear: ContiguousVector<VaryingSize<float>> elements: {} fixed_size: {}", elements,
+                   fixed_size),
+            [&]
+            {
+                fill_vector(varying_size_vector, input);
+                ankerl::nanobench::doNotOptimizeAway(varying_size_vector);
+                varying_size_vector.clear();
+            });
+    }
+}
+
 int main()
 {
     auto random = static_cast<uint32_t>(float_dist(gen) / FLOAT_MAX * 2);
@@ -440,6 +511,10 @@ int main()
     full_iteration_two<15, 15>(500000, multiple_of_two + 28);
     full_iteration_two<30, 30>(500000, multiple_of_two + 28);
     full_iteration_two<45, 45>(500000, multiple_of_two + 28);
-    full_iteration_two<100, 100>(50000, multiple_of_two + 98);
-    full_iteration_two<200, 200>(50000, multiple_of_two + 98);
+    full_iteration_two<50, 50>(250000, multiple_of_two + 98);
+    full_iteration_two<100, 100>(250000, multiple_of_two + 98);
+    emplace_back_and_clear<15>(1000000, random + 12);
+    emplace_back_and_clear<30>(1000000, random + 12);
+    emplace_back_and_clear<100>(1000000, random + 97);
+    emplace_back_and_clear<200>(1000000, random + 97);
 }
