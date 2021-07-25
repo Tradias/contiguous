@@ -214,7 +214,7 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
     }
 
   private:
-    void copy_into(ElementLocator& old_locator, std::byte* new_memory_begin) noexcept
+    void copy_into(const ElementLocator& old_locator, std::byte* new_memory_begin) noexcept
     {
         const auto new_start = Self::calculate_element_start(new_memory_begin);
         std::memcpy(new_start, old_locator.start, old_locator.element_count * old_locator.stride);

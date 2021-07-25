@@ -12,7 +12,10 @@ struct AllocationGuard
     std::size_t size;
     bool perform_deallocation{true};
 
-    explicit constexpr AllocationGuard(std::size_t size = 1) : ptr(Allocator{}.allocate(size)), size(size) {}
+    explicit constexpr AllocationGuard(std::size_t memory_size = 1)
+        : ptr(Allocator{}.allocate(memory_size)), size(memory_size)
+    {
+    }
 
     constexpr auto release() noexcept
     {

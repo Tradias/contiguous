@@ -190,10 +190,10 @@ class BasicContiguousVector
     iterator erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         iterator it_position{*this, position.index()};
-        const auto data_end = it_position->data_end();
+        const auto position_data_end = it_position->data_end();
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
-        this->move_elements_forward_to(it_position, next_position, data_end);
+        this->move_elements_forward_to(it_position, next_position, position_data_end);
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
         return it_position;
     }

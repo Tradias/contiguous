@@ -5,11 +5,11 @@
 #include <tuple>
 #include <vector>
 
-auto reference_two_fixed_lookup_and_accumulate(ReferenceFixedSizeVector& vector, uint32_t& out, size_t i,
+auto reference_two_fixed_lookup_and_accumulate(const ReferenceFixedSizeVector& vector, uint32_t& out, size_t index,
                                                const std::vector<char>& first, const std::vector<uint32_t>& second,
                                                uint32_t third)
 {
-    auto&& node = vector.get_node(i);
+    auto&& node = vector.get_node(index);
     auto&& seconds = vector.get_second(node);
     for (size_t i = 0; i < vector.second_count; i++)
     {
@@ -24,11 +24,11 @@ auto reference_two_fixed_lookup_and_accumulate(ReferenceFixedSizeVector& vector,
 
 using CntgsFixedSizeVector = cntgs::ContiguousVector<cntgs::FixedSize<char>, cntgs::FixedSize<uint32_t>, uint32_t>;
 
-auto contiguous_two_fixed_lookup_and_accumulate(CntgsFixedSizeVector& vector, uint32_t& out, size_t i,
+auto contiguous_two_fixed_lookup_and_accumulate(const CntgsFixedSizeVector& vector, uint32_t& out, size_t index,
                                                 const std::vector<char>& first, const std::vector<uint32_t>& second,
                                                 uint32_t third)
 {
-    auto&& [firsts, seconds, c] = vector[i];
+    auto&& [firsts, seconds, c] = vector[index];
     for (auto&& v : seconds)
     {
         out += v;
@@ -51,8 +51,8 @@ auto contiguous_two_fixed_emplace(CntgsFixedSizeVector& vector, const std::vecto
     vector.emplace_back(first.begin(), second.begin(), third);
 }
 
-auto reference_two_fixed_random_lookup(ReferenceFixedSizeVector& vector, size_t i, size_t j, size_t k, char& first,
-                                       uint32_t& second, uint32_t& third)
+auto reference_two_fixed_random_lookup(const ReferenceFixedSizeVector& vector, size_t i, size_t j, size_t k,
+                                       char& first, uint32_t& second, uint32_t& third)
 {
     auto&& a = vector.get_second(i);
     second = *a;
@@ -62,7 +62,7 @@ auto reference_two_fixed_random_lookup(ReferenceFixedSizeVector& vector, size_t 
     third = c;
 }
 
-auto contiguous_two_fixed_random_lookup(CntgsFixedSizeVector& vector, size_t i, size_t j, size_t k, char& first,
+auto contiguous_two_fixed_random_lookup(const CntgsFixedSizeVector& vector, size_t i, size_t j, size_t k, char& first,
                                         uint32_t& second, uint32_t& third)
 {
     auto&& [a1, b1, c1] = vector[i];
@@ -73,11 +73,11 @@ auto contiguous_two_fixed_random_lookup(CntgsFixedSizeVector& vector, size_t i, 
     third = c3;
 }
 
-auto reference_two_fixed_aligned_lookup_and_accumulate(ReferenceFixedSizeVector& vector, uint32_t& out, size_t i,
-                                                       const std::vector<char>& first,
+auto reference_two_fixed_aligned_lookup_and_accumulate(const ReferenceFixedSizeVector& vector, uint32_t& out,
+                                                       size_t index, const std::vector<char>& first,
                                                        const std::vector<uint32_t>& second, uint32_t third)
 {
-    auto&& node = vector.get_node(i);
+    auto&& node = vector.get_node(index);
     auto&& seconds = vector.get_second(node);
     for (size_t i = 0; i < vector.second_count; i++)
     {
@@ -93,11 +93,11 @@ auto reference_two_fixed_aligned_lookup_and_accumulate(ReferenceFixedSizeVector&
 using CntgsFixedSizeAlignedVector =
     cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<char, 32>>, cntgs::FixedSize<uint32_t>, uint32_t>;
 
-auto contiguous_two_fixed_aligned_lookup_and_accumulate(CntgsFixedSizeAlignedVector& vector, uint32_t& out, size_t i,
-                                                        const std::vector<char>& first,
+auto contiguous_two_fixed_aligned_lookup_and_accumulate(const CntgsFixedSizeAlignedVector& vector, uint32_t& out,
+                                                        size_t index, const std::vector<char>& first,
                                                         const std::vector<uint32_t>& second, uint32_t third)
 {
-    auto&& [firsts, seconds, c] = vector[i];
+    auto&& [firsts, seconds, c] = vector[index];
     for (auto&& v : seconds)
     {
         out += v;

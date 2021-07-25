@@ -42,6 +42,7 @@ class ContiguousVectorIterator
     {
         this->vector = other.vector;
         this->i = other.i;
+        return *this;
     }
 
     ContiguousVectorIterator& operator=(const ContiguousVectorIterator&) = default;
