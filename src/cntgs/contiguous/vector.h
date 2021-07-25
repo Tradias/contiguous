@@ -212,6 +212,12 @@ class BasicContiguousVector
         return it_first;
     }
 
+    void clear() noexcept
+    {
+        this->destruct();
+        this->locator.resize(0, this->memory.get());
+    }
+
     [[nodiscard]] reference operator[](size_type i) noexcept
     {
         return reference{this->locator.element_address(i, this->memory.get()), this->fixed_sizes};
@@ -374,7 +380,7 @@ class BasicContiguousVector
             this->template uninitialized_construct_if_non_trivial<UseMove>(new_memory.get(), new_locator);
             if constexpr (IsDestruct)
             {
-                this->destruct_if_owned();
+                this->destruct();
             }
             locator = new_locator;
         }
@@ -425,7 +431,7 @@ class BasicContiguousVector
 
     void steal(BasicContiguousVector&& other)
     {
-        this->destruct_if_owned();
+        this->destruct();
         this->max_element_count = other.max_element_count;
         this->memory = std::move(other.memory);
         this->fixed_sizes = other.fixed_sizes;
@@ -450,8 +456,9 @@ class BasicContiguousVector
                 auto other_locator = other.locator;
                 if (other.memory_consumption() > this->memory_consumption())
                 {
+                    // allocate memory first because it may throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
-                    this->destruct_if_owned();
+                    this->destruct();
                     other.template insert_into<true>(other.max_element_count, new_memory, other_locator);
                     this->memory = std::move(new_memory);
                 }
@@ -477,7 +484,7 @@ class BasicContiguousVector
 
     void copy_assign(const BasicContiguousVector& other)
     {
-        this->destruct_if_owned();
+        this->destruct();
         this->memory = other.memory;
         auto other_locator = other.locator;
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
@@ -531,15 +538,21 @@ class BasicContiguousVector
 
     void destruct_if_owned() noexcept
     {
-        if (this->memory && this->memory.is_owned())
+        if (this->memory.is_owned())
         {
             this->destruct();
         }
     }
 
-    void destruct() noexcept { this->destruct(this->begin(), this->end()); }
+    void destruct() noexcept
+    {
+        if (this->memory)
+        {
+            this->destruct(this->begin(), this->end());
+        }
+    }
 
-    static void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
+    void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
     {
         if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {

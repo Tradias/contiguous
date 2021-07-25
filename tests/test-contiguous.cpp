@@ -984,18 +984,12 @@ TEST_CASE("ContiguousTest: std::string TypeErasedVector")
     vector.emplace_back(STRING2);
     auto erased = cntgs::type_erase(std::move(vector));
     auto move_constructed_erased{std::move(erased)};
-    cntgs::ContiguousVector<std::string> restored;
-    SUBCASE("by move") { restored = cntgs::ContiguousVector<std::string>{std::move(move_constructed_erased)}; }
-    SUBCASE("by lvalue reference")
-    {
-        for (size_t i = 0; i < 2; i++)
-        {
-            restored = cntgs::ContiguousVector<std::string>{move_constructed_erased};
-        }
-    }
-    auto&& [string_one] = restored[0];
+    std::optional<cntgs::ContiguousVector<std::string>> restored;
+    SUBCASE("by move") { restored.emplace(std::move(move_constructed_erased)); }
+    SUBCASE("by lvalue reference") { restored.emplace(move_constructed_erased); }
+    auto&& [string_one] = (*restored)[0];
     CHECK_EQ(STRING1, string_one);
-    auto&& [string_two] = restored[1];
+    auto&& [string_two] = (*restored)[1];
     CHECK_EQ(STRING2, string_two);
 }
 
@@ -1464,5 +1458,30 @@ TEST_CASE("ContiguousTest: OneFixedString with polymorphic_allocator copy assign
         CHECK_EQ(vector, vector2);
         CHECK_EQ(2, vector2.get_fixed_size<0>());
     }
+}
+
+template <class... T>
+void check_clear_followed_by_emplace_back(cntgs::BasicContiguousVector<T...>& vector)
+{
+    const auto expected_capacity = vector.capacity();
+    vector.clear();
+    CHECK_EQ(expected_capacity, vector.capacity());
+    CHECK(vector.empty());
+    vector.emplace_back(std::array{STRING2, STRING2}, STRING2);
+    auto&& [a, b] = vector[0];
+    CHECK(test::range_equal(std::array{STRING2, STRING2}, a));
+    CHECK_EQ(STRING2, b);
+}
+
+TEST_CASE("ContiguousTest: OneFixedString clear")
+{
+    auto vector = fixed_vector_of_strings();
+    check_clear_followed_by_emplace_back(vector);
+}
+
+TEST_CASE("ContiguousTest: OneVaryingString clear")
+{
+    auto vector = varying_vector_of_strings();
+    check_clear_followed_by_emplace_back(vector);
 }
 }  // namespace test_contiguous
