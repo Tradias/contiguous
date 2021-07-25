@@ -112,8 +112,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES{
         calculate_consecutive_indices<detail::LexicographicalMemcmpCompatibleT>()};
 
-    template <std::size_t K, std::size_t L, detail::ContiguousReferenceQualifier LhsQualifier,
-              detail::ContiguousReferenceQualifier RhsQualifier>
+    template <std::size_t K, std::size_t L, cntgs::ContiguousReferenceQualifier LhsQualifier,
+              cntgs::ContiguousReferenceQualifier RhsQualifier>
     static constexpr auto get_data_begin_and_end(const cntgs::ContiguousReference<LhsQualifier, Types...>& lhs,
                                                  const cntgs::ContiguousReference<RhsQualifier, Types...>& rhs) noexcept
     {
@@ -181,17 +181,17 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         return result + detail::alignment_offset<ParameterTraitsAt<0>::ALIGNMENT>(result);
     }
 
-    template <bool UseMove, detail::ContiguousReferenceQualifier Qualifier>
+    template <bool UseMove, cntgs::ContiguousReferenceQualifier Qualifier>
     static constexpr void construct_if_non_trivial(const cntgs::ContiguousReference<Qualifier, Types...>& source,
                                                    const ContiguousPointer& target)
     {
         (detail::construct_one_if_non_trivial<UseMove, Types>(std::get<I>(source.tuple), std::get<I>(target)), ...);
     }
 
-    template <bool UseMove, std::size_t K, detail::ContiguousReferenceQualifier LhsQualifier,
-              detail::ContiguousReferenceQualifier RhsQualifier>
-    static void assign_one(const cntgs::ContiguousReference<LhsQualifier, Types...>& source,
-                           const cntgs::ContiguousReference<RhsQualifier, Types...>& target)
+    template <bool UseMove, std::size_t K, cntgs::ContiguousReferenceQualifier LhsQualifier>
+    static void assign_one(
+        const cntgs::ContiguousReference<LhsQualifier, Types...>& source,
+        const cntgs::ContiguousReference<cntgs::ContiguousReferenceQualifier::MUTABLE, Types...>& target)
     {
         static constexpr auto INDEX = std::get<K>(std::get<UseMove>(CONSECUTIVE_TRIVIALLY_ASSIGNABLE_INDICES));
         if constexpr (INDEX == MANUAL)
@@ -213,8 +213,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
     }
 
-    template <bool UseMove, detail::ContiguousReferenceQualifier LhsQualifier,
-              detail::ContiguousReferenceQualifier RhsQualifier>
+    template <bool UseMove, cntgs::ContiguousReferenceQualifier LhsQualifier,
+              cntgs::ContiguousReferenceQualifier RhsQualifier>
     static void assign(const cntgs::ContiguousReference<LhsQualifier, Types...>& source,
                        const cntgs::ContiguousReference<RhsQualifier, Types...>& target)
     {
@@ -241,8 +241,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         (Self::template swap_one<I>(lhs, rhs), ...);
     }
 
-    template <std::size_t K, detail::ContiguousReferenceQualifier LhsQualifier,
-              detail::ContiguousReferenceQualifier RhsQualifier>
+    template <std::size_t K, cntgs::ContiguousReferenceQualifier LhsQualifier,
+              cntgs::ContiguousReferenceQualifier RhsQualifier>
     static constexpr auto equal_one(const cntgs::ContiguousReference<LhsQualifier, Types...>& lhs,
                                     const cntgs::ContiguousReference<RhsQualifier, Types...>& rhs)
     {
@@ -263,15 +263,15 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
     }
 
-    template <detail::ContiguousReferenceQualifier LhsQualifier, detail::ContiguousReferenceQualifier RhsQualifier>
+    template <cntgs::ContiguousReferenceQualifier LhsQualifier, cntgs::ContiguousReferenceQualifier RhsQualifier>
     static constexpr auto equal(const cntgs::ContiguousReference<LhsQualifier, Types...>& lhs,
                                 const cntgs::ContiguousReference<RhsQualifier, Types...>& rhs)
     {
         return (Self::template equal_one<I>(lhs, rhs) && ...);
     }
 
-    template <std::size_t K, detail::ContiguousReferenceQualifier LhsQualifier,
-              detail::ContiguousReferenceQualifier RhsQualifier>
+    template <std::size_t K, cntgs::ContiguousReferenceQualifier LhsQualifier,
+              cntgs::ContiguousReferenceQualifier RhsQualifier>
     static constexpr auto lexicographical_compare_one(const cntgs::ContiguousReference<LhsQualifier, Types...>& lhs,
                                                       const cntgs::ContiguousReference<RhsQualifier, Types...>& rhs)
     {
@@ -292,7 +292,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
     }
 
-    template <detail::ContiguousReferenceQualifier LhsQualifier, detail::ContiguousReferenceQualifier RhsQualifier>
+    template <cntgs::ContiguousReferenceQualifier LhsQualifier, cntgs::ContiguousReferenceQualifier RhsQualifier>
     static constexpr auto lexicographical_compare(const cntgs::ContiguousReference<LhsQualifier, Types...>& lhs,
                                                   const cntgs::ContiguousReference<RhsQualifier, Types...>& rhs)
     {

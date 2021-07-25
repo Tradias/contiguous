@@ -1,7 +1,7 @@
 #ifndef CNTGS_DETAIL_FORWARD_H
 #define CNTGS_DETAIL_FORWARD_H
 
-#include "cntgs/contiguous/detail/tupleQualifier.h"
+#include "cntgs/contiguous/referenceQualifier.h"
 
 #include <cstddef>
 
@@ -24,7 +24,7 @@ class TypeErasedVector;
 template <class T, std::size_t Alignment = 1>
 struct AlignAs;
 
-template <detail::ContiguousReferenceQualifier Qualifier, class... Types>
+template <cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
 class ContiguousReference;
 
 template <class Allocator, class... Types>

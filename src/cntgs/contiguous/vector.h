@@ -31,6 +31,13 @@ namespace cntgs
 template <class... Types>
 using ContiguousVector = cntgs::BasicContiguousVector<std::allocator<std::byte>, Types...>;
 
+/// Container that stores the underlying value of the specified parameter contiguously.
+///
+/// \param Allocator An allocator that is used to acquire/release memory and to construct/destroy the elements in that
+/// memory. The type must meet the requirements of [Allocator](https://en.cppreference.com/w/cpp/named_req/Allocator).
+/// \param Types Any of [cntgs::VaryingSize](), [cntgs::FixedSize](), [cntgs::AlignAs]() or a plain user-defined or
+/// built-in type. The underlying type of each parameter must meet the requirements of
+/// [Erasable](https://en.cppreference.com/w/cpp/named_req/Erasable)
 template <class Allocator, class... Types>
 class BasicContiguousVector
 {
@@ -51,8 +58,16 @@ class BasicContiguousVector
     static constexpr bool IS_ALL_PLAIN = ListTraits::IS_ALL_PLAIN;
 
   public:
+    /// Type that can create copies of [cntgs::BasicContiguousVector::reference]() and
+    /// [cntgs::BasicContiguousVector::const_reference]()
     using value_type = cntgs::BasicContiguousElement<Allocator, Types...>;
+
+    /// A [cntgs::ContiguousReference]() with [cntgs::ContiguousReferenceQualifier::MUTABLE]()
+    /// \exclude target
     using reference = typename VectorTraits::ReferenceType;
+
+    /// A [cntgs::ContiguousReference]() with [cntgs::ContiguousReferenceQualifier::CONST]()
+    /// \exclude target
     using const_reference = typename VectorTraits::ConstReferenceType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
     using const_iterator = cntgs::ContiguousVectorIterator<std::add_const_t<Self>>;
