@@ -2,6 +2,7 @@
 #define CNTGS_CONTIGUOUS_SPAN_HPP
 
 #include <cstddef>
+#include <iterator>
 #include <version>
 
 #ifdef __cpp_lib_span

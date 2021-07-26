@@ -28,10 +28,11 @@
 
 namespace cntgs
 {
+/// Alias template for [cntgs::BasicContiguousVector]() that uses [std::allocator]()
 template <class... Types>
 using ContiguousVector = cntgs::BasicContiguousVector<std::allocator<std::byte>, Types...>;
 
-/// Container that stores the underlying value of the specified parameter contiguously.
+/// Container that stores the value of each specified parameter contiguously.
 ///
 /// \param Allocator An allocator that is used to acquire/release memory and to construct/destroy the elements in that
 /// memory. The type must meet the requirements of [Allocator](https://en.cppreference.com/w/cpp/named_req/Allocator).
