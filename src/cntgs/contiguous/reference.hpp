@@ -1,13 +1,13 @@
-#ifndef CNTGS_CONTIGUOUS_REFERENCE_H
-#define CNTGS_CONTIGUOUS_REFERENCE_H
+#ifndef CNTGS_CONTIGUOUS_REFERENCE_HPP
+#define CNTGS_CONTIGUOUS_REFERENCE_HPP
 
-#include "cntgs/contiguous/detail/attributes.h"
-#include "cntgs/contiguous/detail/elementTraits.h"
-#include "cntgs/contiguous/detail/forward.h"
-#include "cntgs/contiguous/detail/parameterListTraits.h"
-#include "cntgs/contiguous/detail/tuple.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
-#include "cntgs/contiguous/referenceQualifier.h"
+#include "cntgs/contiguous/detail/attributes.hpp"
+#include "cntgs/contiguous/detail/elementTraits.hpp"
+#include "cntgs/contiguous/detail/forward.hpp"
+#include "cntgs/contiguous/detail/parameterListTraits.hpp"
+#include "cntgs/contiguous/detail/tuple.hpp"
+#include "cntgs/contiguous/detail/typeUtils.hpp"
+#include "cntgs/contiguous/referenceQualifier.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -280,4 +280,4 @@ struct tuple_size<::cntgs::BasicContiguousReference<Qualifier, Types...>>
 };
 }  // namespace std
 
-#endif  // CNTGS_CONTIGUOUS_REFERENCE_H
+#endif  // CNTGS_CONTIGUOUS_REFERENCE_HPP

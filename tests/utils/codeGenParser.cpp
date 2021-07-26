@@ -1,4 +1,4 @@
-#include "utils/codeGenParser.h"
+#include "utils/codeGenParser.hpp"
 
 #include <algorithm>
 #include <filesystem>

@@ -1,9 +1,9 @@
-#ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_H
-#define CNTGS_DETAIL_PARAMETERLISTTRAITS_H
+#ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
+#define CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
 
-#include "cntgs/contiguous/detail/parameterTraits.h"
-#include "cntgs/contiguous/detail/parameterType.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
+#include "cntgs/contiguous/detail/parameterTraits.hpp"
+#include "cntgs/contiguous/detail/parameterType.hpp"
+#include "cntgs/contiguous/detail/typeUtils.hpp"
 
 #include <array>
 #include <cstddef>
@@ -75,4 +75,4 @@ struct ParameterListTraits
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_PARAMETERLISTTRAITS_H
+#endif  // CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP

@@ -1,9 +1,9 @@
-#ifndef CNTGS_DETAIL_VECTORTRAITS_H
-#define CNTGS_DETAIL_VECTORTRAITS_H
+#ifndef CNTGS_DETAIL_VECTORTRAITS_HPP
+#define CNTGS_DETAIL_VECTORTRAITS_HPP
 
-#include "cntgs/contiguous/detail/forward.h"
-#include "cntgs/contiguous/detail/memory.h"
-#include "cntgs/contiguous/detail/tuple.h"
+#include "cntgs/contiguous/detail/forward.hpp"
+#include "cntgs/contiguous/detail/memory.hpp"
+#include "cntgs/contiguous/detail/tuple.hpp"
 
 #include <tuple>
 
@@ -18,4 +18,4 @@ struct ContiguousVectorTraits
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_VECTORTRAITS_H
+#endif  // CNTGS_DETAIL_VECTORTRAITS_HPP

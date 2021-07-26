@@ -1,21 +1,21 @@
-#ifndef CNTGS_CONTIGUOUS_VECTOR_H
-#define CNTGS_CONTIGUOUS_VECTOR_H
+#ifndef CNTGS_CONTIGUOUS_VECTOR_HPP
+#define CNTGS_CONTIGUOUS_VECTOR_HPP
 
-#include "cntgs/contiguous/detail/algorithm.h"
-#include "cntgs/contiguous/detail/array.h"
-#include "cntgs/contiguous/detail/elementLocator.h"
-#include "cntgs/contiguous/detail/forward.h"
-#include "cntgs/contiguous/detail/memory.h"
-#include "cntgs/contiguous/detail/parameterListTraits.h"
-#include "cntgs/contiguous/detail/parameterTraits.h"
-#include "cntgs/contiguous/detail/tuple.h"
-#include "cntgs/contiguous/detail/utility.h"
-#include "cntgs/contiguous/detail/vectorTraits.h"
-#include "cntgs/contiguous/iterator.h"
-#include "cntgs/contiguous/parameter.h"
-#include "cntgs/contiguous/reference.h"
-#include "cntgs/contiguous/span.h"
-#include "cntgs/contiguous/typeErasedVector.h"
+#include "cntgs/contiguous/detail/algorithm.hpp"
+#include "cntgs/contiguous/detail/array.hpp"
+#include "cntgs/contiguous/detail/elementLocator.hpp"
+#include "cntgs/contiguous/detail/forward.hpp"
+#include "cntgs/contiguous/detail/memory.hpp"
+#include "cntgs/contiguous/detail/parameterListTraits.hpp"
+#include "cntgs/contiguous/detail/parameterTraits.hpp"
+#include "cntgs/contiguous/detail/tuple.hpp"
+#include "cntgs/contiguous/detail/utility.hpp"
+#include "cntgs/contiguous/detail/vectorTraits.hpp"
+#include "cntgs/contiguous/iterator.hpp"
+#include "cntgs/contiguous/parameter.hpp"
+#include "cntgs/contiguous/reference.hpp"
+#include "cntgs/contiguous/span.hpp"
+#include "cntgs/contiguous/typeErasedVector.hpp"
 
 #include <algorithm>
 #include <array>
@@ -62,11 +62,11 @@ class BasicContiguousVector
     /// [cntgs::BasicContiguousVector::const_reference]()
     using value_type = cntgs::BasicContiguousElement<Allocator, Types...>;
 
-    /// A [cntgs::ContiguousReference]() with [cntgs::ContiguousReferenceQualifier::MUTABLE]()
+    /// A [cntgs::BasicContiguousReference]() with [cntgs::ContiguousReferenceQualifier::MUTABLE]()
     /// \exclude target
     using reference = typename VectorTraits::ReferenceType;
 
-    /// A [cntgs::ContiguousReference]() with [cntgs::ContiguousReferenceQualifier::CONST]()
+    /// A [cntgs::BasicContiguousReference]() with [cntgs::ContiguousReferenceQualifier::CONST]()
     /// \exclude target
     using const_reference = typename VectorTraits::ConstReferenceType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
@@ -594,4 +594,4 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 }
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_VECTOR_H
+#endif  // CNTGS_CONTIGUOUS_VECTOR_HPP

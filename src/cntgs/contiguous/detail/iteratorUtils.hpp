@@ -1,7 +1,7 @@
-#ifndef CNTGS_DETAIL_ITERATORUTILS_H
-#define CNTGS_DETAIL_ITERATORUTILS_H
+#ifndef CNTGS_DETAIL_ITERATORUTILS_HPP
+#define CNTGS_DETAIL_ITERATORUTILS_HPP
 
-#include "cntgs/contiguous/detail/typeUtils.h"
+#include "cntgs/contiguous/detail/typeUtils.hpp"
 
 #include <iterator>
 #include <version>
@@ -26,4 +26,4 @@ inline constexpr auto CONTIGUOUS_ITERATOR_V =
                                std::add_pointer_t<typename std::iterator_traits<I>::reference>>;
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ITERATORUTILS_H
+#endif  // CNTGS_DETAIL_ITERATORUTILS_HPP

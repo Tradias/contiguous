@@ -1,9 +1,9 @@
-#ifndef CNTGS_DETAIL_TUPLE_H
-#define CNTGS_DETAIL_TUPLE_H
+#ifndef CNTGS_DETAIL_TUPLE_HPP
+#define CNTGS_DETAIL_TUPLE_HPP
 
-#include "cntgs/contiguous/detail/forward.h"
-#include "cntgs/contiguous/detail/parameterTraits.h"
-#include "cntgs/contiguous/detail/utility.h"
+#include "cntgs/contiguous/detail/forward.hpp"
+#include "cntgs/contiguous/detail/parameterTraits.hpp"
+#include "cntgs/contiguous/detail/utility.hpp"
 
 #include <tuple>
 #include <utility>
@@ -52,4 +52,4 @@ constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexce
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_TUPLE_H
+#endif  // CNTGS_DETAIL_TUPLE_HPP

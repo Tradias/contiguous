@@ -26,8 +26,8 @@ cntgs_disassemble_code_gen(cntgs-code-gen-objects-cpp20)
 
 add_library(cntgs-test-utils OBJECT)
 
-target_sources(cntgs-test-utils PRIVATE "utils/codeGenParser.h" "utils/codeGenParser.cpp" "utils/string.h"
-                                        "utils/string.cpp" "utils/range.h" "utils/functional.h")
+target_sources(cntgs-test-utils PRIVATE "utils/codeGenParser.hpp" "utils/codeGenParser.cpp" "utils/string.hpp"
+                                        "utils/string.cpp" "utils/range.hpp" "utils/functional.hpp")
 
 target_compile_options(cntgs-test-utils PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
                                                 -Wextra -pedantic-errors>)
@@ -61,7 +61,7 @@ function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
     target_include_directories(${_cntgs_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                                      $<INSTALL_INTERFACE:include>)
 
-    target_precompile_headers(${_cntgs_name} PRIVATE "utils/precompiledHeader.h")
+    target_precompile_headers(${_cntgs_name} PRIVATE "utils/precompiledHeader.hpp")
 endfunction()
 
 set(CNTGS_TEST_SOURCE_FILES "test-contiguous.cpp" "test-code-gen.cpp")

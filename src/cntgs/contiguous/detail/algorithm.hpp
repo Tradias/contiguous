@@ -1,7 +1,7 @@
-#ifndef CNTGS_DETAIL_ALGORITHM_H
-#define CNTGS_DETAIL_ALGORITHM_H
+#ifndef CNTGS_DETAIL_ALGORITHM_HPP
+#define CNTGS_DETAIL_ALGORITHM_HPP
 
-#include "cntgs/contiguous/detail/memory.h"
+#include "cntgs/contiguous/detail/memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -37,4 +37,4 @@ constexpr auto trivial_lexicographical_compare(const T* begin, const T* end, con
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ALGORITHM_H
+#endif  // CNTGS_DETAIL_ALGORITHM_HPP

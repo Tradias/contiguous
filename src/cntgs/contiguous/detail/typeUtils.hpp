@@ -1,5 +1,5 @@
-#ifndef CNTGS_DETAIL_TYPEUTILS_H
-#define CNTGS_DETAIL_TYPEUTILS_H
+#ifndef CNTGS_DETAIL_TYPEUTILS_HPP
+#define CNTGS_DETAIL_TYPEUTILS_HPP
 
 #include <cstddef>
 #include <type_traits>
@@ -176,4 +176,4 @@ template <class T>
 inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatibleT<T>::value;
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_TYPEUTILS_H
+#endif  // CNTGS_DETAIL_TYPEUTILS_HPP

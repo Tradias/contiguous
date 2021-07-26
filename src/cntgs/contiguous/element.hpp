@@ -1,15 +1,15 @@
-#ifndef CNTGS_CONTIGUOUS_ELEMENT_H
-#define CNTGS_CONTIGUOUS_ELEMENT_H
+#ifndef CNTGS_CONTIGUOUS_ELEMENT_HPP
+#define CNTGS_CONTIGUOUS_ELEMENT_HPP
 
-#include "cntgs/contiguous/detail/elementTraits.h"
-#include "cntgs/contiguous/detail/forward.h"
-#include "cntgs/contiguous/detail/memory.h"
-#include "cntgs/contiguous/detail/parameterListTraits.h"
-#include "cntgs/contiguous/detail/sizeGetter.h"
-#include "cntgs/contiguous/detail/utility.h"
-#include "cntgs/contiguous/detail/vectorTraits.h"
-#include "cntgs/contiguous/reference.h"
-#include "cntgs/contiguous/referenceQualifier.h"
+#include "cntgs/contiguous/detail/elementTraits.hpp"
+#include "cntgs/contiguous/detail/forward.hpp"
+#include "cntgs/contiguous/detail/memory.hpp"
+#include "cntgs/contiguous/detail/parameterListTraits.hpp"
+#include "cntgs/contiguous/detail/sizeGetter.hpp"
+#include "cntgs/contiguous/detail/utility.hpp"
+#include "cntgs/contiguous/detail/vectorTraits.hpp"
+#include "cntgs/contiguous/reference.hpp"
+#include "cntgs/contiguous/referenceQualifier.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -305,4 +305,4 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 };
 }  // namespace std
 
-#endif  // CNTGS_CONTIGUOUS_ELEMENT_H
+#endif  // CNTGS_CONTIGUOUS_ELEMENT_HPP

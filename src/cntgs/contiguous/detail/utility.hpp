@@ -1,7 +1,7 @@
-#ifndef CNTGS_DETAIL_UTILITY_H
-#define CNTGS_DETAIL_UTILITY_H
+#ifndef CNTGS_DETAIL_UTILITY_HPP
+#define CNTGS_DETAIL_UTILITY_HPP
 
-#include "cntgs/contiguous/span.h"
+#include "cntgs/contiguous/span.hpp"
 
 #include <utility>
 
@@ -115,4 +115,4 @@ constexpr decltype(auto) as_const(T& value) noexcept
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_UTILITY_H
+#endif  // CNTGS_DETAIL_UTILITY_HPP

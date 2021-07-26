@@ -1,6 +1,6 @@
-#include "cntgs/contiguous.h"
-#include "utils/codeGenParser.h"
-#include "utils/string.h"
+#include "cntgs/contiguous.hpp"
+#include "utils/codeGenParser.hpp"
+#include "utils/string.hpp"
 
 #include <doctest/doctest.h>
 

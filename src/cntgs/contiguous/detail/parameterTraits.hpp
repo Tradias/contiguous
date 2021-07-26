@@ -1,12 +1,12 @@
-#ifndef CNTGS_DETAIL_PARAMETERTRAITS_H
-#define CNTGS_DETAIL_PARAMETERTRAITS_H
+#ifndef CNTGS_DETAIL_PARAMETERTRAITS_HPP
+#define CNTGS_DETAIL_PARAMETERTRAITS_HPP
 
-#include "cntgs/contiguous/detail/attributes.h"
-#include "cntgs/contiguous/detail/memory.h"
-#include "cntgs/contiguous/detail/parameterType.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
-#include "cntgs/contiguous/parameter.h"
-#include "cntgs/contiguous/span.h"
+#include "cntgs/contiguous/detail/attributes.hpp"
+#include "cntgs/contiguous/detail/memory.hpp"
+#include "cntgs/contiguous/detail/parameterType.hpp"
+#include "cntgs/contiguous/detail/typeUtils.hpp"
+#include "cntgs/contiguous/parameter.hpp"
+#include "cntgs/contiguous/span.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -337,4 +337,4 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_PARAMETERTRAITS_H
+#endif  // CNTGS_DETAIL_PARAMETERTRAITS_HPP

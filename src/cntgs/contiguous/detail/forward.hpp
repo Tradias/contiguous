@@ -1,7 +1,7 @@
-#ifndef CNTGS_DETAIL_FORWARD_H
-#define CNTGS_DETAIL_FORWARD_H
+#ifndef CNTGS_DETAIL_FORWARD_HPP
+#define CNTGS_DETAIL_FORWARD_HPP
 
-#include "cntgs/contiguous/referenceQualifier.h"
+#include "cntgs/contiguous/referenceQualifier.hpp"
 
 #include <cstddef>
 
@@ -31,4 +31,4 @@ template <class Allocator, class... Types>
 class BasicContiguousElement;
 }  // namespace cntgs
 
-#endif  // CNTGS_DETAIL_FORWARD_H
+#endif  // CNTGS_DETAIL_FORWARD_HPP

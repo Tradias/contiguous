@@ -1,8 +1,8 @@
-#ifndef CNTGS_CONTIGUOUS_ITERATOR_H
-#define CNTGS_CONTIGUOUS_ITERATOR_H
+#ifndef CNTGS_CONTIGUOUS_ITERATOR_HPP
+#define CNTGS_CONTIGUOUS_ITERATOR_HPP
 
-#include "cntgs/contiguous/detail/iteratorUtils.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
+#include "cntgs/contiguous/detail/iteratorUtils.hpp"
+#include "cntgs/contiguous/detail/typeUtils.hpp"
 
 #include <iterator>
 
@@ -159,4 +159,4 @@ class ContiguousVectorIterator
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_ITERATOR_H
+#endif  // CNTGS_CONTIGUOUS_ITERATOR_HPP

@@ -1,5 +1,5 @@
-#ifndef CNTGS_CONTIGUOUS_PARAMETER_H
-#define CNTGS_CONTIGUOUS_PARAMETER_H
+#ifndef CNTGS_CONTIGUOUS_PARAMETER_HPP
+#define CNTGS_CONTIGUOUS_PARAMETER_HPP
 
 #include <cstddef>
 
@@ -34,4 +34,4 @@ struct AlignAs
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_PARAMETER_H
+#endif  // CNTGS_CONTIGUOUS_PARAMETER_HPP

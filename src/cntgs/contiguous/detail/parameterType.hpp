@@ -1,5 +1,5 @@
-#ifndef CNTGS_DETAIL_PARAMETERTYPE_H
-#define CNTGS_DETAIL_PARAMETERTYPE_H
+#ifndef CNTGS_DETAIL_PARAMETERTYPE_HPP
+#define CNTGS_DETAIL_PARAMETERTYPE_HPP
 
 namespace cntgs::detail
 {
@@ -11,4 +11,4 @@ enum class ParameterType
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_PARAMETERTYPE_H
+#endif  // CNTGS_DETAIL_PARAMETERTYPE_HPP

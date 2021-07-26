@@ -1,5 +1,5 @@
-#ifndef CNTGS_DETAIL_ARRAY_H
-#define CNTGS_DETAIL_ARRAY_H
+#ifndef CNTGS_DETAIL_ARRAY_HPP
+#define CNTGS_DETAIL_ARRAY_HPP
 
 #include <algorithm>
 #include <array>
@@ -21,4 +21,4 @@ constexpr auto convert_array_to_size(const std::array<T, K>& array)
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ARRAY_H
+#endif  // CNTGS_DETAIL_ARRAY_HPP

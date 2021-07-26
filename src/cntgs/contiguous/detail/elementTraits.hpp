@@ -1,15 +1,15 @@
-#ifndef CNTGS_DETAIL_ELEMENTTRAITS_H
-#define CNTGS_DETAIL_ELEMENTTRAITS_H
+#ifndef CNTGS_DETAIL_ELEMENTTRAITS_HPP
+#define CNTGS_DETAIL_ELEMENTTRAITS_HPP
 
-#include "cntgs/contiguous/detail/algorithm.h"
-#include "cntgs/contiguous/detail/attributes.h"
-#include "cntgs/contiguous/detail/forward.h"
-#include "cntgs/contiguous/detail/memory.h"
-#include "cntgs/contiguous/detail/parameterListTraits.h"
-#include "cntgs/contiguous/detail/parameterTraits.h"
-#include "cntgs/contiguous/detail/sizeGetter.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
-#include "cntgs/contiguous/detail/vectorTraits.h"
+#include "cntgs/contiguous/detail/algorithm.hpp"
+#include "cntgs/contiguous/detail/attributes.hpp"
+#include "cntgs/contiguous/detail/forward.hpp"
+#include "cntgs/contiguous/detail/memory.hpp"
+#include "cntgs/contiguous/detail/parameterListTraits.hpp"
+#include "cntgs/contiguous/detail/parameterTraits.hpp"
+#include "cntgs/contiguous/detail/sizeGetter.hpp"
+#include "cntgs/contiguous/detail/typeUtils.hpp"
+#include "cntgs/contiguous/detail/vectorTraits.hpp"
 
 #include <array>
 #include <cstddef>
@@ -309,4 +309,4 @@ template <class... Types>
 using ElementTraitsT = detail::ElementTraits<std::make_index_sequence<sizeof...(Types)>, Types...>;
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ELEMENTTRAITS_H
+#endif  // CNTGS_DETAIL_ELEMENTTRAITS_HPP

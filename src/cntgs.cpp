@@ -1,1 +1,1 @@
-#include "cntgs/contiguous.h"
+#include "cntgs/contiguous.hpp"

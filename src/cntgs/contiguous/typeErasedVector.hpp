@@ -1,10 +1,10 @@
-#ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
-#define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
+#ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
+#define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
 
-#include "cntgs/contiguous/detail/elementLocator.h"
-#include "cntgs/contiguous/detail/memory.h"
-#include "cntgs/contiguous/detail/utility.h"
-#include "cntgs/contiguous/detail/vectorTraits.h"
+#include "cntgs/contiguous/detail/elementLocator.hpp"
+#include "cntgs/contiguous/detail/memory.hpp"
+#include "cntgs/contiguous/detail/utility.hpp"
+#include "cntgs/contiguous/detail/vectorTraits.hpp"
 
 #include <memory>
 
@@ -47,4 +47,4 @@ class TypeErasedVector
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
+#endif  // CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP

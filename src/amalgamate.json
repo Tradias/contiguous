@@ -1,8 +1,8 @@
 {
 	"project": "contiguous",
-	"target": "cntgs.h",
+	"target": "cntgs.hpp",
 	"sources": [
-		"cntgs/contiguous.h"
+		"cntgs/contiguous.hpp"
 	],
 	"include_paths": [
 		"./"

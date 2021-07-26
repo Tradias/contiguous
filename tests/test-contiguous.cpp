@@ -1,7 +1,7 @@
-#include "cntgs/contiguous.h"
-#include "utils/functional.h"
-#include "utils/memory.h"
-#include "utils/range.h"
+#include "cntgs/contiguous.hpp"
+#include "utils/functional.hpp"
+#include "utils/memory.hpp"
+#include "utils/range.hpp"
 
 #include <doctest/doctest.h>
 

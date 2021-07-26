@@ -6,32 +6,32 @@ unset(CNTGS_SOURCE_FILES)
 list(
     APPEND
     CNTGS_SOURCE_FILES
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/element.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/iterator.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/parameter.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/reference.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/referenceQualifier.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/span.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/typeErasedVector.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/vector.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/algorithm.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/array.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/attributes.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementLocator.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementTraits.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/forward.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/iteratorUtils.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/memory.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterListTraits.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterTraits.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterType.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/range.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/sizeGetter.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/tuple.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/typeUtils.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/utility.h"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/vectorTraits.h")
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/element.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/iterator.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/parameter.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/reference.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/referenceQualifier.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/span.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/typeErasedVector.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/vector.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/algorithm.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/array.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/attributes.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementLocator.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementTraits.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/forward.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/iteratorUtils.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/memory.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterListTraits.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterTraits.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/parameterType.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/range.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/sizeGetter.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/tuple.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/typeUtils.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/utility.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/vectorTraits.hpp")
 set_target_properties(cntgs PROPERTIES CNTGS_SOURCE_FILES "${CNTGS_SOURCE_FILES}")
 
 target_compile_features(cntgs INTERFACE cxx_std_17)
@@ -65,17 +65,17 @@ if(CNTGS_BUILD_TESTS)
             CACHE FILEPATH "Path to amalgamate.py from https://github.com/edlund/amalgamate")
         if(CNTGS_AMALGAMATE_PY)
             add_custom_command(
-                OUTPUT "${CMAKE_CURRENT_LIST_DIR}/cntgs.h"
+                OUTPUT "${CMAKE_CURRENT_LIST_DIR}/cntgs.hpp"
                 COMMAND Python::Interpreter ARGS "${CNTGS_AMALGAMATE_PY}" "-c"
                         "${CMAKE_CURRENT_LIST_DIR}/amalgamate.json" "-s" "${CMAKE_CURRENT_LIST_DIR}"
                 DEPENDS "${CNTGS_SOURCE_FILES}"
                 WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
             add_custom_target(
                 cntgs-amalgamate
-                DEPENDS "${CMAKE_CURRENT_LIST_DIR}/cntgs.h"
+                DEPENDS "${CMAKE_CURRENT_LIST_DIR}/cntgs.hpp"
                 SOURCES "${CMAKE_CURRENT_LIST_DIR}/amalgamate.json")
 
-            target_sources(cntgs-objects PRIVATE cntgs.h)
+            target_sources(cntgs-objects PRIVATE cntgs.hpp)
         endif()
     endif()
 endif()
@@ -107,5 +107,5 @@ if(NOT CNTGS_NO_INSTALL)
         DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cntgs"
         TYPE INCLUDE
         FILES_MATCHING
-        PATTERN "*.h")
+        PATTERN "*.hpp")
 endif()

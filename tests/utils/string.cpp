@@ -1,4 +1,4 @@
-#include "utils/string.h"
+#include "utils/string.hpp"
 
 #include <algorithm>
 #include <sstream>

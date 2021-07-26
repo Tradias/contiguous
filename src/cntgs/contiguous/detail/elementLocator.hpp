@@ -1,10 +1,10 @@
-#ifndef CNTGS_DETAIL_ELEMENTLOCATOR_H
-#define CNTGS_DETAIL_ELEMENTLOCATOR_H
+#ifndef CNTGS_DETAIL_ELEMENTLOCATOR_HPP
+#define CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 
-#include "cntgs/contiguous/detail/elementTraits.h"
-#include "cntgs/contiguous/detail/memory.h"
-#include "cntgs/contiguous/detail/parameterListTraits.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
+#include "cntgs/contiguous/detail/elementTraits.hpp"
+#include "cntgs/contiguous/detail/memory.hpp"
+#include "cntgs/contiguous/detail/parameterListTraits.hpp"
+#include "cntgs/contiguous/detail/typeUtils.hpp"
 
 #include <algorithm>
 #include <array>
@@ -246,4 +246,4 @@ auto type_erase_element_locator(T&& locator) noexcept
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ELEMENTLOCATOR_H
+#endif  // CNTGS_DETAIL_ELEMENTLOCATOR_HPP

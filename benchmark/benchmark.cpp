@@ -1,5 +1,5 @@
-#include "cntgs/contiguous.h"
-#include "utils/string.h"
+#include "cntgs/contiguous.hpp"
+#include "utils/string.hpp"
 
 #define ANKERL_NANOBENCH_IMPLEMENT
 #include <third-party/nanobench.h>

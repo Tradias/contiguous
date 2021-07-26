@@ -1,5 +1,5 @@
-#ifndef CNTGS_CONTIGUOUS_SPAN_H
-#define CNTGS_CONTIGUOUS_SPAN_H
+#ifndef CNTGS_CONTIGUOUS_SPAN_HPP
+#define CNTGS_CONTIGUOUS_SPAN_HPP
 
 #include <cstddef>
 #include <version>
@@ -68,4 +68,4 @@ struct Span
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_SPAN_H
+#endif  // CNTGS_CONTIGUOUS_SPAN_HPP

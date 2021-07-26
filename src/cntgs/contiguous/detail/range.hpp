@@ -1,5 +1,5 @@
-#ifndef CNTGS_DETAIL_RANGE_H
-#define CNTGS_DETAIL_RANGE_H
+#ifndef CNTGS_DETAIL_RANGE_HPP
+#define CNTGS_DETAIL_RANGE_HPP
 
 #include <iterator>
 #include <type_traits>
@@ -30,4 +30,4 @@ struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_RANGE_H
+#endif  // CNTGS_DETAIL_RANGE_HPP

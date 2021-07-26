@@ -1,5 +1,5 @@
-#include "cntgs/contiguous.h"
-#include "reference.h"
+#include "cntgs/contiguous.hpp"
+#include "reference.hpp"
 
 #include <array>
 #include <tuple>

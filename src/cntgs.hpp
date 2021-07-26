@@ -1,25 +1,25 @@
-#ifndef CNTGS_CONTIGUOUS_H
-#define CNTGS_CONTIGUOUS_H
+#ifndef CNTGS_CNTGS_CONTIGUOUS_HPP
+#define CNTGS_CNTGS_CONTIGUOUS_HPP
 
-// #include "cntgs/contiguous/element.h"
-#ifndef CNTGS_CONTIGUOUS_ELEMENT_H
-#define CNTGS_CONTIGUOUS_ELEMENT_H
+// #include "cntgs/contiguous/element.hpp"
+#ifndef CNTGS_CONTIGUOUS_ELEMENT_HPP
+#define CNTGS_CONTIGUOUS_ELEMENT_HPP
 
-// #include "cntgs/contiguous/detail/elementTraits.h"
-#ifndef CNTGS_DETAIL_ELEMENTTRAITS_H
-#define CNTGS_DETAIL_ELEMENTTRAITS_H
+// #include "cntgs/contiguous/detail/elementTraits.hpp"
+#ifndef CNTGS_DETAIL_ELEMENTTRAITS_HPP
+#define CNTGS_DETAIL_ELEMENTTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/algorithm.h"
-#ifndef CNTGS_DETAIL_ALGORITHM_H
-#define CNTGS_DETAIL_ALGORITHM_H
+// #include "cntgs/contiguous/detail/algorithm.hpp"
+#ifndef CNTGS_DETAIL_ALGORITHM_HPP
+#define CNTGS_DETAIL_ALGORITHM_HPP
 
-// #include "cntgs/contiguous/detail/memory.h"
-#ifndef CNTGS_DETAIL_MEMORY_H
-#define CNTGS_DETAIL_MEMORY_H
+// #include "cntgs/contiguous/detail/memory.hpp"
+#ifndef CNTGS_DETAIL_MEMORY_HPP
+#define CNTGS_DETAIL_MEMORY_HPP
 
-// #include "cntgs/contiguous/detail/attributes.h"
-#ifndef CNTGS_DETAIL_ATTRIBUTES_H
-#define CNTGS_DETAIL_ATTRIBUTES_H
+// #include "cntgs/contiguous/detail/attributes.hpp"
+#ifndef CNTGS_DETAIL_ATTRIBUTES_HPP
+#define CNTGS_DETAIL_ATTRIBUTES_HPP
 
 #ifdef NDEBUG
 #ifdef _MSC_VER
@@ -39,15 +39,15 @@
 
 #define CNTGS_RESTRICT __restrict
 
-#endif  // CNTGS_DETAIL_ATTRIBUTES_H
+#endif  // CNTGS_DETAIL_ATTRIBUTES_HPP
 
-// #include "cntgs/contiguous/detail/iteratorUtils.h"
-#ifndef CNTGS_DETAIL_ITERATORUTILS_H
-#define CNTGS_DETAIL_ITERATORUTILS_H
+// #include "cntgs/contiguous/detail/iteratorUtils.hpp"
+#ifndef CNTGS_DETAIL_ITERATORUTILS_HPP
+#define CNTGS_DETAIL_ITERATORUTILS_HPP
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
-#ifndef CNTGS_DETAIL_TYPEUTILS_H
-#define CNTGS_DETAIL_TYPEUTILS_H
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
+#ifndef CNTGS_DETAIL_TYPEUTILS_HPP
+#define CNTGS_DETAIL_TYPEUTILS_HPP
 
 #include <cstddef>
 #include <type_traits>
@@ -224,7 +224,7 @@ template <class T>
 inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatibleT<T>::value;
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_TYPEUTILS_H
+#endif  // CNTGS_DETAIL_TYPEUTILS_HPP
 
 
 #include <iterator>
@@ -250,11 +250,11 @@ inline constexpr auto CONTIGUOUS_ITERATOR_V =
                                std::add_pointer_t<typename std::iterator_traits<I>::reference>>;
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ITERATORUTILS_H
+#endif  // CNTGS_DETAIL_ITERATORUTILS_HPP
 
-// #include "cntgs/contiguous/detail/range.h"
-#ifndef CNTGS_DETAIL_RANGE_H
-#define CNTGS_DETAIL_RANGE_H
+// #include "cntgs/contiguous/detail/range.hpp"
+#ifndef CNTGS_DETAIL_RANGE_HPP
+#define CNTGS_DETAIL_RANGE_HPP
 
 #include <iterator>
 #include <type_traits>
@@ -285,17 +285,17 @@ struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_RANGE_H
+#endif  // CNTGS_DETAIL_RANGE_HPP
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
 
-// #include "cntgs/contiguous/detail/utility.h"
-#ifndef CNTGS_DETAIL_UTILITY_H
-#define CNTGS_DETAIL_UTILITY_H
+// #include "cntgs/contiguous/detail/utility.hpp"
+#ifndef CNTGS_DETAIL_UTILITY_HPP
+#define CNTGS_DETAIL_UTILITY_HPP
 
-// #include "cntgs/contiguous/span.h"
-#ifndef CNTGS_CONTIGUOUS_SPAN_H
-#define CNTGS_CONTIGUOUS_SPAN_H
+// #include "cntgs/contiguous/span.hpp"
+#ifndef CNTGS_CONTIGUOUS_SPAN_HPP
+#define CNTGS_CONTIGUOUS_SPAN_HPP
 
 #include <cstddef>
 #include <version>
@@ -364,7 +364,7 @@ struct Span
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_SPAN_H
+#endif  // CNTGS_CONTIGUOUS_SPAN_HPP
 
 
 #include <utility>
@@ -479,9 +479,9 @@ constexpr decltype(auto) as_const(T& value) noexcept
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_UTILITY_H
+#endif  // CNTGS_DETAIL_UTILITY_HPP
 
-// #include "cntgs/contiguous/span.h"
+// #include "cntgs/contiguous/span.hpp"
 
 
 #include <algorithm>
@@ -849,7 +849,7 @@ auto type_erase_allocator(T&& allocator) noexcept
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_MEMORY_H
+#endif  // CNTGS_DETAIL_MEMORY_HPP
 
 
 #include <algorithm>
@@ -886,17 +886,17 @@ constexpr auto trivial_lexicographical_compare(const T* begin, const T* end, con
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ALGORITHM_H
+#endif  // CNTGS_DETAIL_ALGORITHM_HPP
 
-// #include "cntgs/contiguous/detail/attributes.h"
+// #include "cntgs/contiguous/detail/attributes.hpp"
 
-// #include "cntgs/contiguous/detail/forward.h"
-#ifndef CNTGS_DETAIL_FORWARD_H
-#define CNTGS_DETAIL_FORWARD_H
+// #include "cntgs/contiguous/detail/forward.hpp"
+#ifndef CNTGS_DETAIL_FORWARD_HPP
+#define CNTGS_DETAIL_FORWARD_HPP
 
-// #include "cntgs/contiguous/referenceQualifier.h"
-#ifndef CNTGS_CONTIGUOUS_REFERENCEQUALIFIER_H
-#define CNTGS_CONTIGUOUS_REFERENCEQUALIFIER_H
+// #include "cntgs/contiguous/referenceQualifier.hpp"
+#ifndef CNTGS_CONTIGUOUS_REFERENCEQUALIFIER_HPP
+#define CNTGS_CONTIGUOUS_REFERENCEQUALIFIER_HPP
 
 namespace cntgs
 {
@@ -907,7 +907,7 @@ enum class ContiguousReferenceQualifier
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_REFERENCEQUALIFIER_H
+#endif  // CNTGS_CONTIGUOUS_REFERENCEQUALIFIER_HPP
 
 
 #include <cstddef>
@@ -920,6 +920,9 @@ struct VaryingSize;
 template <class T>
 struct FixedSize;
 
+template <class T, std::size_t Alignment = 1>
+struct AlignAs;
+
 template <class Allocator, class... T>
 class BasicContiguousVector;
 
@@ -928,9 +931,6 @@ class ContiguousVectorIterator;
 
 class TypeErasedVector;
 
-template <class T, std::size_t Alignment = 1>
-struct AlignAs;
-
 template <cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
 class BasicContiguousReference;
 
@@ -938,25 +938,25 @@ template <class Allocator, class... Types>
 class BasicContiguousElement;
 }  // namespace cntgs
 
-#endif  // CNTGS_DETAIL_FORWARD_H
+#endif  // CNTGS_DETAIL_FORWARD_HPP
 
-// #include "cntgs/contiguous/detail/memory.h"
+// #include "cntgs/contiguous/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.h"
-#ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_H
-#define CNTGS_DETAIL_PARAMETERLISTTRAITS_H
+// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
+#ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
+#define CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/parameterTraits.h"
-#ifndef CNTGS_DETAIL_PARAMETERTRAITS_H
-#define CNTGS_DETAIL_PARAMETERTRAITS_H
+// #include "cntgs/contiguous/detail/parameterTraits.hpp"
+#ifndef CNTGS_DETAIL_PARAMETERTRAITS_HPP
+#define CNTGS_DETAIL_PARAMETERTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/attributes.h"
+// #include "cntgs/contiguous/detail/attributes.hpp"
 
-// #include "cntgs/contiguous/detail/memory.h"
+// #include "cntgs/contiguous/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterType.h"
-#ifndef CNTGS_DETAIL_PARAMETERTYPE_H
-#define CNTGS_DETAIL_PARAMETERTYPE_H
+// #include "cntgs/contiguous/detail/parameterType.hpp"
+#ifndef CNTGS_DETAIL_PARAMETERTYPE_HPP
+#define CNTGS_DETAIL_PARAMETERTYPE_HPP
 
 namespace cntgs::detail
 {
@@ -968,13 +968,13 @@ enum class ParameterType
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_PARAMETERTYPE_H
+#endif  // CNTGS_DETAIL_PARAMETERTYPE_HPP
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
 
-// #include "cntgs/contiguous/parameter.h"
-#ifndef CNTGS_CONTIGUOUS_PARAMETER_H
-#define CNTGS_CONTIGUOUS_PARAMETER_H
+// #include "cntgs/contiguous/parameter.hpp"
+#ifndef CNTGS_CONTIGUOUS_PARAMETER_HPP
+#define CNTGS_CONTIGUOUS_PARAMETER_HPP
 
 #include <cstddef>
 
@@ -1009,9 +1009,9 @@ struct AlignAs
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_PARAMETER_H
+#endif  // CNTGS_CONTIGUOUS_PARAMETER_HPP
 
-// #include "cntgs/contiguous/span.h"
+// #include "cntgs/contiguous/span.hpp"
 
 
 #include <algorithm>
@@ -1343,11 +1343,11 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_PARAMETERTRAITS_H
+#endif  // CNTGS_DETAIL_PARAMETERTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/parameterType.h"
+// #include "cntgs/contiguous/detail/parameterType.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
 
 
 #include <array>
@@ -1420,19 +1420,19 @@ struct ParameterListTraits
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_PARAMETERLISTTRAITS_H
+#endif  // CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/parameterTraits.h"
+// #include "cntgs/contiguous/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/sizeGetter.h"
-#ifndef CNTGS_DETAIL_SIZEGETTER_H
-#define CNTGS_DETAIL_SIZEGETTER_H
+// #include "cntgs/contiguous/detail/sizeGetter.hpp"
+#ifndef CNTGS_DETAIL_SIZEGETTER_HPP
+#define CNTGS_DETAIL_SIZEGETTER_HPP
 
-// #include "cntgs/contiguous/detail/parameterTraits.h"
+// #include "cntgs/contiguous/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/parameterType.h"
+// #include "cntgs/contiguous/detail/parameterType.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
 
 
 #include <array>
@@ -1496,27 +1496,27 @@ struct ContiguousReferenceSizeGetter
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_SIZEGETTER_H
+#endif  // CNTGS_DETAIL_SIZEGETTER_HPP
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
 
-// #include "cntgs/contiguous/detail/vectorTraits.h"
-#ifndef CNTGS_DETAIL_VECTORTRAITS_H
-#define CNTGS_DETAIL_VECTORTRAITS_H
+// #include "cntgs/contiguous/detail/vectorTraits.hpp"
+#ifndef CNTGS_DETAIL_VECTORTRAITS_HPP
+#define CNTGS_DETAIL_VECTORTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/forward.h"
+// #include "cntgs/contiguous/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/memory.h"
+// #include "cntgs/contiguous/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/tuple.h"
-#ifndef CNTGS_DETAIL_TUPLE_H
-#define CNTGS_DETAIL_TUPLE_H
+// #include "cntgs/contiguous/detail/tuple.hpp"
+#ifndef CNTGS_DETAIL_TUPLE_HPP
+#define CNTGS_DETAIL_TUPLE_HPP
 
-// #include "cntgs/contiguous/detail/forward.h"
+// #include "cntgs/contiguous/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/parameterTraits.h"
+// #include "cntgs/contiguous/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/utility.h"
+// #include "cntgs/contiguous/detail/utility.hpp"
 
 
 #include <tuple>
@@ -1566,7 +1566,7 @@ constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexce
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_TUPLE_H
+#endif  // CNTGS_DETAIL_TUPLE_HPP
 
 
 #include <tuple>
@@ -1582,7 +1582,7 @@ struct ContiguousVectorTraits
 };
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_VECTORTRAITS_H
+#endif  // CNTGS_DETAIL_VECTORTRAITS_HPP
 
 
 #include <array>
@@ -1883,37 +1883,37 @@ template <class... Types>
 using ElementTraitsT = detail::ElementTraits<std::make_index_sequence<sizeof...(Types)>, Types...>;
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ELEMENTTRAITS_H
+#endif  // CNTGS_DETAIL_ELEMENTTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/forward.h"
+// #include "cntgs/contiguous/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/memory.h"
+// #include "cntgs/contiguous/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.h"
+// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
 
-// #include "cntgs/contiguous/detail/sizeGetter.h"
+// #include "cntgs/contiguous/detail/sizeGetter.hpp"
 
-// #include "cntgs/contiguous/detail/utility.h"
+// #include "cntgs/contiguous/detail/utility.hpp"
 
-// #include "cntgs/contiguous/detail/vectorTraits.h"
+// #include "cntgs/contiguous/detail/vectorTraits.hpp"
 
-// #include "cntgs/contiguous/reference.h"
-#ifndef CNTGS_CONTIGUOUS_REFERENCE_H
-#define CNTGS_CONTIGUOUS_REFERENCE_H
+// #include "cntgs/contiguous/reference.hpp"
+#ifndef CNTGS_CONTIGUOUS_REFERENCE_HPP
+#define CNTGS_CONTIGUOUS_REFERENCE_HPP
 
-// #include "cntgs/contiguous/detail/attributes.h"
+// #include "cntgs/contiguous/detail/attributes.hpp"
 
-// #include "cntgs/contiguous/detail/elementTraits.h"
+// #include "cntgs/contiguous/detail/elementTraits.hpp"
 
-// #include "cntgs/contiguous/detail/forward.h"
+// #include "cntgs/contiguous/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.h"
+// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
 
-// #include "cntgs/contiguous/detail/tuple.h"
+// #include "cntgs/contiguous/detail/tuple.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
 
-// #include "cntgs/contiguous/referenceQualifier.h"
+// #include "cntgs/contiguous/referenceQualifier.hpp"
 
 
 #include <cstddef>
@@ -2187,9 +2187,9 @@ struct tuple_size<::cntgs::BasicContiguousReference<Qualifier, Types...>>
 };
 }  // namespace std
 
-#endif  // CNTGS_CONTIGUOUS_REFERENCE_H
+#endif  // CNTGS_CONTIGUOUS_REFERENCE_HPP
 
-// #include "cntgs/contiguous/referenceQualifier.h"
+// #include "cntgs/contiguous/referenceQualifier.hpp"
 
 
 #include <cstddef>
@@ -2486,15 +2486,15 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 };
 }  // namespace std
 
-#endif  // CNTGS_CONTIGUOUS_ELEMENT_H
+#endif  // CNTGS_CONTIGUOUS_ELEMENT_HPP
 
-// #include "cntgs/contiguous/iterator.h"
-#ifndef CNTGS_CONTIGUOUS_ITERATOR_H
-#define CNTGS_CONTIGUOUS_ITERATOR_H
+// #include "cntgs/contiguous/iterator.hpp"
+#ifndef CNTGS_CONTIGUOUS_ITERATOR_HPP
+#define CNTGS_CONTIGUOUS_ITERATOR_HPP
 
-// #include "cntgs/contiguous/detail/iteratorUtils.h"
+// #include "cntgs/contiguous/detail/iteratorUtils.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
 
 
 #include <iterator>
@@ -2652,29 +2652,29 @@ class ContiguousVectorIterator
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_ITERATOR_H
+#endif  // CNTGS_CONTIGUOUS_ITERATOR_HPP
 
-// #include "cntgs/contiguous/parameter.h"
+// #include "cntgs/contiguous/parameter.hpp"
 
-// #include "cntgs/contiguous/reference.h"
+// #include "cntgs/contiguous/reference.hpp"
 
-// #include "cntgs/contiguous/span.h"
+// #include "cntgs/contiguous/span.hpp"
 
-// #include "cntgs/contiguous/typeErasedVector.h"
-#ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
-#define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
+// #include "cntgs/contiguous/typeErasedVector.hpp"
+#ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
+#define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
 
-// #include "cntgs/contiguous/detail/elementLocator.h"
-#ifndef CNTGS_DETAIL_ELEMENTLOCATOR_H
-#define CNTGS_DETAIL_ELEMENTLOCATOR_H
+// #include "cntgs/contiguous/detail/elementLocator.hpp"
+#ifndef CNTGS_DETAIL_ELEMENTLOCATOR_HPP
+#define CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 
-// #include "cntgs/contiguous/detail/elementTraits.h"
+// #include "cntgs/contiguous/detail/elementTraits.hpp"
 
-// #include "cntgs/contiguous/detail/memory.h"
+// #include "cntgs/contiguous/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.h"
+// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.h"
+// #include "cntgs/contiguous/detail/typeUtils.hpp"
 
 
 #include <algorithm>
@@ -2917,13 +2917,13 @@ auto type_erase_element_locator(T&& locator) noexcept
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ELEMENTLOCATOR_H
+#endif  // CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 
-// #include "cntgs/contiguous/detail/memory.h"
+// #include "cntgs/contiguous/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/utility.h"
+// #include "cntgs/contiguous/detail/utility.hpp"
 
-// #include "cntgs/contiguous/detail/vectorTraits.h"
+// #include "cntgs/contiguous/detail/vectorTraits.hpp"
 
 
 #include <memory>
@@ -2967,17 +2967,17 @@ class TypeErasedVector
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_H
+#endif  // CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
 
-// #include "cntgs/contiguous/vector.h"
-#ifndef CNTGS_CONTIGUOUS_VECTOR_H
-#define CNTGS_CONTIGUOUS_VECTOR_H
+// #include "cntgs/contiguous/vector.hpp"
+#ifndef CNTGS_CONTIGUOUS_VECTOR_HPP
+#define CNTGS_CONTIGUOUS_VECTOR_HPP
 
-// #include "cntgs/contiguous/detail/algorithm.h"
+// #include "cntgs/contiguous/detail/algorithm.hpp"
 
-// #include "cntgs/contiguous/detail/array.h"
-#ifndef CNTGS_DETAIL_ARRAY_H
-#define CNTGS_DETAIL_ARRAY_H
+// #include "cntgs/contiguous/detail/array.hpp"
+#ifndef CNTGS_DETAIL_ARRAY_HPP
+#define CNTGS_DETAIL_ARRAY_HPP
 
 #include <algorithm>
 #include <array>
@@ -2999,33 +2999,33 @@ constexpr auto convert_array_to_size(const std::array<T, K>& array)
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ARRAY_H
+#endif  // CNTGS_DETAIL_ARRAY_HPP
 
-// #include "cntgs/contiguous/detail/elementLocator.h"
+// #include "cntgs/contiguous/detail/elementLocator.hpp"
 
-// #include "cntgs/contiguous/detail/forward.h"
+// #include "cntgs/contiguous/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/memory.h"
+// #include "cntgs/contiguous/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.h"
+// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
 
-// #include "cntgs/contiguous/detail/parameterTraits.h"
+// #include "cntgs/contiguous/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/tuple.h"
+// #include "cntgs/contiguous/detail/tuple.hpp"
 
-// #include "cntgs/contiguous/detail/utility.h"
+// #include "cntgs/contiguous/detail/utility.hpp"
 
-// #include "cntgs/contiguous/detail/vectorTraits.h"
+// #include "cntgs/contiguous/detail/vectorTraits.hpp"
 
-// #include "cntgs/contiguous/iterator.h"
+// #include "cntgs/contiguous/iterator.hpp"
 
-// #include "cntgs/contiguous/parameter.h"
+// #include "cntgs/contiguous/parameter.hpp"
 
-// #include "cntgs/contiguous/reference.h"
+// #include "cntgs/contiguous/reference.hpp"
 
-// #include "cntgs/contiguous/span.h"
+// #include "cntgs/contiguous/span.hpp"
 
-// #include "cntgs/contiguous/typeErasedVector.h"
+// #include "cntgs/contiguous/typeErasedVector.hpp"
 
 
 #include <algorithm>
@@ -3073,11 +3073,11 @@ class BasicContiguousVector
     /// [cntgs::BasicContiguousVector::const_reference]()
     using value_type = cntgs::BasicContiguousElement<Allocator, Types...>;
 
-    /// A [cntgs::ContiguousReference]() with [cntgs::ContiguousReferenceQualifier::MUTABLE]()
+    /// A [cntgs::BasicContiguousReference]() with [cntgs::ContiguousReferenceQualifier::MUTABLE]()
     /// \exclude target
     using reference = typename VectorTraits::ReferenceType;
 
-    /// A [cntgs::ContiguousReference]() with [cntgs::ContiguousReferenceQualifier::CONST]()
+    /// A [cntgs::BasicContiguousReference]() with [cntgs::ContiguousReferenceQualifier::CONST]()
     /// \exclude target
     using const_reference = typename VectorTraits::ConstReferenceType;
     using iterator = cntgs::ContiguousVectorIterator<Self>;
@@ -3605,7 +3605,7 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 }
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_VECTOR_H
+#endif  // CNTGS_CONTIGUOUS_VECTOR_HPP
 
 
-#endif  // CNTGS_CONTIGUOUS_H
+#endif  // CNTGS_CNTGS_CONTIGUOUS_HPP

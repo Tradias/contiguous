@@ -6,7 +6,7 @@ function(cntgs_add_code_gen _cntgs_name)
     add_library(${_cntgs_name} OBJECT)
 
     target_sources(${_cntgs_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/codeGen.cpp
-                                          ${CMAKE_CURRENT_SOURCE_DIR}/reference.h)
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/reference.hpp)
 
     target_compile_options(
         ${_cntgs_name}

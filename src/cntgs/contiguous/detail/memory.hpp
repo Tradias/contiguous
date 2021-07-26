@@ -1,12 +1,12 @@
-#ifndef CNTGS_DETAIL_MEMORY_H
-#define CNTGS_DETAIL_MEMORY_H
+#ifndef CNTGS_DETAIL_MEMORY_HPP
+#define CNTGS_DETAIL_MEMORY_HPP
 
-#include "cntgs/contiguous/detail/attributes.h"
-#include "cntgs/contiguous/detail/iteratorUtils.h"
-#include "cntgs/contiguous/detail/range.h"
-#include "cntgs/contiguous/detail/typeUtils.h"
-#include "cntgs/contiguous/detail/utility.h"
-#include "cntgs/contiguous/span.h"
+#include "cntgs/contiguous/detail/attributes.hpp"
+#include "cntgs/contiguous/detail/iteratorUtils.hpp"
+#include "cntgs/contiguous/detail/range.hpp"
+#include "cntgs/contiguous/detail/typeUtils.hpp"
+#include "cntgs/contiguous/detail/utility.hpp"
+#include "cntgs/contiguous/span.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -373,4 +373,4 @@ auto type_erase_allocator(T&& allocator) noexcept
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_MEMORY_H
+#endif  // CNTGS_DETAIL_MEMORY_HPP
