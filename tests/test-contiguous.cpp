@@ -1306,6 +1306,14 @@ auto varying_vector_of_unique_ptrs(Allocator allocator = {})
     return vector;
 }
 
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr move assign empty vector")
+{
+    auto expected = varying_vector_of_unique_ptrs();
+    decltype(expected) vector{};
+    vector = std::move(expected);
+    CHECK_EQ(10, *cntgs::get<0>(vector[0]).front());
+}
+
 TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator move assignment")
 {
     TestMemoryResource resource;
@@ -1365,6 +1373,14 @@ TEST_CASE("ContiguousTest: OneVaryingString copy construct")
     CHECK_EQ(vector, vector2);
 }
 
+TEST_CASE("ContiguousTest: OneVaryingString copy assign empty vector")
+{
+    auto expected = varying_vector_of_strings();
+    decltype(expected) vector{};
+    vector = expected;
+    CHECK_EQ(expected, vector);
+}
+
 TEST_CASE("ContiguousTest: OneVaryingString with std::allocator copy assignment")
 {
     auto vector = varying_vector_of_strings();
@@ -1418,6 +1434,14 @@ TEST_CASE("ContiguousTest: OneFixedString copy construct")
     decltype(vector) vector2{vector};
     CHECK_EQ(vector, vector2);
     CHECK_EQ(2, vector2.get_fixed_size<0>());
+}
+
+TEST_CASE("ContiguousTest: OneFixedString copy assign empty vector")
+{
+    auto expected = fixed_vector_of_strings();
+    decltype(expected) vector{};
+    vector = expected;
+    CHECK_EQ(expected, vector);
 }
 
 TEST_CASE("ContiguousTest: OneFixedString with std::allocator copy assignment")

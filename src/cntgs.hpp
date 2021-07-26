@@ -3566,19 +3566,13 @@ class BasicContiguousVector
 
     void destruct_if_owned() noexcept
     {
-        if (this->memory.is_owned())
+        if (this->memory && this->memory.is_owned())
         {
             this->destruct();
         }
     }
 
-    void destruct() noexcept
-    {
-        if (this->memory)
-        {
-            this->destruct(this->begin(), this->end());
-        }
-    }
+    void destruct() noexcept { this->destruct(this->begin(), this->end()); }
 
     void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
     {
