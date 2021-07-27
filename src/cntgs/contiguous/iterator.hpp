@@ -37,7 +37,7 @@ class ContiguousVectorIterator
     template <bool OtherIsConst>
     /*implicit*/ constexpr ContiguousVectorIterator(
         const ContiguousVectorIterator<OtherIsConst, Allocator, Types...>& other) noexcept
-        : i(other.i), memory(memory), fixed_sizes(fixed_sizes), locator(locator)
+        : i(other.i), memory(other.memory), fixed_sizes(other.fixed_sizes), locator(other.locator)
     {
     }
 
@@ -49,9 +49,9 @@ class ContiguousVectorIterator
         const ContiguousVectorIterator<OtherIsConst, Allocator, Types...>& other) noexcept
     {
         this->i = other.i;
-        this->memory = memory;
-        this->fixed_sizes = fixed_sizes;
-        this->locator = locator;
+        this->memory = other.memory;
+        this->fixed_sizes = other.fixed_sizes;
+        this->locator = other.locator;
         return *this;
     }
 

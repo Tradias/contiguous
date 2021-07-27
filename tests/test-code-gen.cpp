@@ -55,7 +55,7 @@ TEST_CASE("CodeGenTest: two FixedSize random lookup")
 
 TEST_CASE("CodeGenTest: two FixedSize reserve growth")
 {
-    check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 12);
+    check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 6);
 }
 
 TEST_CASE("CodeGenTest: two FixedSize erase at the end vs. std::vector")
