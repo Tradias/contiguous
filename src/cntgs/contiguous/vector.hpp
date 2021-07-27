@@ -70,8 +70,8 @@ class BasicContiguousVector
     /// A [cntgs::BasicContiguousReference]() with [cntgs::ContiguousReferenceQualifier::CONST]()
     /// \exclude target
     using const_reference = typename VectorTraits::ConstReferenceType;
-    using iterator = cntgs::ContiguousVectorIterator<Self>;
-    using const_iterator = cntgs::ContiguousVectorIterator<std::add_const_t<Self>>;
+    using iterator = cntgs::ContiguousVectorIterator<false, Allocator, Types...>;
+    using const_iterator = cntgs::ContiguousVectorIterator<true, Allocator, Types...>;
     using difference_type = std::ptrdiff_t;
     using size_type = std::size_t;
     using allocator_type = Allocator;

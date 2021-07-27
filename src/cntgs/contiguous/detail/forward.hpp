@@ -19,7 +19,7 @@ struct AlignAs;
 template <class Allocator, class... T>
 class BasicContiguousVector;
 
-template <class Vector>
+template <bool IsConst, class Allocator, class... Types>
 class ContiguousVectorIterator;
 
 class TypeErasedVector;

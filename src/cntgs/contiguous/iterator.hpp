@@ -1,6 +1,8 @@
 #ifndef CNTGS_CONTIGUOUS_ITERATOR_HPP
 #define CNTGS_CONTIGUOUS_ITERATOR_HPP
 
+#include "cntgs/contiguous/detail/elementLocator.hpp"
+#include "cntgs/contiguous/detail/forward.hpp"
 #include "cntgs/contiguous/detail/iteratorUtils.hpp"
 #include "cntgs/contiguous/detail/typeUtils.hpp"
 
@@ -8,40 +10,48 @@
 
 namespace cntgs
 {
-template <class Vector>
+template <bool IsConst, class Allocator, class... Types>
 class ContiguousVectorIterator
 {
+  private:
+    using Vector = cntgs::BasicContiguousVector<Allocator, Types...>;
+    using ListTraits = detail::ParameterListTraits<Types...>;
+    using ElementLocator = detail::ElementLocatorT<Types...>;
+
   public:
     using value_type = typename Vector::value_type;
-    using reference =
-        detail::ConditionalT<std::is_const_v<Vector>, typename Vector::const_reference, typename Vector::reference>;
+    using reference = detail::ConditionalT<IsConst, typename Vector::const_reference, typename Vector::reference>;
     using pointer = detail::ArrowProxy<reference>;
     using difference_type = typename Vector::difference_type;
     using iterator_category = std::random_access_iterator_tag;
 
     ContiguousVectorIterator() = default;
 
-    constexpr ContiguousVectorIterator(Vector& vector, typename Vector::size_type index) noexcept
-        : vector(std::addressof(vector)), i(index)
+    constexpr ContiguousVectorIterator(const Vector& vector, typename Vector::size_type index) noexcept
+        : i(index), memory(vector.memory.get()), fixed_sizes(vector.fixed_sizes), locator(vector.locator)
     {
     }
 
-    explicit constexpr ContiguousVectorIterator(Vector& vector) noexcept : ContiguousVectorIterator(vector, {}) {}
+    explicit constexpr ContiguousVectorIterator(const Vector& vector) noexcept : ContiguousVectorIterator(vector, {}) {}
 
-    template <class TVector>
-    /*implicit*/ constexpr ContiguousVectorIterator(const ContiguousVectorIterator<TVector>& other) noexcept
-        : vector(other.vector), i(other.i)
+    template <bool OtherIsConst>
+    /*implicit*/ constexpr ContiguousVectorIterator(
+        const ContiguousVectorIterator<OtherIsConst, Allocator, Types...>& other) noexcept
+        : i(other.i), memory(memory), fixed_sizes(fixed_sizes), locator(locator)
     {
     }
 
     ContiguousVectorIterator(const ContiguousVectorIterator&) = default;
     ContiguousVectorIterator(ContiguousVectorIterator&&) = default;
 
-    template <class TVector>
-    constexpr ContiguousVectorIterator& operator=(const ContiguousVectorIterator<TVector>& other) noexcept
+    template <bool OtherIsConst>
+    constexpr ContiguousVectorIterator& operator=(
+        const ContiguousVectorIterator<OtherIsConst, Allocator, Types...>& other) noexcept
     {
-        this->vector = other.vector;
         this->i = other.i;
+        this->memory = memory;
+        this->fixed_sizes = fixed_sizes;
+        this->locator = locator;
         return *this;
     }
 
@@ -50,9 +60,15 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr auto index() const noexcept { return this->i; }
 
-    [[nodiscard]] constexpr reference operator*() const noexcept { return (*this->vector)[this->i]; }
+    [[nodiscard]] constexpr reference operator*() const noexcept
+    {
+        return reference{this->locator.element_address(i, this->memory), this->fixed_sizes};
+    }
 
-    [[nodiscard]] constexpr reference operator*() noexcept { return (*this->vector)[this->i]; }
+    [[nodiscard]] constexpr reference operator*() noexcept
+    {
+        return reference{this->locator.element_address(i, this->memory), this->fixed_sizes};
+    }
 
     [[nodiscard]] constexpr pointer operator->() const noexcept { return {*(*this)}; }
 
@@ -122,7 +138,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr bool operator==(const ContiguousVectorIterator& other) const noexcept
     {
-        return this->i == other.i && this->vector == other.vector;
+        return this->i == other.i && this->memory == other.memory;
     }
 
     [[nodiscard]] constexpr bool operator!=(const ContiguousVectorIterator& other) const noexcept
@@ -132,7 +148,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr bool operator<(const ContiguousVectorIterator& other) const noexcept
     {
-        return this->i < other.i && this->vector == other.vector;
+        return this->i < other.i && this->memory == other.memory;
     }
 
     [[nodiscard]] constexpr bool operator>(const ContiguousVectorIterator& other) const noexcept
@@ -151,11 +167,13 @@ class ContiguousVectorIterator
     }
 
   private:
-    template <class TVector>
+    template <bool, class, class...>
     friend class ContiguousVectorIterator;
 
-    Vector* vector{};
     typename Vector::size_type i{};
+    std::byte* memory;
+    typename ListTraits::FixedSizes fixed_sizes;
+    ElementLocator locator;
 };
 }  // namespace cntgs
 

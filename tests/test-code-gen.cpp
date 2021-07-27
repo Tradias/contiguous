@@ -53,7 +53,6 @@ TEST_CASE("CodeGenTest: two FixedSize random lookup")
     check_code_gen_sizes("reference_two_fixed_random_lookup", "contiguous_two_fixed_random_lookup", 1);
 }
 
-#ifndef _MSC_VER
 TEST_CASE("CodeGenTest: two FixedSize reserve growth")
 {
     check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 12);
@@ -61,7 +60,6 @@ TEST_CASE("CodeGenTest: two FixedSize reserve growth")
 
 TEST_CASE("CodeGenTest: two FixedSize erase at the end vs. std::vector")
 {
-    check_code_gen_sizes("std_vector_erase_at_the_end", "contiguous_two_erase_at_the_end");
+    check_code_gen_sizes("std_vector_erase_at_the_end", "contiguous_two_erase_at_the_end", 1);
 }
-#endif
 }  // namespace test_contiguous
