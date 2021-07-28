@@ -873,6 +873,22 @@ TEST_CASE("ContiguousTest: TwoFixed erase(Iterator)")
     CHECK_EQ(vector2, vector);
 }
 
+TEST_CASE("ContiguousTest: TwoVarying erase(Iterator)")
+{
+    TwoVarying vector{4, 120};
+    vector.emplace_back(10u, FLOATS1, FLOATS2);
+    vector.emplace_back(20u, FLOATS2_ALT, FLOATS1);
+    vector.emplace_back(30u, FLOATS1, FLOATS2_ALT);
+    vector.emplace_back(40u, FLOATS2, FLOATS2_ALT);
+    auto it = vector.erase(++vector.begin());
+    CHECK_EQ(++vector.begin(), it);
+    TwoVarying vector2{3, 120};
+    vector2.emplace_back(10u, FLOATS1, FLOATS2);
+    vector2.emplace_back(30u, FLOATS1, FLOATS2_ALT);
+    vector2.emplace_back(40u, FLOATS2, FLOATS2_ALT);
+    CHECK_EQ(vector2, vector);
+}
+
 TEST_CASE("ContiguousTest: OneFixedUniquePtr erase(Iterator, Iterator)")
 {
     OneFixedUniquePtr vector{3, {1}};

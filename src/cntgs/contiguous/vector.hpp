@@ -439,12 +439,9 @@ class BasicContiguousVector
 
     void move_elements_forward_to(std::size_t where, std::size_t from)
     {
-        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
-                      ListTraits::IS_FIXED_SIZE_OR_PLAIN)
+        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            const auto target = this->locator.element_address(where, this->memory.get());
-            const auto source = this->locator.element_address(from, this->memory.get());
-            std::memmove(target, source, this->data_end() - source);
+            this->locator.move_elements_forward_to(where, from, this->memory.get());
         }
         else
         {

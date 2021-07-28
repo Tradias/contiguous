@@ -58,12 +58,12 @@ TEST_CASE("CodeGenTest: two FixedSize reserve growth")
     check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 6);
 }
 
-TEST_CASE("CodeGenTest: two FixedSize erase at the end vs. std::vector")
+TEST_CASE("CodeGenTest: two FixedSize erase(iterator, end) vs. std::vector")
 {
     check_code_gen_sizes("std_vector_erase_at_the_end", "contiguous_two_erase_at_the_end", 1);
 }
 
-TEST_CASE("CodeGenTest: two FixedSize erase vs. std::vector")
+TEST_CASE("CodeGenTest: two FixedSize erase(iterator) vs. std::vector")
 {
     check_code_gen_sizes("reference_two_fixed_erase_within", "contiguous_two_fixed_erase_within");
 }
