@@ -129,3 +129,10 @@ auto contiguous_two_erase_at_the_end(CntgsFixedSizeVector& vector, CntgsFixedSiz
 {
     vector.erase(begin, vector.end());
 }
+
+auto reference_two_fixed_erase_within(ReferenceFixedSizeVector& vector, uint32_t i) { vector.erase(i); }
+
+auto contiguous_two_fixed_erase_within(CntgsFixedSizeVector& vector, CntgsFixedSizeVector::const_iterator it)
+{
+    vector.erase(it);
+}

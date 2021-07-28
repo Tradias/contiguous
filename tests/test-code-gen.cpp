@@ -62,4 +62,9 @@ TEST_CASE("CodeGenTest: two FixedSize erase at the end vs. std::vector")
 {
     check_code_gen_sizes("std_vector_erase_at_the_end", "contiguous_two_erase_at_the_end", 1);
 }
+
+TEST_CASE("CodeGenTest: two FixedSize erase vs. std::vector")
+{
+    check_code_gen_sizes("reference_two_fixed_erase_within", "contiguous_two_fixed_erase_within");
+}
 }  // namespace test_contiguous

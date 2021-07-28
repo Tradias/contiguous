@@ -56,4 +56,12 @@ struct ReferenceFixedSizeVector
         ptr = std::move(new_memory);
         memory = ptr.get();
     }
+
+    void erase(uint32_t i)
+    {
+        const auto source = get_node(i + 1);
+        const auto target = get_node(i);
+        std::memmove(target, source, get_node(next_index) - source);
+        next_index -= 1;
+    }
 };

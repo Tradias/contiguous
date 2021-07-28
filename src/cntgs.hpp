@@ -3238,10 +3238,9 @@ class BasicContiguousVector
     iterator erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         iterator it_position{*this, position.index()};
-        const auto position_data_end = it_position->data_end();
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
-        this->move_elements_forward_to(it_position, next_position, position_data_end);
+        this->move_elements_forward_to(it_position.index(), next_position);
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
         return it_position;
     }
@@ -3254,9 +3253,9 @@ class BasicContiguousVector
         this->destruct(it_first, it_last);
         if (last.index() < current_size && first.index() != last.index())
         {
-            this->move_elements_forward_to(it_first, last.index(), it_last->data_begin());
+            this->move_elements_forward_to(first.index(), last.index());
         }
-        this->locator.resize(current_size - std::distance(it_first, it_last), this->memory.get());
+        this->locator.resize(current_size - (last.index() - first.index()), this->memory.get());
         return it_first;
     }
 
@@ -3464,6 +3463,24 @@ class BasicContiguousVector
         else
         {
             for (auto i = position.index(); from != this->size(); ++i, (void)++from)
+            {
+                this->emplace_at(i, (*this)[from], ListTraits::make_index_sequence());
+            }
+        }
+    }
+
+    void move_elements_forward_to(std::size_t where, std::size_t from)
+    {
+        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
+                      ListTraits::IS_FIXED_SIZE_OR_PLAIN)
+        {
+            const auto target = this->locator.element_address(where, this->memory.get());
+            const auto source = this->locator.element_address(from, this->memory.get());
+            std::memmove(target, source, this->data_end() - source);
+        }
+        else
+        {
+            for (auto i = where; from != this->size(); ++i, (void)++from)
             {
                 this->emplace_at(i, (*this)[from], ListTraits::make_index_sequence());
             }

@@ -49,8 +49,9 @@ if(CNTGS_BUILD_TESTS)
     target_compile_options(
         cntgs-objects
         PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4
-               /GR-
-               /EHsc->
+               /GR- # no rtti
+               /EHsc- # no exceptions
+               >
                $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
                -Wextra
                -pedantic-errors

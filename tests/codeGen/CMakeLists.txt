@@ -12,16 +12,18 @@ function(cntgs_add_code_gen _cntgs_name)
         ${_cntgs_name}
         PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/O2
                 /Ob2
-                /GR-
-                /EHsc-
-                /Zi
-                /DNDEBUG>
+                /GR- # no rtti
+                /EHsc- # no exceptions
+                /Zi # debug symbols
+                /DNDEBUG
+                /GS- # no buffer security check
+                >
                 $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O3
                 -g
                 -fno-exceptions
                 -fno-rtti>)
 
-    set_property(TARGET ${_cntgs_name} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    set_property(TARGET ${_cntgs_name} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
     target_compile_definitions(${_cntgs_name} PRIVATE NDEBUG)
 

@@ -520,7 +520,7 @@ TEST_CASE("ContiguousTest: ContiguousVector of FixedSize unsigned char compariso
     }
     SUBCASE("not equal size")
     {
-        Vector rhs{1, {3}};
+        Vector rhs{1, {2}};
         rhs.emplace_back(std::array{UInt8{0}, UInt8{1}});
         CHECK_NE(lhs, rhs);
     }
@@ -859,16 +859,18 @@ TEST_CASE("ContiguousTest: OneVaryingUniquePtr erase(Iterator)")
 
 TEST_CASE("ContiguousTest: TwoFixed erase(Iterator)")
 {
-    TwoFixed vector{2, {FLOATS2.size(), FLOATS2_ALT.size()}};
+    TwoFixed vector{4, {FLOATS2.size(), FLOATS2_ALT.size()}};
     vector.emplace_back(FLOATS2, 10u, FLOATS2);
     vector.emplace_back(FLOATS2_ALT, 20u, FLOATS2);
+    vector.emplace_back(FLOATS2, 30u, FLOATS2_ALT);
+    vector.emplace_back(FLOATS2_ALT, 40u, FLOATS2_ALT);
     auto it = vector.erase(++vector.begin());
-    CHECK_EQ(vector.end(), it);
-    CHECK_EQ(1, vector.size());
-    auto&& [a, b, c] = vector.front();
-    CHECK(test::range_equal(FLOATS2, a));
-    CHECK_EQ(10u, b);
-    CHECK(test::range_equal(FLOATS2, c));
+    CHECK_EQ(++vector.begin(), it);
+    TwoFixed vector2{3, {FLOATS2.size(), FLOATS2_ALT.size()}};
+    vector2.emplace_back(FLOATS2, 10u, FLOATS2);
+    vector2.emplace_back(FLOATS2, 30u, FLOATS2_ALT);
+    vector2.emplace_back(FLOATS2_ALT, 40u, FLOATS2_ALT);
+    CHECK_EQ(vector2, vector);
 }
 
 TEST_CASE("ContiguousTest: OneFixedUniquePtr erase(Iterator, Iterator)")
