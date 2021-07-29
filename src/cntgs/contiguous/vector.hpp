@@ -208,7 +208,7 @@ class BasicContiguousVector
         iterator it_position{*this, position.index()};
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
-        this->move_elements_forward_to(it_position.index(), next_position);
+        this->move_elements_forward(next_position, it_position.index());
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
         return it_position;
     }
@@ -221,7 +221,7 @@ class BasicContiguousVector
         this->destruct(it_first, it_last);
         if (last.index() < current_size && first.index() != last.index())
         {
-            this->move_elements_forward_to(first.index(), last.index());
+            this->move_elements_forward(last.index(), first.index());
         }
         this->locator.resize(current_size - (last.index() - first.index()), this->memory.get());
         return it_first;
@@ -419,33 +419,15 @@ class BasicContiguousVector
         }
     }
 
-    void move_elements_forward_to(const iterator& position, [[maybe_unused]] std::size_t from,
-                                  [[maybe_unused]] std::byte* from_data_begin)
-    {
-        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
-                      ListTraits::IS_FIXED_SIZE_OR_PLAIN)
-        {
-            const auto target = position->data_begin();
-            std::memmove(target, from_data_begin, (this->memory.get() + this->memory_consumption()) - from_data_begin);
-        }
-        else
-        {
-            for (auto i = position.index(); from != this->size(); ++i, (void)++from)
-            {
-                this->emplace_at(i, (*this)[from], ListTraits::make_index_sequence());
-            }
-        }
-    }
-
-    void move_elements_forward_to(std::size_t where, std::size_t from)
+    void move_elements_forward(std::size_t from, std::size_t to)
     {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            this->locator.move_elements_forward_to(where, from, this->memory.get());
+            this->locator.move_elements_forward(from, to, this->memory.get());
         }
         else
         {
-            for (auto i = where; from != this->size(); ++i, (void)++from)
+            for (auto i = to; from != this->size(); ++i, (void)++from)
             {
                 this->emplace_at(i, (*this)[from], ListTraits::make_index_sequence());
             }

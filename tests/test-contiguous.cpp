@@ -875,14 +875,14 @@ TEST_CASE("ContiguousTest: TwoFixed erase(Iterator)")
 
 TEST_CASE("ContiguousTest: TwoVarying erase(Iterator)")
 {
-    TwoVarying vector{4, 120};
+    TwoVarying vector{4, 84};
     vector.emplace_back(10u, FLOATS1, FLOATS2);
     vector.emplace_back(20u, FLOATS2_ALT, FLOATS1);
     vector.emplace_back(30u, FLOATS1, FLOATS2_ALT);
     vector.emplace_back(40u, FLOATS2, FLOATS2_ALT);
     auto it = vector.erase(++vector.begin());
     CHECK_EQ(++vector.begin(), it);
-    TwoVarying vector2{3, 120};
+    TwoVarying vector2{3, 64};
     vector2.emplace_back(10u, FLOATS1, FLOATS2);
     vector2.emplace_back(30u, FLOATS1, FLOATS2_ALT);
     vector2.emplace_back(40u, FLOATS2, FLOATS2_ALT);
@@ -924,13 +924,14 @@ TEST_CASE("ContiguousTest: TwoFixed erase(Iterator, Iterator)")
     vector.emplace_back(FLOATS2, 10u, FLOATS2);
     vector.emplace_back(FLOATS2, 20u, FLOATS2_ALT);
     vector.emplace_back(FLOATS2_ALT, 30u, FLOATS2);
-    SUBCASE("erase last two")
+    SUBCASE("erase first two")
     {
-        vector.erase(++vector.begin(), vector.end());
+        auto it = vector.erase(vector.begin(), std::next(vector.begin(), 2));
+        CHECK_EQ(vector.begin(), it);
         CHECK_EQ(1, vector.size());
         auto&& [a, b, c] = vector.front();
-        CHECK(test::range_equal(FLOATS2, a));
-        CHECK_EQ(10u, b);
+        CHECK(test::range_equal(FLOATS2_ALT, a));
+        CHECK_EQ(30u, b);
         CHECK(test::range_equal(FLOATS2, c));
     }
     SUBCASE("erase all")
@@ -950,6 +951,43 @@ TEST_CASE("ContiguousTest: TwoFixed erase(Iterator, Iterator)")
         auto&& [a, b, c] = vector.front();
         CHECK(test::range_equal(FLOATS2, a));
         CHECK_EQ(10u, b);
+        CHECK(test::range_equal(FLOATS2, c));
+    }
+}
+
+TEST_CASE("ContiguousTest: TwoVarying erase(Iterator, Iterator)")
+{
+    TwoVarying vector{4, 60};
+    vector.emplace_back(10u, FLOATS1, FLOATS2);
+    vector.emplace_back(20u, FLOATS2_ALT, FLOATS1);
+    vector.emplace_back(30u, FLOATS1, FLOATS2_ALT);
+    SUBCASE("erase first two")
+    {
+        auto it = vector.erase(vector.begin(), std::next(vector.begin(), 2));
+        CHECK_EQ(vector.begin(), it);
+        CHECK_EQ(1, vector.size());
+        auto&& [a, b, c] = vector.front();
+        CHECK_EQ(30u, a);
+        CHECK(test::range_equal(FLOATS1, b));
+        CHECK(test::range_equal(FLOATS2_ALT, c));
+    }
+    SUBCASE("erase all")
+    {
+        vector.erase(vector.begin(), vector.end());
+        CHECK_EQ(0, vector.size());
+        vector.emplace_back(30u, FLOATS2_ALT, FLOATS2);
+        auto&& [a, b, c] = vector.front();
+        CHECK_EQ(30u, a);
+        CHECK(test::range_equal(FLOATS2_ALT, b));
+        CHECK(test::range_equal(FLOATS2, c));
+    }
+    SUBCASE("erase none")
+    {
+        vector.erase(vector.begin(), vector.begin());
+        CHECK_EQ(3, vector.size());
+        auto&& [a, b, c] = vector.front();
+        CHECK_EQ(10u, a);
+        CHECK(test::range_equal(FLOATS1, b));
         CHECK(test::range_equal(FLOATS2, c));
     }
 }

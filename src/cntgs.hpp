@@ -2513,9 +2513,9 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 namespace cntgs::detail
 {
 template <class Locator>
-auto move_elements_forward_to(std::size_t where, std::size_t from, std::byte* memory_begin, const Locator& locator)
+auto move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator)
 {
-    const auto target = locator.element_address(where, memory_begin);
+    const auto target = locator.element_address(to, memory_begin);
     const auto source = locator.element_address(from, memory_begin);
     const auto count = static_cast<std::size_t>(locator.data_end() - source);
     std::memmove(target, source, count);
@@ -2567,11 +2567,11 @@ class BaseElementLocator
         this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 
-    void move_elements_forward_to(std::size_t where, std::size_t from, std::byte* memory_begin)
+    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin)
     {
-        const auto diff = detail::move_elements_forward_to(where, from, memory_begin, *this);
-        const auto first_element_address = reinterpret_cast<std::byte**>(memory_begin) + where;
-        std::transform(first_element_address + 1, this->last_element_address, first_element_address,
+        const auto diff = detail::move_elements_forward(from, to, memory_begin, *this);
+        const auto first_element_address = reinterpret_cast<std::byte**>(memory_begin);
+        std::transform(first_element_address + from, this->last_element_address, first_element_address + to,
                        [&](auto&& address)
                        {
                            return address - diff;
@@ -2690,9 +2690,9 @@ class BaseAllFixedSizeElementLocator
 
     constexpr void resize(std::size_t new_size, const std::byte*) noexcept { this->element_count = new_size; }
 
-    void move_elements_forward_to(std::size_t where, std::size_t from, const std::byte*)
+    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*)
     {
-        detail::move_elements_forward_to(where, from, {}, *this);
+        detail::move_elements_forward(from, to, {}, *this);
     }
 };
 
@@ -3266,7 +3266,7 @@ class BasicContiguousVector
         iterator it_position{*this, position.index()};
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
-        this->move_elements_forward_to(it_position.index(), next_position);
+        this->move_elements_forward(next_position, it_position.index());
         this->locator.resize(this->size() - size_type{1}, this->memory.get());
         return it_position;
     }
@@ -3279,7 +3279,7 @@ class BasicContiguousVector
         this->destruct(it_first, it_last);
         if (last.index() < current_size && first.index() != last.index())
         {
-            this->move_elements_forward_to(first.index(), last.index());
+            this->move_elements_forward(last.index(), first.index());
         }
         this->locator.resize(current_size - (last.index() - first.index()), this->memory.get());
         return it_first;
@@ -3477,33 +3477,15 @@ class BasicContiguousVector
         }
     }
 
-    void move_elements_forward_to(const iterator& position, [[maybe_unused]] std::size_t from,
-                                  [[maybe_unused]] std::byte* from_data_begin)
-    {
-        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE &&
-                      ListTraits::IS_FIXED_SIZE_OR_PLAIN)
-        {
-            const auto target = position->data_begin();
-            std::memmove(target, from_data_begin, (this->memory.get() + this->memory_consumption()) - from_data_begin);
-        }
-        else
-        {
-            for (auto i = position.index(); from != this->size(); ++i, (void)++from)
-            {
-                this->emplace_at(i, (*this)[from], ListTraits::make_index_sequence());
-            }
-        }
-    }
-
-    void move_elements_forward_to(std::size_t where, std::size_t from)
+    void move_elements_forward(std::size_t from, std::size_t to)
     {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            this->locator.move_elements_forward_to(where, from, this->memory.get());
+            this->locator.move_elements_forward(from, to, this->memory.get());
         }
         else
         {
-            for (auto i = where; from != this->size(); ++i, (void)++from)
+            for (auto i = to; from != this->size(); ++i, (void)++from)
             {
                 this->emplace_at(i, (*this)[from], ListTraits::make_index_sequence());
             }
