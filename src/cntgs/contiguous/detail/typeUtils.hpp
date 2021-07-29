@@ -126,6 +126,17 @@ struct Conditional<false>
 template <bool B, class T, class U>
 using ConditionalT = typename detail::Conditional<B>::template Type<T, U>;
 
+template <class, class, class = std::void_t<>>
+struct AreEqualityComparable : std::false_type
+{
+};
+
+template <class Lhs, class Rhs>
+struct AreEqualityComparable<Lhs, Rhs, std::void_t<decltype(std::declval<const Lhs&>() == std::declval<const Rhs&>())>>
+    : std::true_type
+{
+};
+
 template <class T, class U>
 inline constexpr auto MEMCPY_COMPATIBLE =
     detail::EQUAL_SIZEOF<T, U>&& std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<U>&&

@@ -112,11 +112,10 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr auto CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES{
         calculate_consecutive_indices<detail::LexicographicalMemcmpCompatibleT>()};
 
-    template <std::size_t K, std::size_t L, cntgs::ContiguousReferenceQualifier LhsQualifier,
-              cntgs::ContiguousReferenceQualifier RhsQualifier>
+    template <std::size_t K, std::size_t L, bool IsLhsConst, bool IsRhsConst>
     static constexpr auto get_data_begin_and_end(
-        const cntgs::BasicContiguousReference<LhsQualifier, Types...>& lhs,
-        const cntgs::BasicContiguousReference<RhsQualifier, Types...>& rhs) noexcept
+        const cntgs::BasicContiguousReference<IsLhsConst, Types...>& lhs,
+        const cntgs::BasicContiguousReference<IsRhsConst, Types...>& rhs) noexcept
     {
         return std::tuple{ParameterTraitsAt<K>::data_begin(std::get<K>(lhs.tuple)),
                           ParameterTraitsAt<L>::data_end(std::get<L>(lhs.tuple)),
@@ -182,15 +181,15 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         return result + detail::alignment_offset<ParameterTraitsAt<0>::ALIGNMENT>(result);
     }
 
-    template <bool UseMove, cntgs::ContiguousReferenceQualifier Qualifier>
-    static constexpr void construct_if_non_trivial(const cntgs::BasicContiguousReference<Qualifier, Types...>& source,
+    template <bool UseMove, bool IsConst>
+    static constexpr void construct_if_non_trivial(const cntgs::BasicContiguousReference<IsConst, Types...>& source,
                                                    const ContiguousPointer& target)
     {
         (detail::construct_one_if_non_trivial<UseMove, Types>(std::get<I>(source.tuple), std::get<I>(target)), ...);
     }
 
-    template <bool UseMove, std::size_t K, cntgs::ContiguousReferenceQualifier LhsQualifier>
-    static void assign_one(const cntgs::BasicContiguousReference<LhsQualifier, Types...>& source,
+    template <bool UseMove, std::size_t K, bool IsLhsConst>
+    static void assign_one(const cntgs::BasicContiguousReference<IsLhsConst, Types...>& source,
                            const ContiguousReference& target)
     {
         static constexpr auto INDEX = std::get<K>(std::get<UseMove>(CONSECUTIVE_TRIVIALLY_ASSIGNABLE_INDICES));
@@ -213,8 +212,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
     }
 
-    template <bool UseMove, cntgs::ContiguousReferenceQualifier LhsQualifier>
-    static void assign(const cntgs::BasicContiguousReference<LhsQualifier, Types...>& source,
+    template <bool UseMove, bool IsLhsConst>
+    static void assign(const cntgs::BasicContiguousReference<IsLhsConst, Types...>& source,
                        const ContiguousReference& target)
     {
         (Self::template assign_one<UseMove, I>(source, target), ...);
@@ -240,10 +239,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         (Self::template swap_one<I>(lhs, rhs), ...);
     }
 
-    template <std::size_t K, cntgs::ContiguousReferenceQualifier LhsQualifier,
-              cntgs::ContiguousReferenceQualifier RhsQualifier>
-    static constexpr auto equal_one(const cntgs::BasicContiguousReference<LhsQualifier, Types...>& lhs,
-                                    const cntgs::BasicContiguousReference<RhsQualifier, Types...>& rhs)
+    template <std::size_t K, bool IsLhsConst, bool IsRhsConst>
+    static constexpr auto equal_one(const cntgs::BasicContiguousReference<IsLhsConst, Types...>& lhs,
+                                    const cntgs::BasicContiguousReference<IsRhsConst, Types...>& rhs)
     {
         constexpr auto INDEX = std::get<K>(CONSECUTIVE_EQUALITY_MEMCMPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
@@ -262,18 +260,16 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
     }
 
-    template <cntgs::ContiguousReferenceQualifier LhsQualifier, cntgs::ContiguousReferenceQualifier RhsQualifier>
-    static constexpr auto equal(const cntgs::BasicContiguousReference<LhsQualifier, Types...>& lhs,
-                                const cntgs::BasicContiguousReference<RhsQualifier, Types...>& rhs)
+    template <bool IsLhsConst, bool IsRhsConst>
+    static constexpr auto equal(const cntgs::BasicContiguousReference<IsLhsConst, Types...>& lhs,
+                                const cntgs::BasicContiguousReference<IsRhsConst, Types...>& rhs)
     {
         return (Self::template equal_one<I>(lhs, rhs) && ...);
     }
 
-    template <std::size_t K, cntgs::ContiguousReferenceQualifier LhsQualifier,
-              cntgs::ContiguousReferenceQualifier RhsQualifier>
-    static constexpr auto lexicographical_compare_one(
-        const cntgs::BasicContiguousReference<LhsQualifier, Types...>& lhs,
-        const cntgs::BasicContiguousReference<RhsQualifier, Types...>& rhs)
+    template <std::size_t K, bool IsLhsConst, bool IsRhsConst>
+    static constexpr auto lexicographical_compare_one(const cntgs::BasicContiguousReference<IsLhsConst, Types...>& lhs,
+                                                      const cntgs::BasicContiguousReference<IsRhsConst, Types...>& rhs)
     {
         constexpr auto INDEX = std::get<K>(CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
@@ -292,9 +288,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         }
     }
 
-    template <cntgs::ContiguousReferenceQualifier LhsQualifier, cntgs::ContiguousReferenceQualifier RhsQualifier>
-    static constexpr auto lexicographical_compare(const cntgs::BasicContiguousReference<LhsQualifier, Types...>& lhs,
-                                                  const cntgs::BasicContiguousReference<RhsQualifier, Types...>& rhs)
+    template <bool IsLhsConst, bool IsRhsConst>
+    static constexpr auto lexicographical_compare(const cntgs::BasicContiguousReference<IsLhsConst, Types...>& lhs,
+                                                  const cntgs::BasicContiguousReference<IsRhsConst, Types...>& rhs)
     {
         return (Self::template lexicographical_compare_one<I>(lhs, rhs) && ...);
     }

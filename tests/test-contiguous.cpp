@@ -44,6 +44,8 @@ struct ToValueType
 
 struct TestMemoryResource
 {
+    using allocator_type = std::pmr::polymorphic_allocator<std::byte>;
+
     std::array<std::byte, 256> buffer{};
     std::pmr::monotonic_buffer_resource resource{buffer.data(), buffer.size()};
 
@@ -77,6 +79,16 @@ auto array_one_unique_ptr(int v1 = 10) { return std::array{std::make_unique<int>
 auto array_two_unique_ptr(int v1 = 30, int v2 = 40)
 {
     return std::array{std::make_unique<int>(v1), std::make_unique<int>(v2)};
+}
+
+template <class Allocator = std::allocator<int>>
+auto fixed_vector_of_unique_ptrs(Allocator allocator = {})
+{
+    cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
+        2, {1}, allocator};
+    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
+    return vector;
 }
 
 template <class T>
@@ -142,6 +154,169 @@ TEST_CASE("ContiguousTest: TwoFixed get_fixed_size<I>()")
     CHECK_EQ(20, vector.get_fixed_size<1>());
 }
 
+TEST_CASE("ContiguousTest: ContiguousElement converting constructors")
+{
+    OneFixed vector{1, {FLOATS1.size()}};
+    vector.emplace_back(10u, FLOATS1);
+    SUBCASE("copy from reference")
+    {
+        const auto ref{vector[0]};
+        OneFixed::value_type value{ref};
+        CHECK_EQ(vector[0], value);
+    }
+    SUBCASE("move from reference")
+    {
+        OneFixed::value_type value{vector[0]};
+        CHECK_EQ(vector[0], value);
+    }
+    SUBCASE("copy from value_type")
+    {
+        const OneFixed::value_type ref{vector[0]};
+        OneFixed::value_type value{ref};
+        CHECK_EQ(vector[0], value);
+    }
+    SUBCASE("move from value_type")
+    {
+        OneFixed::value_type value{OneFixed::value_type{vector[0]}};
+        CHECK_EQ(vector[0], value);
+    }
+    using Vector2 = cntgs::BasicContiguousVector<std::allocator<int>, uint32_t, cntgs::FixedSize<float>>;
+    Vector2 vector2{1, {FLOATS1.size()}};
+    vector2.emplace_back(10u, FLOATS1);
+    SUBCASE("copy from value_type")
+    {
+        const Vector2::value_type ref{vector2[0]};
+        OneFixed::value_type value{ref};
+        CHECK_EQ(vector[0], value);
+    }
+    SUBCASE("move from value_type")
+    {
+        OneFixed::value_type value{Vector2::value_type{vector2[0]}};
+        CHECK_EQ(vector[0], value);
+    }
+    SUBCASE("copy from value_type and equal allocator")
+    {
+        const Vector2::value_type const_value{vector[0]};
+        OneFixed::value_type value{const_value, OneFixed::allocator_type{}};
+        CHECK_EQ(vector[0], value);
+    }
+    SUBCASE("move from value_type and equal allocator")
+    {
+        OneFixed::value_type value{Vector2::value_type{vector[0]}, OneFixed::allocator_type{}};
+        CHECK_EQ(vector[0], value);
+    }
+    TestMemoryResource resource;
+    using ValueType =
+        cntgs::BasicContiguousVector<TestMemoryResource::allocator_type, uint32_t, cntgs::FixedSize<float>>::value_type;
+    SUBCASE("copy from reference and allocator")
+    {
+        const auto ref{vector[0]};
+        ValueType value{ref, resource.get_allocator()};
+        CHECK_EQ(vector[0], value);
+        resource.check_was_used(value.get_allocator());
+    }
+    SUBCASE("move from reference and allocator")
+    {
+        ValueType value{vector[0], resource.get_allocator()};
+        CHECK_EQ(vector[0], value);
+        resource.check_was_used(value.get_allocator());
+    }
+    SUBCASE("copy from value_type and non-equal allocator")
+    {
+        const ValueType const_value{vector[0]};
+        ValueType value{const_value, resource.get_allocator()};
+        CHECK_EQ(vector[0], value);
+        resource.check_was_used(value.get_allocator());
+    }
+    SUBCASE("move from value_type and non-equal allocator")
+    {
+        ValueType value{ValueType{vector[0]}, resource.get_allocator()};
+        CHECK_EQ(vector[0], value);
+        resource.check_was_used(value.get_allocator());
+    }
+    SUBCASE("copy from value_type and uncomparable allocator")
+    {
+        const OneFixed::value_type const_value{vector[0]};
+        ValueType value{const_value, resource.get_allocator()};
+        CHECK_EQ(vector[0], value);
+        resource.check_was_used(value.get_allocator());
+    }
+    SUBCASE("move from value_type and uncomparable allocator")
+    {
+        ValueType value{OneFixed::value_type{vector[0]}, resource.get_allocator()};
+        CHECK_EQ(vector[0], value);
+        resource.check_was_used(value.get_allocator());
+    }
+}
+
+TEST_CASE("ContiguousTest: ContiguousElement construct from move-only type")
+{
+    auto vector = fixed_vector_of_unique_ptrs();
+    using ValueType = decltype(vector)::value_type;
+    SUBCASE("move from reference")
+    {
+        ValueType value{vector[0]};
+        CHECK_EQ(nullptr, cntgs::get<1>(vector[0]));
+        CHECK_EQ(20, *cntgs::get<1>(value));
+    }
+    TestMemoryResource resource;
+    using AllocValueType = typename decltype(fixed_vector_of_unique_ptrs(resource.get_allocator()))::value_type;
+    SUBCASE("move from reference and allocator")
+    {
+        AllocValueType value{vector[0], resource.get_allocator()};
+        resource.check_was_used(value.get_allocator());
+        CHECK_EQ(20, *cntgs::get<1>(value));
+    }
+    SUBCASE("move from value_type and allocator")
+    {
+        AllocValueType value{ValueType{vector[0]}, resource.get_allocator()};
+        resource.check_was_used(value.get_allocator());
+        AllocValueType value2{std::move(value)};
+        CHECK_EQ(resource.get_allocator(), value2.get_allocator());
+        CHECK_EQ(20, *cntgs::get<1>(value2));
+    }
+}
+
+TEST_CASE("ContiguousTest: value_type can be copy assigned")
+{
+    using Vector = cntgs::ContiguousVector<std::string, cntgs::FixedSize<std::string>>;
+    Vector vector{2, {1}};
+    vector.emplace_back(STRING1, std::array{STRING2});
+    vector.emplace_back(STRING2, std::array{STRING1});
+    Vector::value_type value1{vector[0]};
+    Vector::value_type value2{vector[1]};
+    value2 = value1;
+    value2 = value2;
+    CHECK_EQ(STRING1, cntgs::get<0>(value2));
+    CHECK(test::range_equal(std::array{STRING2}, cntgs::get<1>(value2)));
+}
+
+TEST_CASE("ContiguousTest: value_type can be move assigned")
+{
+    auto vector = fixed_vector_of_unique_ptrs();
+    OneFixedUniquePtr::value_type value1{vector[0]};
+    OneFixedUniquePtr::value_type value2{vector[1]};
+    value1 = std::move(value2);
+    auto&& [a, b] = value1;
+    CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
+    CHECK_EQ(40, *b);
+}
+
+TEST_CASE("ContiguousTest: value_type can be swapped")
+{
+    auto vector = fixed_vector_of_unique_ptrs();
+    OneFixedUniquePtr::value_type value1{vector[0]};
+    OneFixedUniquePtr::value_type value2{vector[1]};
+    using std::swap;
+    swap(value1, value2);
+    auto&& [a, b] = value1;
+    CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
+    CHECK_EQ(40, *b);
+    auto&& [c, d] = value2;
+    CHECK(test::range_equal(array_one_unique_ptr(10), c, test::DereferenceEqual{}));
+    CHECK_EQ(20, *d);
+}
+
 template <class Value>
 void check_const_and_non_const(Value& value)
 {
@@ -179,76 +354,6 @@ TEST_CASE("ContiguousTest: OneFixed mutating value_type does not mutate underlyi
     cntgs::get<1>(value).front() = 12.f;
     vector[0] = std::move(value);
     CHECK_EQ(12.f, cntgs::get<1>(vector[0]).front());
-}
-
-TEST_CASE("ContiguousTest: value_type can be copy constructed")
-{
-    OneFixed vector{1, {FLOATS1.size()}};
-    vector.emplace_back(10u, FLOATS1);
-    OneFixed::value_type value1{vector[0]};
-    OneFixed::value_type value2{value1};
-    CHECK_EQ(10u, cntgs::get<0>(value2));
-    CHECK(test::range_equal(FLOATS1, cntgs::get<1>(value2)));
-}
-
-TEST_CASE("ContiguousTest: value_type can be copy assigned")
-{
-    using Vector = cntgs::ContiguousVector<std::string, cntgs::FixedSize<std::string>>;
-    Vector vector{2, {1}};
-    vector.emplace_back(STRING1, std::array{STRING2});
-    vector.emplace_back(STRING2, std::array{STRING1});
-    Vector::value_type value1{vector[0]};
-    Vector::value_type value2{vector[1]};
-    value2 = value1;
-    value2 = value2;
-    CHECK_EQ(STRING1, cntgs::get<0>(value2));
-    CHECK(test::range_equal(std::array{STRING2}, cntgs::get<1>(value2)));
-}
-
-template <class Allocator = std::allocator<int>>
-auto fixed_vector_of_unique_ptrs(Allocator allocator = {})
-{
-    cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
-        2, {1}, allocator};
-    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
-    vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
-    return vector;
-}
-
-TEST_CASE("ContiguousTest: value_type can be move constructed")
-{
-    auto vector = fixed_vector_of_unique_ptrs();
-    OneFixedUniquePtr::value_type value1{vector[0]};
-    OneFixedUniquePtr::value_type value2{std::move(value1)};
-    auto&& [a, b] = value2;
-    CHECK(test::range_equal(array_one_unique_ptr(10), a, test::DereferenceEqual{}));
-    CHECK_EQ(20, *b);
-}
-
-TEST_CASE("ContiguousTest: value_type can be move assigned")
-{
-    auto vector = fixed_vector_of_unique_ptrs();
-    OneFixedUniquePtr::value_type value1{vector[0]};
-    OneFixedUniquePtr::value_type value2{vector[1]};
-    value1 = std::move(value2);
-    auto&& [a, b] = value1;
-    CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
-    CHECK_EQ(40, *b);
-}
-
-TEST_CASE("ContiguousTest: value_type can be swapped")
-{
-    auto vector = fixed_vector_of_unique_ptrs();
-    OneFixedUniquePtr::value_type value1{vector[0]};
-    OneFixedUniquePtr::value_type value2{vector[1]};
-    using std::swap;
-    swap(value1, value2);
-    auto&& [a, b] = value1;
-    CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
-    CHECK_EQ(40, *b);
-    auto&& [c, d] = value2;
-    CHECK(test::range_equal(array_one_unique_ptr(10), c, test::DereferenceEqual{}));
-    CHECK_EQ(20, *d);
 }
 
 TEST_CASE("ContiguousTest: one fixed one varying size: correct memory_consumption()")
@@ -671,6 +776,35 @@ auto make_varying_size_vector()
     vector.emplace_back(10u, FLOATS1);
     vector.emplace_back(15u, floats1(10.f, 20.f, 30.f));
     return vector;
+}
+
+TEST_CASE("ContiguousTest: Contiguous(Const)Reference converting constructors")
+{
+    auto vector = make_varying_size_vector();
+    using Vector = decltype(vector);
+    SUBCASE("bind mutable reference to const reference")
+    {
+        Vector::reference ref{vector[1]};
+        CHECK_EQ(vector[1], Vector::const_reference{ref});
+        CHECK_EQ(vector[1], Vector::const_reference{std::move(ref)});
+    }
+    SUBCASE("bind const value_type to const reference")
+    {
+        const Vector::value_type value{vector[1]};
+        CHECK_EQ(vector[1], Vector::const_reference{value});
+        CHECK_EQ(vector[1], Vector::const_reference{std::move(value)});
+    }
+    Vector::value_type value{vector[1]};
+    SUBCASE("bind mutable value_type to reference")
+    {
+        CHECK_EQ(vector[1], Vector::reference{value});
+        CHECK_EQ(vector[1], Vector::reference{std::move(value)});
+    }
+    SUBCASE("bind mutable value_type to const reference")
+    {
+        CHECK_EQ(vector[1], Vector::const_reference{value});
+        CHECK_EQ(vector[1], Vector::const_reference{std::move(value)});
+    }
 }
 
 template <class Vector, class LhsTransformer, class RhsTransformer>
@@ -1338,25 +1472,8 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
 {
     using Alloc = std::pmr::polymorphic_allocator<int>;
     TestMemoryResource resource;
-    SUBCASE("vector")
-    {
-        auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
-        resource.check_was_used(vector.get_allocator());
-    }
-    SUBCASE("value_type")
-    {
-        auto vector = fixed_vector_of_unique_ptrs();
-        using ValueType = typename decltype(fixed_vector_of_unique_ptrs(resource.get_allocator()))::value_type;
-        ValueType value{vector[0], resource.get_allocator()};
-        SUBCASE("move construct from reference and allocator") { resource.check_was_used(value.get_allocator()); }
-        SUBCASE("move construct from element and allocator")
-        {
-            ValueType value2{std::move(value), resource.get_allocator()};
-            resource.check_was_used(value2.get_allocator());
-            ValueType value3{std::move(value2), Alloc{}};
-            CHECK_EQ(Alloc{}, value3.get_allocator());
-        }
-    }
+    auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
+    resource.check_was_used(vector.get_allocator());
 }
 
 template <class Allocator = std::allocator<int>>

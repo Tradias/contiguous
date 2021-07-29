@@ -1,8 +1,6 @@
 #ifndef CNTGS_DETAIL_FORWARD_HPP
 #define CNTGS_DETAIL_FORWARD_HPP
 
-#include "cntgs/contiguous/referenceQualifier.hpp"
-
 #include <cstddef>
 
 namespace cntgs
@@ -24,7 +22,7 @@ class ContiguousVectorIterator;
 
 class TypeErasedVector;
 
-template <cntgs::ContiguousReferenceQualifier Qualifier, class... Types>
+template <bool IsConst, class... Types>
 class BasicContiguousReference;
 
 template <class Allocator, class... Types>

@@ -63,11 +63,11 @@ class BasicContiguousVector
     /// [cntgs::BasicContiguousVector::const_reference]()
     using value_type = cntgs::BasicContiguousElement<Allocator, Types...>;
 
-    /// A [cntgs::BasicContiguousReference]() with [cntgs::ContiguousReferenceQualifier::MUTABLE]()
+    /// A [cntgs::ContiguousReference]()
     /// \exclude target
     using reference = typename VectorTraits::ReferenceType;
 
-    /// A [cntgs::BasicContiguousReference]() with [cntgs::ContiguousReferenceQualifier::CONST]()
+    /// A [cntgs::ContiguousConstReference]()
     /// \exclude target
     using const_reference = typename VectorTraits::ConstReferenceType;
     using iterator = cntgs::ContiguousVectorIterator<false, Allocator, Types...>;

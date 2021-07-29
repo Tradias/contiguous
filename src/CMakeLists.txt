@@ -11,7 +11,6 @@ list(
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/iterator.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/parameter.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/reference.hpp"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/referenceQualifier.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/span.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/typeErasedVector.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/vector.hpp"
