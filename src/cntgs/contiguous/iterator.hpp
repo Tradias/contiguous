@@ -60,6 +60,11 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr auto index() const noexcept { return this->i; }
 
+    [[nodiscard]] constexpr auto data() const noexcept -> detail::ConditionalT<IsConst, const std::byte*, std::byte*>
+    {
+        return this->locator.element_address(this->i, this->memory);
+    }
+
     [[nodiscard]] constexpr reference operator*() const noexcept
     {
         return reference{this->locator.element_address(i, this->memory), this->fixed_sizes};
