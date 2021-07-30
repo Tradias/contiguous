@@ -180,7 +180,9 @@ struct AreEqualityComparable : std::false_type
 };
 
 template <class Lhs, class Rhs>
-struct AreEqualityComparable<Lhs, Rhs, std::void_t<decltype(std::declval<const Lhs&>() == std::declval<const Rhs&>())>>
+struct AreEqualityComparable<Lhs, Rhs,
+                             std::void_t<decltype(std::declval<const Lhs&>() == std::declval<const Rhs&>()),
+                                         decltype(std::declval<const Rhs&>() == std::declval<const Lhs&>())>>
     : std::true_type
 {
 };
@@ -243,6 +245,16 @@ inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::Lexicographica
 
 namespace cntgs::detail
 {
+template <class, class = std::void_t<>>
+struct HasOperatorArrow : std::false_type
+{
+};
+
+template <class T>
+struct HasOperatorArrow<T, std::void_t<decltype(std::declval<const T&>().operator->())>> : std::true_type
+{
+};
+
 template <class T>
 struct ArrowProxy
 {
@@ -252,13 +264,26 @@ struct ArrowProxy
 };
 
 template <class I>
+constexpr auto operator_arrow_produces_pointer_to_iterator_reference_type() noexcept
+{
+    if constexpr (detail::HasOperatorArrow<I>::value)
+    {
+        return std::is_same_v<decltype(std::declval<const I&>().operator->()),
+                              std::add_pointer_t<typename std::iterator_traits<I>::reference>>;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+template <class I>
 inline constexpr auto CONTIGUOUS_ITERATOR_V =
     detail::DerivedFrom<typename std::iterator_traits<I>::iterator_category, std::random_access_iterator_tag>&&
         std::is_lvalue_reference_v<typename std::iterator_traits<I>::reference>&&
             std::is_same_v<typename std::iterator_traits<I>::value_type,
                            detail::RemoveCvrefT<typename std::iterator_traits<I>::reference>>&&
-                std::is_same_v<decltype(std::declval<const I&>().operator->()),
-                               std::add_pointer_t<typename std::iterator_traits<I>::reference>>;
+            detail::operator_arrow_produces_pointer_to_iterator_reference_type<I>();
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_ITERATORUTILS_HPP

@@ -507,7 +507,7 @@ TEST_CASE("ContiguousTest: OneFixed emplace_back std::views::iota")
     {
         auto&& [a, b] = vector[i];
         CHECK_EQ(10u, a);
-        CHECK(test::range_equal(iota, b));
+        CHECK(test::range_equal(bound_iota, b));
     }
 }
 #endif
