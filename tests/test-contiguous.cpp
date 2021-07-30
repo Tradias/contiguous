@@ -483,23 +483,32 @@ TEST_CASE("ContiguousTest: OneVarying emplace_back std::views::iota")
                                               });
     OneVarying vector{1, std::ranges::size(iota) * sizeof(float)};
     vector.emplace_back(10, iota);
-    auto&& [i, array] = vector[0];
-    CHECK_EQ(10u, i);
-    CHECK(test::range_equal(iota, array));
+    auto&& [a, b] = vector[0];
+    CHECK_EQ(10u, a);
+    CHECK(test::range_equal(iota, b));
 }
 
 TEST_CASE("ContiguousTest: OneFixed emplace_back std::views::iota")
 {
-    auto iota = std::views::iota(0, 10) | std::views::transform(
-                                              [](auto i)
-                                              {
-                                                  return float(i);
-                                              });
-    OneFixed vector{1, {std::ranges::size(iota)}};
-    vector.emplace_back(10, iota);
-    auto&& [i, array] = vector[0];
-    CHECK_EQ(10u, i);
-    CHECK(test::range_equal(iota, array));
+    auto bound_iota = std::views::iota(0, 10) | std::views::transform(
+                                                    [](auto i)
+                                                    {
+                                                        return float(i);
+                                                    });
+    auto unbound_iota = std::views::iota(0) | std::views::transform(
+                                                  [](auto i)
+                                                  {
+                                                      return float(i);
+                                                  });
+    OneFixed vector{2, {std::ranges::size(bound_iota)}};
+    vector.emplace_back(10, bound_iota);
+    vector.emplace_back(10, unbound_iota.begin());
+    for (auto&& i : {0, 1})
+    {
+        auto&& [a, b] = vector[i];
+        CHECK_EQ(10u, a);
+        CHECK(test::range_equal(iota, b));
+    }
 }
 #endif
 

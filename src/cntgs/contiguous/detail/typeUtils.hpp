@@ -132,7 +132,9 @@ struct AreEqualityComparable : std::false_type
 };
 
 template <class Lhs, class Rhs>
-struct AreEqualityComparable<Lhs, Rhs, std::void_t<decltype(std::declval<const Lhs&>() == std::declval<const Rhs&>())>>
+struct AreEqualityComparable<Lhs, Rhs,
+                             std::void_t<decltype(std::declval<const Lhs&>() == std::declval<const Rhs&>()),
+                                         decltype(std::declval<const Rhs&>() == std::declval<const Lhs&>())>>
     : std::true_type
 {
 };
