@@ -1276,7 +1276,7 @@ TEST_CASE("ContiguousTest: trivial OneFixed reserve with polymorphic_allocator")
     resource.check_was_used(vector.get_allocator());
 }
 
-#ifdef __cpp_lib_constexpr_dynamic_alloc
+#if defined(__cpp_lib_constexpr_dynamic_alloc) && defined(__cpp_constinit)
 TEST_CASE("ContiguousTest: OneFixed constinit")
 {
     SUBCASE("empty vector")
@@ -1289,9 +1289,12 @@ TEST_CASE("ContiguousTest: OneFixed constinit")
     SUBCASE("from mutable std::array")
     {
         static constinit std::array<std::byte, 12> MEM{};
-        static constinit OneFixed v{cntgs::Span{MEM.begin(), MEM.end()}, 2, {2}};
+        static constinit OneFixed v{cntgs::Span{MEM.data(), MEM.size()}, 2, {2}};
         v.emplace_back(10u, FLOATS1);
         check_size1_and_capacity2(v);
+        auto&& [a, b] = v[0];
+        CHECK_EQ(10u, a);
+        CHECK(test::range_equal(FLOATS1, b));
     }
     SUBCASE("constexpr")
     {
