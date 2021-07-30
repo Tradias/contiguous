@@ -38,8 +38,6 @@ target_include_directories(cntgs-test-utils PUBLIC $<BUILD_INTERFACE:${CMAKE_CUR
                                                    $<INSTALL_INTERFACE:include>)
 
 # tests
-find_package(doctest REQUIRED)
-
 if(CNTGS_TEST_COVERAGE)
     include(CntgsCoverage)
 endif()
@@ -83,8 +81,6 @@ set_source_files_properties(
         SKIP_PRECOMPILE_HEADERS on)
 
 if(CNTGS_DISCOVER_TESTS)
-    enable_testing()
-    include(doctest)
     doctest_discover_tests(
         cntgs-test-cpp17 # workaround for regression in doctest 2.4.6
         #
