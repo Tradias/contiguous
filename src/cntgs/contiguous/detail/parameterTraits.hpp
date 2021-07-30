@@ -37,7 +37,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
     {
-        address = static_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        address = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
         auto result = std::launder(reinterpret_cast<PointerType>(address));
         return std::pair{result, address + VALUE_BYTES};
     }
@@ -236,7 +236,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     {
         const auto size = *reinterpret_cast<std::size_t*>(address);
         address += MEMORY_OVERHEAD;
-        const auto first_byte = static_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        const auto first_byte = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
         const auto first = std::launder(reinterpret_cast<IteratorType>(first_byte));
         const auto last = std::launder(reinterpret_cast<IteratorType>(first_byte + size));
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
@@ -280,7 +280,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     static auto load(std::byte* address, std::size_t size) noexcept
     {
         const auto first =
-            std::launder(static_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
+            std::launder(reinterpret_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
         const auto last = first + size;
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
     }

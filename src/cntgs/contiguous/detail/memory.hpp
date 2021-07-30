@@ -57,11 +57,32 @@ class AllocatorAwarePointer
 
     Impl impl;
 
+    constexpr auto allocate() { return AllocatorTraits::allocate(this->get_allocator(), this->size()); }
+
+    constexpr void deallocate() noexcept
+    {
+        if (this->get())
+        {
+            AllocatorTraits::deallocate(this->get_allocator(), this->get(), this->size());
+        }
+    }
+
+    constexpr auto allocate_if_not_zero(std::size_t size, Allocator allocator)
+    {
+#ifdef __cpp_lib_is_constant_evaluated
+        if (std::is_constant_evaluated() && size == 0)
+        {
+            return Pointer{};
+        }
+#endif
+        return AllocatorTraits::allocate(allocator, size);
+    }
+
   public:
     AllocatorAwarePointer() = default;
 
-    constexpr AllocatorAwarePointer(std::size_t size, Allocator allocator)
-        : impl(AllocatorTraits::allocate(allocator, size), size, allocator)
+    constexpr AllocatorAwarePointer(std::size_t size, const Allocator& allocator)
+        : impl(this->allocate_if_not_zero(size, allocator), size, allocator)
     {
     }
 
@@ -76,8 +97,8 @@ class AllocatorAwarePointer
     {
     }
 
-    constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other, Allocator allocator)
-        : impl(AllocatorTraits::allocate(allocator, other.size()), other.size(), allocator)
+    constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other, const Allocator& allocator)
+        : impl(this->allocate_if_not_zero(other.size(), allocator), other.size(), allocator)
     {
     }
 
@@ -91,7 +112,13 @@ class AllocatorAwarePointer
     {
     }
 
-    ~AllocatorAwarePointer() noexcept { this->deallocate(); }
+#if __cpp_constexpr_dynamic_alloc
+    constexpr
+#endif
+        ~AllocatorAwarePointer() noexcept
+    {
+        this->deallocate();
+    }
 
     constexpr void propagate_on_container_copy_assignment(const AllocatorAwarePointer& other) noexcept
     {
@@ -157,16 +184,6 @@ class AllocatorAwarePointer
     explicit constexpr operator bool() const noexcept { return bool(this->get()); }
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
-
-    constexpr auto allocate() { return AllocatorTraits::allocate(this->get_allocator(), this->size()); }
-
-    constexpr void deallocate() noexcept
-    {
-        if (this->get())
-        {
-            AllocatorTraits::deallocate(this->get_allocator(), this->get(), this->size());
-        }
-    }
 };
 
 template <class Allocator>
@@ -226,7 +243,13 @@ class MaybeOwnedAllocatorAwarePointer
         return *this;
     }
 
-    ~MaybeOwnedAllocatorAwarePointer() noexcept { this->release_ptr_if_not_owned(); }
+#if __cpp_constexpr_dynamic_alloc
+    constexpr
+#endif
+        ~MaybeOwnedAllocatorAwarePointer() noexcept
+    {
+        this->release_ptr_if_not_owned();
+    }
 
     constexpr auto get() const noexcept { return this->ptr.get(); }
 
@@ -261,7 +284,7 @@ constexpr void swap(detail::MaybeOwnedAllocatorAwarePointer<Allocator>& lhs,
 }
 
 template <class T>
-auto copy_using_memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept
+auto memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept
 {
     std::memcpy(target, source, size * sizeof(T));
     return target + size * sizeof(T);
@@ -274,7 +297,7 @@ auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNT
     if constexpr (IgnoreAliasing && detail::HasDataAndSize<std::decay_t<Range>>{} &&
                   detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
-        return detail::copy_using_memcpy(std::data(range), reinterpret_cast<std::byte*>(address), std::size(range));
+        return detail::memcpy(std::data(range), reinterpret_cast<std::byte*>(address), std::size(range));
     }
     else
     {
@@ -304,12 +327,12 @@ auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType
     if constexpr (IgnoreAliasing && std::is_pointer_v<Iterator> &&
                   detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
-        return detail::copy_using_memcpy(iterator, reinterpret_cast<std::byte*>(address), size);
+        return detail::memcpy(iterator, reinterpret_cast<std::byte*>(address), size);
     }
     else if constexpr (IgnoreAliasing && detail::CONTIGUOUS_ITERATOR_V<Iterator> &&
                        detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
-        return detail::copy_using_memcpy(iterator.operator->(), reinterpret_cast<std::byte*>(address), size);
+        return detail::memcpy(iterator.operator->(), reinterpret_cast<std::byte*>(address), size);
     }
     else
     {
@@ -355,18 +378,24 @@ template <std::size_t Alignment>
     }
 }
 
-template <std::size_t Alignment>
-[[nodiscard]] void* align(void* ptr) noexcept
+template <std::size_t Alignment, class T>
+[[nodiscard]] constexpr T* align(T* ptr) noexcept
 {
+#ifdef __cpp_lib_is_constant_evaluated
+    if (std::is_constant_evaluated())
+    {
+        return ptr;
+    }
+#endif
     const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
     const auto aligned = detail::align<Alignment>(uintptr);
-    return detail::assume_aligned<Alignment>(reinterpret_cast<void*>(aligned));
+    return detail::assume_aligned<Alignment>(reinterpret_cast<T*>(aligned));
 }
 
-template <bool NeedsAlignment, std::size_t Alignment>
-[[nodiscard]] void* align_if(void* ptr) noexcept
+template <bool NeedsAlignment, std::size_t Alignment, class T>
+[[nodiscard]] constexpr auto align_if(T* ptr) noexcept
 {
-    if constexpr (NeedsAlignment)
+    if constexpr (NeedsAlignment && Alignment > 1)
     {
         ptr = detail::align<Alignment>(ptr);
     }

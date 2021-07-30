@@ -1276,6 +1276,35 @@ TEST_CASE("ContiguousTest: trivial OneFixed reserve with polymorphic_allocator")
     resource.check_was_used(vector.get_allocator());
 }
 
+#ifdef __cpp_lib_constexpr_dynamic_alloc
+TEST_CASE("ContiguousTest: OneFixed constinit")
+{
+    SUBCASE("empty vector")
+    {
+        static constinit OneFixed v{0, {2}};
+        v.reserve(2);
+        v.emplace_back(10u, FLOATS1);
+        check_size1_and_capacity2(v);
+    }
+    SUBCASE("from mutable std::array")
+    {
+        static constinit std::array<std::byte, 12> MEM{};
+        static constinit OneFixed v{cntgs::Span{MEM.begin(), MEM.end()}, 2, {2}};
+        v.emplace_back(10u, FLOATS1);
+        check_size1_and_capacity2(v);
+    }
+    SUBCASE("constexpr")
+    {
+        constexpr auto SIZE = []
+        {
+            OneFixed v2{0, {2}};
+            return v2.size();
+        }();
+        CHECK_EQ(0, SIZE);
+    }
+}
+#endif
+
 #ifdef __cpp_lib_span
 TEST_CASE("ContiguousTest: cntgs::Span can be implicitly converted to std::span")
 {

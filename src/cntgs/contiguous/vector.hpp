@@ -101,24 +101,25 @@ class BasicContiguousVector
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
-                          const allocator_type& allocator = {}, std::enable_if_t<IsAllFixedSize>* = nullptr)
+    constexpr BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
+                                    const allocator_type& allocator = {}, std::enable_if_t<IsAllFixedSize>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, fixed_sizes, allocator)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
-                          std::enable_if_t<IsAllFixedSize>* = nullptr)
+    constexpr BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size,
+                                    size_type max_element_count, const FixedSizes& fixed_sizes,
+                                    const allocator_type& allocator = {},
+                                    std::enable_if_t<IsAllFixedSize>* = nullptr) noexcept
         : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, fixed_sizes, allocator)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
-                          std::enable_if_t<IsAllFixedSize>* = nullptr)
+    constexpr BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
+                                    const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
+                                    std::enable_if_t<IsAllFixedSize>* = nullptr) noexcept
         : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, fixed_sizes,
                                 allocator)
     {
@@ -132,22 +133,24 @@ class BasicContiguousVector
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    BasicContiguousVector(size_type max_element_count, const allocator_type& allocator = {},
-                          std::enable_if_t<IsNoneSpecial>* = nullptr)
+    constexpr BasicContiguousVector(size_type max_element_count, const allocator_type& allocator = {},
+                                    std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator)
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size, size_type max_element_count,
-                          const allocator_type& allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
+    constexpr BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size,
+                                    size_type max_element_count, const allocator_type& allocator = {},
+                                    std::enable_if_t<IsNoneSpecial>* = nullptr) noexcept
         : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, FixedSizes{}, allocator)
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                          const allocator_type& allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
+    constexpr BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
+                                    const allocator_type& allocator = {},
+                                    std::enable_if_t<IsNoneSpecial>* = nullptr) noexcept
         : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, FixedSizes{},
                                 allocator)
     {
@@ -172,7 +175,8 @@ class BasicContiguousVector
         return *this;
     }
 
-    BasicContiguousVector& operator=(BasicContiguousVector&& other)
+    constexpr BasicContiguousVector& operator=(BasicContiguousVector&& other) noexcept(
+        AllocatorTraits::is_always_equal::value || AllocatorTraits::propagate_on_container_move_assignment::value)
     {
         if (this != std::addressof(other))
         {
@@ -181,7 +185,13 @@ class BasicContiguousVector
         return *this;
     }
 
-    ~BasicContiguousVector() noexcept { this->destruct_if_owned(); }
+#if __cpp_constexpr_dynamic_alloc
+    constexpr
+#endif
+        ~BasicContiguousVector() noexcept
+    {
+        this->destruct_if_owned();
+    }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -332,8 +342,9 @@ class BasicContiguousVector
 
     // private API
   private:
-    BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, const allocator_type& allocator)
+    constexpr BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned,
+                                    size_type max_element_count, const FixedSizes& fixed_sizes,
+                                    const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(memory, memory_size, is_memory_owned, allocator),
           fixed_sizes(fixed_sizes),
@@ -341,8 +352,8 @@ class BasicContiguousVector
     {
     }
 
-    BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
-                          const allocator_type& allocator)
+    constexpr BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
+                                    const FixedSizes& fixed_sizes, const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes), allocator),
           fixed_sizes(fixed_sizes),
@@ -441,7 +452,7 @@ class BasicContiguousVector
         ElementTraits::destruct(element);
     }
 
-    void steal(BasicContiguousVector&& other)
+    constexpr void steal(BasicContiguousVector&& other)
     {
         this->destruct();
         this->max_element_count = other.max_element_count;
@@ -450,7 +461,7 @@ class BasicContiguousVector
         this->locator = other.locator;
     }
 
-    void move_assign(BasicContiguousVector&& other)
+    constexpr void move_assign(BasicContiguousVector&& other)
     {
         if constexpr (AllocatorTraits::is_always_equal::value ||
                       AllocatorTraits::propagate_on_container_move_assignment::value)
@@ -548,7 +559,7 @@ class BasicContiguousVector
         }
     }
 
-    void destruct_if_owned() noexcept
+    constexpr void destruct_if_owned() noexcept
     {
         if (this->memory && this->memory.is_owned())
         {
@@ -556,9 +567,9 @@ class BasicContiguousVector
         }
     }
 
-    void destruct() noexcept { this->destruct(this->begin(), this->end()); }
+    constexpr void destruct() noexcept { this->destruct(this->begin(), this->end()); }
 
-    void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
+    constexpr void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
     {
         if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {

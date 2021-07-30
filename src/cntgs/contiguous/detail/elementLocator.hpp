@@ -155,8 +155,8 @@ class ElementLocator : public BaseElementLocator
 
     static constexpr auto calculate_element_start(std::size_t max_element_count, std::byte* memory_begin) noexcept
     {
-        return static_cast<std::byte*>(detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
-            memory_begin + BaseElementLocator::reserved_bytes(max_element_count)));
+        return detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
+            memory_begin + BaseElementLocator::reserved_bytes(max_element_count));
     }
 };
 
@@ -169,7 +169,7 @@ class BaseAllFixedSizeElementLocator
 
     BaseAllFixedSizeElementLocator() = default;
 
-    BaseAllFixedSizeElementLocator(std::size_t element_count, std::size_t stride, std::byte* start)
+    constexpr BaseAllFixedSizeElementLocator(std::size_t element_count, std::size_t stride, std::byte* start) noexcept
         : element_count(element_count), stride(stride), start(start)
     {
     }
@@ -207,7 +207,7 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
   public:
     ElementLocator() = default;
 
-    ElementLocator(std::size_t, std::byte* memory_begin, const FixedSizes& fixed_sizes) noexcept
+    constexpr ElementLocator(std::size_t, std::byte* memory_begin, const FixedSizes& fixed_sizes) noexcept
         : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_size(fixed_sizes),
                                          Self::calculate_element_start(memory_begin))
     {
@@ -249,8 +249,7 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
 
     static constexpr auto calculate_element_start(std::byte* memory_begin) noexcept
     {
-        return static_cast<std::byte*>(
-            detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(memory_begin));
+        return detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(memory_begin);
     }
 };
 

@@ -545,11 +545,32 @@ class AllocatorAwarePointer
 
     Impl impl;
 
+    constexpr auto allocate() { return AllocatorTraits::allocate(this->get_allocator(), this->size()); }
+
+    constexpr void deallocate() noexcept
+    {
+        if (this->get())
+        {
+            AllocatorTraits::deallocate(this->get_allocator(), this->get(), this->size());
+        }
+    }
+
+    constexpr auto allocate_if_not_zero(std::size_t size, Allocator allocator)
+    {
+#ifdef __cpp_lib_is_constant_evaluated
+        if (std::is_constant_evaluated() && size == 0)
+        {
+            return Pointer{};
+        }
+#endif
+        return AllocatorTraits::allocate(allocator, size);
+    }
+
   public:
     AllocatorAwarePointer() = default;
 
-    constexpr AllocatorAwarePointer(std::size_t size, Allocator allocator)
-        : impl(AllocatorTraits::allocate(allocator, size), size, allocator)
+    constexpr AllocatorAwarePointer(std::size_t size, const Allocator& allocator)
+        : impl(this->allocate_if_not_zero(size, allocator), size, allocator)
     {
     }
 
@@ -564,8 +585,8 @@ class AllocatorAwarePointer
     {
     }
 
-    constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other, Allocator allocator)
-        : impl(AllocatorTraits::allocate(allocator, other.size()), other.size(), allocator)
+    constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other, const Allocator& allocator)
+        : impl(this->allocate_if_not_zero(other.size(), allocator), other.size(), allocator)
     {
     }
 
@@ -579,7 +600,13 @@ class AllocatorAwarePointer
     {
     }
 
-    ~AllocatorAwarePointer() noexcept { this->deallocate(); }
+#if __cpp_constexpr_dynamic_alloc
+    constexpr
+#endif
+        ~AllocatorAwarePointer() noexcept
+    {
+        this->deallocate();
+    }
 
     constexpr void propagate_on_container_copy_assignment(const AllocatorAwarePointer& other) noexcept
     {
@@ -645,16 +672,6 @@ class AllocatorAwarePointer
     explicit constexpr operator bool() const noexcept { return bool(this->get()); }
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
-
-    constexpr auto allocate() { return AllocatorTraits::allocate(this->get_allocator(), this->size()); }
-
-    constexpr void deallocate() noexcept
-    {
-        if (this->get())
-        {
-            AllocatorTraits::deallocate(this->get_allocator(), this->get(), this->size());
-        }
-    }
 };
 
 template <class Allocator>
@@ -714,7 +731,13 @@ class MaybeOwnedAllocatorAwarePointer
         return *this;
     }
 
-    ~MaybeOwnedAllocatorAwarePointer() noexcept { this->release_ptr_if_not_owned(); }
+#if __cpp_constexpr_dynamic_alloc
+    constexpr
+#endif
+        ~MaybeOwnedAllocatorAwarePointer() noexcept
+    {
+        this->release_ptr_if_not_owned();
+    }
 
     constexpr auto get() const noexcept { return this->ptr.get(); }
 
@@ -749,7 +772,7 @@ constexpr void swap(detail::MaybeOwnedAllocatorAwarePointer<Allocator>& lhs,
 }
 
 template <class T>
-auto copy_using_memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept
+auto memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept
 {
     std::memcpy(target, source, size * sizeof(T));
     return target + size * sizeof(T);
@@ -762,7 +785,7 @@ auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNT
     if constexpr (IgnoreAliasing && detail::HasDataAndSize<std::decay_t<Range>>{} &&
                   detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
-        return detail::copy_using_memcpy(std::data(range), reinterpret_cast<std::byte*>(address), std::size(range));
+        return detail::memcpy(std::data(range), reinterpret_cast<std::byte*>(address), std::size(range));
     }
     else
     {
@@ -792,12 +815,12 @@ auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType
     if constexpr (IgnoreAliasing && std::is_pointer_v<Iterator> &&
                   detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
-        return detail::copy_using_memcpy(iterator, reinterpret_cast<std::byte*>(address), size);
+        return detail::memcpy(iterator, reinterpret_cast<std::byte*>(address), size);
     }
     else if constexpr (IgnoreAliasing && detail::CONTIGUOUS_ITERATOR_V<Iterator> &&
                        detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
     {
-        return detail::copy_using_memcpy(iterator.operator->(), reinterpret_cast<std::byte*>(address), size);
+        return detail::memcpy(iterator.operator->(), reinterpret_cast<std::byte*>(address), size);
     }
     else
     {
@@ -843,18 +866,24 @@ template <std::size_t Alignment>
     }
 }
 
-template <std::size_t Alignment>
-[[nodiscard]] void* align(void* ptr) noexcept
+template <std::size_t Alignment, class T>
+[[nodiscard]] constexpr T* align(T* ptr) noexcept
 {
+#ifdef __cpp_lib_is_constant_evaluated
+    if (std::is_constant_evaluated())
+    {
+        return ptr;
+    }
+#endif
     const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
     const auto aligned = detail::align<Alignment>(uintptr);
-    return detail::assume_aligned<Alignment>(reinterpret_cast<void*>(aligned));
+    return detail::assume_aligned<Alignment>(reinterpret_cast<T*>(aligned));
 }
 
-template <bool NeedsAlignment, std::size_t Alignment>
-[[nodiscard]] void* align_if(void* ptr) noexcept
+template <bool NeedsAlignment, std::size_t Alignment, class T>
+[[nodiscard]] constexpr auto align_if(T* ptr) noexcept
 {
-    if constexpr (NeedsAlignment)
+    if constexpr (NeedsAlignment && Alignment > 1)
     {
         ptr = detail::align<Alignment>(ptr);
     }
@@ -1048,7 +1077,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     template <bool NeedsAlignment>
     static auto load(std::byte* address, std::size_t) noexcept
     {
-        address = static_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        address = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
         auto result = std::launder(reinterpret_cast<PointerType>(address));
         return std::pair{result, address + VALUE_BYTES};
     }
@@ -1247,7 +1276,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     {
         const auto size = *reinterpret_cast<std::size_t*>(address);
         address += MEMORY_OVERHEAD;
-        const auto first_byte = static_cast<std::byte*>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
+        const auto first_byte = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
         const auto first = std::launder(reinterpret_cast<IteratorType>(first_byte));
         const auto last = std::launder(reinterpret_cast<IteratorType>(first_byte + size));
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
@@ -1291,7 +1320,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     static auto load(std::byte* address, std::size_t size) noexcept
     {
         const auto first =
-            std::launder(static_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
+            std::launder(reinterpret_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
         const auto last = first + size;
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
@@ -2649,8 +2678,8 @@ class ElementLocator : public BaseElementLocator
 
     static constexpr auto calculate_element_start(std::size_t max_element_count, std::byte* memory_begin) noexcept
     {
-        return static_cast<std::byte*>(detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
-            memory_begin + BaseElementLocator::reserved_bytes(max_element_count)));
+        return detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
+            memory_begin + BaseElementLocator::reserved_bytes(max_element_count));
     }
 };
 
@@ -2663,7 +2692,7 @@ class BaseAllFixedSizeElementLocator
 
     BaseAllFixedSizeElementLocator() = default;
 
-    BaseAllFixedSizeElementLocator(std::size_t element_count, std::size_t stride, std::byte* start)
+    constexpr BaseAllFixedSizeElementLocator(std::size_t element_count, std::size_t stride, std::byte* start) noexcept
         : element_count(element_count), stride(stride), start(start)
     {
     }
@@ -2701,7 +2730,7 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
   public:
     ElementLocator() = default;
 
-    ElementLocator(std::size_t, std::byte* memory_begin, const FixedSizes& fixed_sizes) noexcept
+    constexpr ElementLocator(std::size_t, std::byte* memory_begin, const FixedSizes& fixed_sizes) noexcept
         : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_size(fixed_sizes),
                                          Self::calculate_element_start(memory_begin))
     {
@@ -2743,8 +2772,7 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
 
     static constexpr auto calculate_element_start(std::byte* memory_begin) noexcept
     {
-        return static_cast<std::byte*>(
-            detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(memory_begin));
+        return detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(memory_begin);
     }
 };
 
@@ -3158,24 +3186,25 @@ class BasicContiguousVector
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
-                          const allocator_type& allocator = {}, std::enable_if_t<IsAllFixedSize>* = nullptr)
+    constexpr BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
+                                    const allocator_type& allocator = {}, std::enable_if_t<IsAllFixedSize>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, fixed_sizes, allocator)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
-                          std::enable_if_t<IsAllFixedSize>* = nullptr)
+    constexpr BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size,
+                                    size_type max_element_count, const FixedSizes& fixed_sizes,
+                                    const allocator_type& allocator = {},
+                                    std::enable_if_t<IsAllFixedSize>* = nullptr) noexcept
         : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, fixed_sizes, allocator)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
-                          std::enable_if_t<IsAllFixedSize>* = nullptr)
+    constexpr BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
+                                    const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
+                                    std::enable_if_t<IsAllFixedSize>* = nullptr) noexcept
         : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, fixed_sizes,
                                 allocator)
     {
@@ -3189,22 +3218,24 @@ class BasicContiguousVector
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    BasicContiguousVector(size_type max_element_count, const allocator_type& allocator = {},
-                          std::enable_if_t<IsNoneSpecial>* = nullptr)
+    constexpr BasicContiguousVector(size_type max_element_count, const allocator_type& allocator = {},
+                                    std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator)
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size, size_type max_element_count,
-                          const allocator_type& allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
+    constexpr BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size,
+                                    size_type max_element_count, const allocator_type& allocator = {},
+                                    std::enable_if_t<IsNoneSpecial>* = nullptr) noexcept
         : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, FixedSizes{}, allocator)
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                          const allocator_type& allocator = {}, std::enable_if_t<IsNoneSpecial>* = nullptr)
+    constexpr BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
+                                    const allocator_type& allocator = {},
+                                    std::enable_if_t<IsNoneSpecial>* = nullptr) noexcept
         : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, FixedSizes{},
                                 allocator)
     {
@@ -3229,7 +3260,8 @@ class BasicContiguousVector
         return *this;
     }
 
-    BasicContiguousVector& operator=(BasicContiguousVector&& other)
+    constexpr BasicContiguousVector& operator=(BasicContiguousVector&& other) noexcept(
+        AllocatorTraits::is_always_equal::value || AllocatorTraits::propagate_on_container_move_assignment::value)
     {
         if (this != std::addressof(other))
         {
@@ -3238,7 +3270,13 @@ class BasicContiguousVector
         return *this;
     }
 
-    ~BasicContiguousVector() noexcept { this->destruct_if_owned(); }
+#if __cpp_constexpr_dynamic_alloc
+    constexpr
+#endif
+        ~BasicContiguousVector() noexcept
+    {
+        this->destruct_if_owned();
+    }
 
     template <class... Args>
     void emplace_back(Args&&... args)
@@ -3389,8 +3427,9 @@ class BasicContiguousVector
 
     // private API
   private:
-    BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned, size_type max_element_count,
-                          const FixedSizes& fixed_sizes, const allocator_type& allocator)
+    constexpr BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned,
+                                    size_type max_element_count, const FixedSizes& fixed_sizes,
+                                    const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(memory, memory_size, is_memory_owned, allocator),
           fixed_sizes(fixed_sizes),
@@ -3398,8 +3437,8 @@ class BasicContiguousVector
     {
     }
 
-    BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
-                          const allocator_type& allocator)
+    constexpr BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
+                                    const FixedSizes& fixed_sizes, const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes), allocator),
           fixed_sizes(fixed_sizes),
@@ -3498,7 +3537,7 @@ class BasicContiguousVector
         ElementTraits::destruct(element);
     }
 
-    void steal(BasicContiguousVector&& other)
+    constexpr void steal(BasicContiguousVector&& other)
     {
         this->destruct();
         this->max_element_count = other.max_element_count;
@@ -3507,7 +3546,7 @@ class BasicContiguousVector
         this->locator = other.locator;
     }
 
-    void move_assign(BasicContiguousVector&& other)
+    constexpr void move_assign(BasicContiguousVector&& other)
     {
         if constexpr (AllocatorTraits::is_always_equal::value ||
                       AllocatorTraits::propagate_on_container_move_assignment::value)
@@ -3605,7 +3644,7 @@ class BasicContiguousVector
         }
     }
 
-    void destruct_if_owned() noexcept
+    constexpr void destruct_if_owned() noexcept
     {
         if (this->memory && this->memory.is_owned())
         {
@@ -3613,9 +3652,9 @@ class BasicContiguousVector
         }
     }
 
-    void destruct() noexcept { this->destruct(this->begin(), this->end()); }
+    constexpr void destruct() noexcept { this->destruct(this->begin(), this->end()); }
 
-    void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
+    constexpr void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
     {
         if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
