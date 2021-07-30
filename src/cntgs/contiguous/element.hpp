@@ -265,11 +265,10 @@ template <class Allocator, class... T>
 constexpr void swap(cntgs::BasicContiguousElement<Allocator, T...>& lhs,
                     cntgs::BasicContiguousElement<Allocator, T...>& rhs) noexcept
 {
-    using std::swap;
-    swap(lhs.memory, rhs.memory);
-    auto temp{lhs.reference.tuple};
-    detail::construct_at(&lhs.reference.tuple, rhs.reference.tuple);
-    detail::construct_at(&rhs.reference.tuple, temp);
+    detail::swap(lhs.memory, rhs.memory);
+    auto temp{lhs.reference};
+    detail::construct_at(&lhs.reference, rhs.reference);
+    detail::construct_at(&rhs.reference, temp);
 }
 
 template <std::size_t I, class Allocator, class... Types>

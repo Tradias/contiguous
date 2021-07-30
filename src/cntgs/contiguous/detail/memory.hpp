@@ -170,7 +170,8 @@ class AllocatorAwarePointer
 };
 
 template <class Allocator>
-void swap(detail::AllocatorAwarePointer<Allocator>& lhs, detail::AllocatorAwarePointer<Allocator>& rhs) noexcept
+constexpr void swap(detail::AllocatorAwarePointer<Allocator>& lhs,
+                    detail::AllocatorAwarePointer<Allocator>& rhs) noexcept
 {
     using std::swap;
     if constexpr (std::allocator_traits<Allocator>::propagate_on_container_swap::value)
@@ -250,6 +251,14 @@ class MaybeOwnedAllocatorAwarePointer
         }
     }
 };
+
+template <class Allocator>
+constexpr void swap(detail::MaybeOwnedAllocatorAwarePointer<Allocator>& lhs,
+                    detail::MaybeOwnedAllocatorAwarePointer<Allocator>& rhs) noexcept
+{
+    detail::swap(lhs.ptr, rhs.ptr);
+    std::swap(lhs.owned, rhs.owned);
+}
 
 template <class T>
 auto copy_using_memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept

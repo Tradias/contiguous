@@ -568,6 +568,16 @@ class BasicContiguousVector
 };
 
 template <class Allocator, class... T>
+constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
+                    cntgs::BasicContiguousVector<Allocator, T...>& rhs) noexcept
+{
+    std::swap(lhs.max_element_count, rhs.max_element_count);
+    detail::swap(lhs.memory, rhs.memory);
+    std::swap(lhs.fixed_sizes, rhs.fixed_sizes);
+    std::swap(lhs.locator, rhs.locator);
+}
+
+template <class Allocator, class... T>
 auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 {
     return cntgs::TypeErasedVector{

@@ -60,6 +60,16 @@ struct TestMemoryResource
                               return byte != std::byte{};
                           }));
     }
+
+    auto check_was_not_used(const std::pmr::polymorphic_allocator<std::byte>& allocator)
+    {
+        CHECK_EQ(&resource, allocator.resource());
+        CHECK(std::all_of(buffer.begin(), buffer.end(),
+                          [](auto&& byte)
+                          {
+                              return byte == std::byte{};
+                          }));
+    }
 };
 
 static constexpr std::array FLOATS1{1.f, 2.f};
@@ -309,6 +319,7 @@ TEST_CASE("ContiguousTest: value_type can be swapped")
     OneFixedUniquePtr::value_type value2{vector[1]};
     using std::swap;
     swap(value1, value2);
+    swap(value1, value1);
     auto&& [a, b] = value1;
     CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
     CHECK_EQ(40, *b);
@@ -1470,7 +1481,6 @@ TEST_CASE("ContiguousTest: OneFixedOneVaryingAligned emplace_back() and subscrip
 
 TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
 {
-    using Alloc = std::pmr::polymorphic_allocator<int>;
     TestMemoryResource resource;
     auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
     resource.check_was_used(vector.get_allocator());
@@ -1661,6 +1671,45 @@ TEST_CASE("ContiguousTest: OneFixedString with polymorphic_allocator copy assign
         CHECK_EQ(&resource2.resource, vector2.get_allocator().resource());
         CHECK_EQ(vector, vector2);
         CHECK_EQ(2, vector2.get_fixed_size<0>());
+    }
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr swap empty vector")
+{
+    auto expected = varying_vector_of_unique_ptrs();
+    decltype(expected) vector{};
+    using std::swap;
+    swap(expected, vector);
+    CHECK_EQ(10, *cntgs::get<0>(vector[0]).front());
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr swap same vector")
+{
+    auto vector = varying_vector_of_unique_ptrs();
+    using std::swap;
+    swap(vector, vector);
+    CHECK_EQ(10, *cntgs::get<0>(vector[0]).front());
+}
+
+TEST_CASE("ContiguousTest: OneVaryingUniquePtr swap")
+{
+    TestMemoryResource resource;
+    auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
+    TestMemoryResource resource2;
+    using std::swap;
+    SUBCASE("swap into smaller vector")
+    {
+        decltype(vector) vector2{0, 0, resource2.get_allocator()};
+        swap(vector2, vector);
+        resource2.check_was_not_used(vector2.get_allocator());
+        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+    }
+    SUBCASE("swap into larger vector")
+    {
+        decltype(vector) vector2{3, 10, resource2.get_allocator()};
+        swap(vector2, vector);
+        resource2.check_was_not_used(vector2.get_allocator());
+        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
     }
 }
 
