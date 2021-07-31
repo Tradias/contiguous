@@ -103,7 +103,7 @@ template <std::size_t Alignment, class T>
 }
 #endif
 
-[[nodiscard]] constexpr auto align(std::size_t alignment, std::uintptr_t position) noexcept
+[[nodiscard]] constexpr auto align(std::uintptr_t position, std::size_t alignment) noexcept
 {
     return (position - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
 }
@@ -117,7 +117,7 @@ template <std::size_t Alignment>
     }
     else
     {
-        return detail::align(Alignment, position);
+        return detail::align(position, Alignment);
     }
 }
 

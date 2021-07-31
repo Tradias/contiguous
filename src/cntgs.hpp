@@ -618,7 +618,7 @@ template <std::size_t Alignment, class T>
 }
 #endif
 
-[[nodiscard]] constexpr auto align(std::size_t alignment, std::uintptr_t position) noexcept
+[[nodiscard]] constexpr auto align(std::uintptr_t position, std::size_t alignment) noexcept
 {
     return (position - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
 }
@@ -632,7 +632,7 @@ template <std::size_t Alignment>
     }
     else
     {
-        return detail::align(Alignment, position);
+        return detail::align(position, Alignment);
     }
 }
 
@@ -1690,16 +1690,9 @@ struct IgnoreFirstAlignmentNeeds
 };
 
 template <std::size_t Alignment>
-constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
+constexpr auto alignment_offset(std::size_t position) noexcept
 {
-    if constexpr (Alignment == 1)
-    {
-        return std::size_t{};
-    }
-    else
-    {
-        return detail::align(Alignment, position) - position;
-    }
+    return detail::align<Alignment>(position) - position;
 }
 
 template <bool UseMove, class Type, class Source, class Target>

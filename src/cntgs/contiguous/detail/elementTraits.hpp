@@ -31,16 +31,9 @@ struct IgnoreFirstAlignmentNeeds
 };
 
 template <std::size_t Alignment>
-constexpr auto alignment_offset([[maybe_unused]] std::size_t position) noexcept
+constexpr auto alignment_offset(std::size_t position) noexcept
 {
-    if constexpr (Alignment == 1)
-    {
-        return std::size_t{};
-    }
-    else
-    {
-        return detail::align(Alignment, position) - position;
-    }
+    return detail::align<Alignment>(position) - position;
 }
 
 template <bool UseMove, class Type, class Source, class Target>
