@@ -1,6 +1,7 @@
 #ifndef CNTGS_CONTIGUOUS_ELEMENT_HPP
 #define CNTGS_CONTIGUOUS_ELEMENT_HPP
 
+#include "cntgs/contiguous/detail/allocator.hpp"
 #include "cntgs/contiguous/detail/elementTraits.hpp"
 #include "cntgs/contiguous/detail/forward.hpp"
 #include "cntgs/contiguous/detail/memory.hpp"

@@ -15,6 +15,7 @@ list(
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/typeErasedVector.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/vector.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/algorithm.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/allocator.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/array.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/attributes.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/contiguous/detail/elementLocator.hpp"

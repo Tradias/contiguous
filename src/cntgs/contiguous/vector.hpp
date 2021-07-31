@@ -2,6 +2,7 @@
 #define CNTGS_CONTIGUOUS_VECTOR_HPP
 
 #include "cntgs/contiguous/detail/algorithm.hpp"
+#include "cntgs/contiguous/detail/allocator.hpp"
 #include "cntgs/contiguous/detail/array.hpp"
 #include "cntgs/contiguous/detail/elementLocator.hpp"
 #include "cntgs/contiguous/detail/forward.hpp"

@@ -5,13 +5,9 @@
 #ifndef CNTGS_CONTIGUOUS_ELEMENT_HPP
 #define CNTGS_CONTIGUOUS_ELEMENT_HPP
 
-// #include "cntgs/contiguous/detail/elementTraits.hpp"
-#ifndef CNTGS_DETAIL_ELEMENTTRAITS_HPP
-#define CNTGS_DETAIL_ELEMENTTRAITS_HPP
-
-// #include "cntgs/contiguous/detail/algorithm.hpp"
-#ifndef CNTGS_DETAIL_ALGORITHM_HPP
-#define CNTGS_DETAIL_ALGORITHM_HPP
+// #include "cntgs/contiguous/detail/allocator.hpp"
+#ifndef CNTGS_DETAIL_ALLOCATOR_HPP
+#define CNTGS_DETAIL_ALLOCATOR_HPP
 
 // #include "cntgs/contiguous/detail/memory.hpp"
 #ifndef CNTGS_DETAIL_MEMORY_HPP
@@ -532,13 +528,145 @@ constexpr decltype(auto) as_const(T& value) noexcept
 namespace cntgs::detail
 {
 using Byte = std::underlying_type_t<std::byte>;
-using TypeErasedAllocator = std::aligned_storage_t<32>;
 
 template <std::size_t N>
 struct alignas(N) AlignedByte
 {
     std::byte byte;
 };
+
+template <class T>
+auto memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept
+{
+    std::memcpy(target, source, size * sizeof(T));
+    return target + size * sizeof(T);
+}
+
+template <bool IgnoreAliasing, class TargetType, class Range>
+auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address)
+{
+    using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
+    if constexpr (IgnoreAliasing && detail::HasDataAndSize<std::decay_t<Range>>{} &&
+                  detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
+    {
+        return detail::memcpy(std::data(range), reinterpret_cast<std::byte*>(address), std::size(range));
+    }
+    else
+    {
+        if constexpr (!std::is_lvalue_reference_v<Range>)
+        {
+            return reinterpret_cast<std::byte*>(std::uninitialized_move(std::begin(range), std::end(range), address));
+        }
+        else
+        {
+            return reinterpret_cast<std::byte*>(std::uninitialized_copy(std::begin(range), std::end(range), address));
+        }
+    }
+}
+
+template <bool IgnoreAliasing, class TargetType, class Range>
+auto uninitialized_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address, std::size_t)
+    -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
+{
+    return detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), address);
+}
+
+template <bool IgnoreAliasing, class TargetType, class Iterator>
+auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType* CNTGS_RESTRICT address,
+                             std::size_t size) -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
+{
+    using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
+    if constexpr (IgnoreAliasing && std::is_pointer_v<Iterator> &&
+                  detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
+    {
+        return detail::memcpy(iterator, reinterpret_cast<std::byte*>(address), size);
+    }
+    else if constexpr (IgnoreAliasing && detail::CONTIGUOUS_ITERATOR_V<Iterator> &&
+                       detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
+    {
+        return detail::memcpy(iterator.operator->(), reinterpret_cast<std::byte*>(address), size);
+    }
+    else
+    {
+        return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, address));
+    }
+}
+
+#ifdef __cpp_lib_ranges
+using std::construct_at;
+#else
+template <class T, class... Args>
+constexpr T* construct_at(T* ptr, Args&&... args)
+{
+    return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(std::forward<Args>(args)...);
+}
+#endif
+
+#ifdef __cpp_lib_assume_aligned
+using std::assume_aligned;
+#else
+template <std::size_t Alignment, class T>
+[[nodiscard]] constexpr T* assume_aligned(T* const ptr) noexcept
+{
+    return static_cast<T*>(__builtin_assume_aligned(ptr, Alignment));
+}
+#endif
+
+[[nodiscard]] constexpr auto align(std::size_t alignment, std::uintptr_t position) noexcept
+{
+    return (position - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
+}
+
+template <std::size_t Alignment>
+[[nodiscard]] constexpr auto align(std::uintptr_t position) noexcept
+{
+    if constexpr (Alignment == 1)
+    {
+        return position;
+    }
+    else
+    {
+        return detail::align(Alignment, position);
+    }
+}
+
+template <std::size_t Alignment, class T>
+[[nodiscard]] constexpr T* align(T* ptr) noexcept
+{
+#ifdef __cpp_lib_is_constant_evaluated
+    if (std::is_constant_evaluated())
+    {
+        return ptr;
+    }
+#endif
+    const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
+    const auto aligned = detail::align<Alignment>(uintptr);
+    return detail::assume_aligned<Alignment>(reinterpret_cast<T*>(aligned));
+}
+
+template <bool NeedsAlignment, std::size_t Alignment, class T>
+[[nodiscard]] constexpr auto align_if(T* ptr) noexcept
+{
+    if constexpr (NeedsAlignment && Alignment > 1)
+    {
+        ptr = detail::align<Alignment>(ptr);
+    }
+    return detail::assume_aligned<Alignment>(ptr);
+}
+}  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_MEMORY_HPP
+
+// #include "cntgs/contiguous/detail/utility.hpp"
+
+
+#include <cstddef>
+#include <memory>
+#include <type_traits>
+
+namespace cntgs::detail
+{
+using TypeErasedAllocator = std::aligned_storage_t<32>;
 
 template <class Allocator>
 class AllocatorAwarePointer
@@ -700,19 +828,6 @@ class AllocatorAwarePointer
 };
 
 template <class Allocator>
-constexpr void swap(detail::AllocatorAwarePointer<Allocator>& lhs,
-                    detail::AllocatorAwarePointer<Allocator>& rhs) noexcept
-{
-    using std::swap;
-    if constexpr (std::allocator_traits<Allocator>::propagate_on_container_swap::value)
-    {
-        swap(lhs.get_allocator(), rhs.get_allocator());
-    }
-    swap(lhs.get(), rhs.get());
-    swap(lhs.size(), rhs.size());
-}
-
-template <class Allocator>
 class MaybeOwnedAllocatorAwarePointer
 {
   private:
@@ -789,130 +904,24 @@ class MaybeOwnedAllocatorAwarePointer
 };
 
 template <class Allocator>
+constexpr void swap(detail::AllocatorAwarePointer<Allocator>& lhs,
+                    detail::AllocatorAwarePointer<Allocator>& rhs) noexcept
+{
+    using std::swap;
+    if constexpr (std::allocator_traits<Allocator>::propagate_on_container_swap::value)
+    {
+        swap(lhs.get_allocator(), rhs.get_allocator());
+    }
+    swap(lhs.get(), rhs.get());
+    swap(lhs.size(), rhs.size());
+}
+
+template <class Allocator>
 constexpr void swap(detail::MaybeOwnedAllocatorAwarePointer<Allocator>& lhs,
                     detail::MaybeOwnedAllocatorAwarePointer<Allocator>& rhs) noexcept
 {
     detail::swap(lhs.ptr, rhs.ptr);
     std::swap(lhs.owned, rhs.owned);
-}
-
-template <class T>
-auto memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, std::size_t size) noexcept
-{
-    std::memcpy(target, source, size * sizeof(T));
-    return target + size * sizeof(T);
-}
-
-template <bool IgnoreAliasing, class TargetType, class Range>
-auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address)
-{
-    using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
-    if constexpr (IgnoreAliasing && detail::HasDataAndSize<std::decay_t<Range>>{} &&
-                  detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
-    {
-        return detail::memcpy(std::data(range), reinterpret_cast<std::byte*>(address), std::size(range));
-    }
-    else
-    {
-        if constexpr (!std::is_lvalue_reference_v<Range>)
-        {
-            return reinterpret_cast<std::byte*>(std::uninitialized_move(std::begin(range), std::end(range), address));
-        }
-        else
-        {
-            return reinterpret_cast<std::byte*>(std::uninitialized_copy(std::begin(range), std::end(range), address));
-        }
-    }
-}
-
-template <bool IgnoreAliasing, class TargetType, class Range>
-auto uninitialized_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address, std::size_t)
-    -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
-{
-    return uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), address);
-}
-
-template <bool IgnoreAliasing, class TargetType, class Iterator>
-auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType* CNTGS_RESTRICT address,
-                             std::size_t size) -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
-{
-    using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
-    if constexpr (IgnoreAliasing && std::is_pointer_v<Iterator> &&
-                  detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
-    {
-        return detail::memcpy(iterator, reinterpret_cast<std::byte*>(address), size);
-    }
-    else if constexpr (IgnoreAliasing && detail::CONTIGUOUS_ITERATOR_V<Iterator> &&
-                       detail::MEMCPY_COMPATIBLE<TargetType, IteratorValueType>)
-    {
-        return detail::memcpy(iterator.operator->(), reinterpret_cast<std::byte*>(address), size);
-    }
-    else
-    {
-        return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, address));
-    }
-}
-
-#ifdef __cpp_lib_ranges
-using std::construct_at;
-#else
-template <class T, class... Args>
-constexpr T* construct_at(T* ptr, Args&&... args)
-{
-    return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(std::forward<Args>(args)...);
-}
-#endif
-
-#ifdef __cpp_lib_assume_aligned
-using std::assume_aligned;
-#else
-template <std::size_t Alignment, class T>
-[[nodiscard]] constexpr T* assume_aligned(T* const ptr) noexcept
-{
-    return static_cast<T*>(__builtin_assume_aligned(ptr, Alignment));
-}
-#endif
-
-[[nodiscard]] constexpr auto align(std::size_t alignment, std::uintptr_t position) noexcept
-{
-    return (position - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
-}
-
-template <std::size_t Alignment>
-[[nodiscard]] constexpr auto align(std::uintptr_t position) noexcept
-{
-    if constexpr (Alignment == 1)
-    {
-        return position;
-    }
-    else
-    {
-        return detail::align(Alignment, position);
-    }
-}
-
-template <std::size_t Alignment, class T>
-[[nodiscard]] constexpr T* align(T* ptr) noexcept
-{
-#ifdef __cpp_lib_is_constant_evaluated
-    if (std::is_constant_evaluated())
-    {
-        return ptr;
-    }
-#endif
-    const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
-    const auto aligned = detail::align<Alignment>(uintptr);
-    return detail::assume_aligned<Alignment>(reinterpret_cast<T*>(aligned));
-}
-
-template <bool NeedsAlignment, std::size_t Alignment, class T>
-[[nodiscard]] constexpr auto align_if(T* ptr) noexcept
-{
-    if constexpr (NeedsAlignment && Alignment > 1)
-    {
-        ptr = detail::align<Alignment>(ptr);
-    }
-    return detail::assume_aligned<Alignment>(ptr);
 }
 
 template <class T>
@@ -924,7 +933,17 @@ auto type_erase_allocator(T&& allocator) noexcept
 }
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_MEMORY_HPP
+#endif  // CNTGS_DETAIL_ALLOCATOR_HPP
+
+// #include "cntgs/contiguous/detail/elementTraits.hpp"
+#ifndef CNTGS_DETAIL_ELEMENTTRAITS_HPP
+#define CNTGS_DETAIL_ELEMENTTRAITS_HPP
+
+// #include "cntgs/contiguous/detail/algorithm.hpp"
+#ifndef CNTGS_DETAIL_ALGORITHM_HPP
+#define CNTGS_DETAIL_ALGORITHM_HPP
+
+// #include "cntgs/contiguous/detail/memory.hpp"
 
 
 #include <algorithm>
@@ -3073,6 +3092,8 @@ class TypeErasedVector
 #define CNTGS_CONTIGUOUS_VECTOR_HPP
 
 // #include "cntgs/contiguous/detail/algorithm.hpp"
+
+// #include "cntgs/contiguous/detail/allocator.hpp"
 
 // #include "cntgs/contiguous/detail/array.hpp"
 #ifndef CNTGS_DETAIL_ARRAY_HPP
