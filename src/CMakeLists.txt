@@ -58,6 +58,12 @@ if(CNTGS_BUILD_TESTS)
                -fno-exceptions
                -fno-rtti>)
 
+    if(CNTGS_ENABLE_DYNAMIC_ANALYSIS)
+        target_compile_options(cntgs-objects PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
+
+        target_link_libraries(cntgs-objects PUBLIC asan ubsan)
+    endif()
+
     # amalgamate
     find_package(Python COMPONENTS Interpreter)
     if(TARGET "Python::Interpreter")

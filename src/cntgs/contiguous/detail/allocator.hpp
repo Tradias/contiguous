@@ -82,18 +82,8 @@ class AllocatorAwarePointer
     {
     }
 
-    constexpr AllocatorAwarePointer(const AllocatorAwarePointer& other, const Allocator& allocator)
-        : impl(this->allocate_if_not_zero(other.size(), allocator), other.size(), allocator)
-    {
-    }
-
     constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other) noexcept
-        : impl(std::exchange(other.get(), nullptr), other.size(), other.get_allocator())
-    {
-    }
-
-    constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other, const Allocator& allocator) noexcept
-        : impl(std::exchange(other.get(), nullptr), other.size(), allocator)
+        : impl(other.release(), other.size(), other.get_allocator())
     {
     }
 
@@ -148,7 +138,7 @@ class AllocatorAwarePointer
             {
                 this->get_allocator() = std::move(other.get_allocator());
             }
-            this->get() = std::exchange(other.get(), nullptr);
+            this->get() = other.release();
             this->size() = other.size();
         }
         return *this;
@@ -169,6 +159,13 @@ class AllocatorAwarePointer
     explicit constexpr operator bool() const noexcept { return bool(this->get()); }
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
+
+    constexpr auto assign(AllocatorAwarePointer&& other) noexcept
+    {
+        this->deallocate();
+        this->get() = other.release();
+        this->size() = other.size();
+    }
 };
 
 template <class Allocator>
@@ -235,7 +232,11 @@ class MaybeOwnedAllocatorAwarePointer
 
     constexpr decltype(auto) get_allocator() const noexcept { return this->ptr.get_allocator(); }
 
-    constexpr auto& get_impl() noexcept { return this->ptr; }
+    constexpr auto assign(MaybeOwnedAllocatorAwarePointer&& other) noexcept
+    {
+        this->ptr.assign(std::move(other.ptr));
+        this->owned = true;
+    }
 
   private:
     constexpr void release_ptr_if_not_owned() noexcept

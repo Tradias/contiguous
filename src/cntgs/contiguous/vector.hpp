@@ -385,8 +385,7 @@ class BasicContiguousVector
         StorageType new_memory{new_memory_size, this->get_allocator()};
         this->template insert_into<true, true>(new_max_element_count, new_memory, this->locator.get());
         this->max_element_count = new_max_element_count;
-        this->memory.get_impl().get() = new_memory.release();
-        this->memory.get_impl().size() = new_memory_size;
+        this->memory.assign(std::move(new_memory));
     }
 
     template <bool UseMove, bool IsDestruct = false>
