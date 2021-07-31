@@ -30,6 +30,12 @@ struct MoveDefaultingValue
     }
 };
 
+struct Empty
+{
+};
+
+static constexpr detail::Empty EMPTY{};
+
 template <class T, bool Inherit>
 class EmptyBaseOptimization
 {

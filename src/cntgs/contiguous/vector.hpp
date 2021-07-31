@@ -48,6 +48,7 @@ class BasicContiguousVector
     using ListTraits = detail::ParameterListTraits<Types...>;
     using VectorTraits = detail::ContiguousVectorTraits<Types...>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
+    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
     using StorageType =
@@ -79,8 +80,7 @@ class BasicContiguousVector
 
     size_type max_element_count{};
     StorageType memory{};
-    FixedSizes fixed_sizes{};
-    ElementLocator locator;
+    ElementLocatorAndFixedSizes locator;
 
     BasicContiguousVector() = default;
 
@@ -158,10 +158,7 @@ class BasicContiguousVector
     }
 
     BasicContiguousVector(const BasicContiguousVector& other)
-        : max_element_count(other.max_element_count),
-          memory(other.memory),
-          fixed_sizes(other.fixed_sizes),
-          locator(this->copy_construct_locator(other))
+        : max_element_count(other.max_element_count), memory(other.memory), locator(this->copy_construct_locator(other))
     {
     }
 
@@ -197,13 +194,13 @@ class BasicContiguousVector
     template <class... Args>
     void emplace_back(Args&&... args)
     {
-        this->locator.emplace_back(this->fixed_sizes, std::forward<Args>(args)...);
+        this->locator->emplace_back(this->locator.fixed_sizes(), std::forward<Args>(args)...);
     }
 
     void pop_back() noexcept
     {
         ElementTraits::destruct(this->back());
-        this->locator.resize(this->size() - size_type{1}, this->memory.get());
+        this->locator->resize(this->size() - size_type{1}, this->memory.get());
     }
 
     void reserve(size_type new_max_element_count, size_type new_varying_size_bytes = {})
@@ -220,7 +217,7 @@ class BasicContiguousVector
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
         this->move_elements_forward(next_position, it_position.index());
-        this->locator.resize(this->size() - size_type{1}, this->memory.get());
+        this->locator->resize(this->size() - size_type{1}, this->memory.get());
         return it_position;
     }
 
@@ -234,24 +231,24 @@ class BasicContiguousVector
         {
             this->move_elements_forward(last.index(), first.index());
         }
-        this->locator.resize(current_size - (last.index() - first.index()), this->memory.get());
+        this->locator->resize(current_size - (last.index() - first.index()), this->memory.get());
         return it_first;
     }
 
     void clear() noexcept
     {
         this->destruct();
-        this->locator.resize(0, this->memory.get());
+        this->locator->resize(0, this->memory.get());
     }
 
     [[nodiscard]] reference operator[](size_type i) noexcept
     {
-        return reference{this->locator.element_address(i, this->memory.get()), this->fixed_sizes};
+        return reference{this->locator->element_address(i, this->memory.get()), this->locator.fixed_sizes()};
     }
 
     [[nodiscard]] const_reference operator[](size_type i) const noexcept
     {
-        return const_reference{this->locator.element_address(i, this->memory.get()), this->fixed_sizes};
+        return const_reference{this->locator->element_address(i, this->memory.get()), this->locator.fixed_sizes()};
     }
 
     [[nodiscard]] reference front() noexcept { return (*this)[{}]; }
@@ -265,27 +262,30 @@ class BasicContiguousVector
     template <std::size_t I>
     [[nodiscard]] constexpr size_type get_fixed_size() const noexcept
     {
-        return std::get<I>(this->fixed_sizes);
+        return std::get<I>(this->locator.fixed_sizes());
     }
 
-    [[nodiscard]] constexpr bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
+    [[nodiscard]] constexpr bool empty() const noexcept { return this->locator->empty(this->memory.get()); }
 
-    [[nodiscard]] constexpr std::byte* data() noexcept { return this->locator.element_address({}, this->memory.get()); }
+    [[nodiscard]] constexpr std::byte* data() noexcept
+    {
+        return this->locator->element_address({}, this->memory.get());
+    }
 
     [[nodiscard]] constexpr const std::byte* data() const noexcept
     {
-        return this->locator.element_address({}, this->memory.get());
+        return this->locator->element_address({}, this->memory.get());
     }
 
     [[nodiscard]] constexpr std::byte* data_begin() noexcept { return this->data(); }
 
     [[nodiscard]] constexpr const std::byte* data_begin() const noexcept { return this->data(); }
 
-    [[nodiscard]] constexpr std::byte* data_end() noexcept { return this->locator.data_end(); }
+    [[nodiscard]] constexpr std::byte* data_end() noexcept { return this->locator->data_end(); }
 
-    [[nodiscard]] constexpr const std::byte* data_end() const noexcept { return this->locator.data_end(); }
+    [[nodiscard]] constexpr const std::byte* data_end() const noexcept { return this->locator->data_end(); }
 
-    [[nodiscard]] constexpr size_type size() const noexcept { return this->locator.size(this->memory.get()); }
+    [[nodiscard]] constexpr size_type size() const noexcept { return this->locator->size(this->memory.get()); }
 
     [[nodiscard]] constexpr size_type capacity() const noexcept { return this->max_element_count; }
 
@@ -348,7 +348,6 @@ class BasicContiguousVector
                                     const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(memory, memory_size, is_memory_owned, allocator),
-          fixed_sizes(fixed_sizes),
           locator(max_element_count, this->memory.get(), fixed_sizes)
     {
     }
@@ -357,7 +356,6 @@ class BasicContiguousVector
                                     const FixedSizes& fixed_sizes, const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes), allocator),
-          fixed_sizes(fixed_sizes),
           locator(max_element_count, this->memory.get(), fixed_sizes)
     {
     }
@@ -366,8 +364,8 @@ class BasicContiguousVector
         : max_element_count(vector.max_element_count),
           memory(vector.memory, vector.memory_size, is_memory_owned,
                  *std::launder(reinterpret_cast<const allocator_type*>(&vector.allocator))),
-          fixed_sizes(detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
-          locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)))
+          locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)),
+                  detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
     {
     }
 
@@ -382,10 +380,10 @@ class BasicContiguousVector
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
     {
-        const auto new_memory_size =
-            this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
+        const auto new_memory_size = this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes,
+                                                                        this->locator.fixed_sizes());
         StorageType new_memory{new_memory_size, this->get_allocator()};
-        this->template insert_into<true, true>(new_max_element_count, new_memory, this->locator);
+        this->template insert_into<true, true>(new_max_element_count, new_memory, this->locator.get());
         this->max_element_count = new_max_element_count;
         this->memory.get_impl().get() = new_memory.release();
         this->memory.get_impl().size() = new_memory_size;
@@ -424,8 +422,8 @@ class BasicContiguousVector
             for (size_type i{}; i < this->size(); ++i)
             {
                 auto&& source = (*this)[i];
-                auto&& target =
-                    ElementTraits::load_element_at(new_locator.element_address(i, new_memory), this->fixed_sizes);
+                auto&& target = ElementTraits::load_element_at(new_locator.element_address(i, new_memory),
+                                                               this->locator.fixed_sizes());
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }
@@ -435,7 +433,7 @@ class BasicContiguousVector
     {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            this->locator.move_elements_forward(from, to, this->memory.get());
+            this->locator->move_elements_forward(from, to, this->memory.get());
         }
         else
         {
@@ -449,7 +447,8 @@ class BasicContiguousVector
     template <std::size_t... I>
     void emplace_at(std::size_t i, const reference& element, std::index_sequence<I...>)
     {
-        this->locator.emplace_at(i, this->memory.get(), this->fixed_sizes, std::move(cntgs::get<I>(element))...);
+        this->locator->emplace_at(i, this->memory.get(), this->locator.fixed_sizes(),
+                                  std::move(cntgs::get<I>(element))...);
         ElementTraits::destruct(element);
     }
 
@@ -458,7 +457,6 @@ class BasicContiguousVector
         this->destruct();
         this->max_element_count = other.max_element_count;
         this->memory = std::move(other.memory);
-        this->fixed_sizes = other.fixed_sizes;
         this->locator = other.locator;
     }
 
@@ -483,16 +481,15 @@ class BasicContiguousVector
                     // allocate memory first because it may throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
                     this->destruct();
-                    other.template insert_into<true>(other.max_element_count, new_memory, other_locator);
+                    other.template insert_into<true>(other.max_element_count, new_memory, other_locator.get());
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
                     this->destruct();
-                    other.template insert_into<true>(other.max_element_count, this->memory, other_locator);
+                    other.template insert_into<true>(other.max_element_count, this->memory, other_locator.get());
                 }
                 this->max_element_count = other.max_element_count;
-                this->fixed_sizes = other.fixed_sizes;
                 this->locator = other_locator;
             }
         }
@@ -500,10 +497,10 @@ class BasicContiguousVector
 
     auto copy_construct_locator(const BasicContiguousVector& other)
     {
-        auto other_locator = other.locator;
+        auto other_locator = other.locator.get();
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
                                                                               other_locator);
-        return other_locator;
+        return ElementLocatorAndFixedSizes{other_locator, other.locator.fixed_sizes()};
     }
 
     void copy_assign(const BasicContiguousVector& other)
@@ -512,9 +509,8 @@ class BasicContiguousVector
         this->memory = other.memory;
         auto other_locator = other.locator;
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
-                                                                              other_locator);
+                                                                              other_locator.get());
         this->max_element_count = other.max_element_count;
-        this->fixed_sizes = other.fixed_sizes;
         this->locator = other_locator;
     }
 
@@ -585,7 +581,6 @@ constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
 {
     std::swap(lhs.max_element_count, rhs.max_element_count);
     detail::swap(lhs.memory, rhs.memory);
-    std::swap(lhs.fixed_sizes, rhs.fixed_sizes);
     std::swap(lhs.locator, rhs.locator);
 }
 
@@ -598,8 +593,8 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
         vector.memory.release(),
         vector.memory.is_owned(),
         detail::type_erase_allocator(vector.get_allocator()),
-        detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.fixed_sizes),
-        detail::type_erase_element_locator(vector.locator),
+        detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes()),
+        detail::type_erase_element_locator(vector.locator.get()),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
             cntgs::BasicContiguousVector<Allocator, T...>{std::move(erased)};

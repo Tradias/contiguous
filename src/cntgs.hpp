@@ -427,6 +427,12 @@ struct MoveDefaultingValue
     }
 };
 
+struct Empty
+{
+};
+
+static constexpr detail::Empty EMPTY{};
+
 template <class T, bool Inherit>
 class EmptyBaseOptimization
 {
@@ -879,17 +885,17 @@ class MaybeOwnedAllocatorAwarePointer
         this->release_ptr_if_not_owned();
     }
 
-    constexpr auto get() const noexcept { return this->ptr.get(); }
+    constexpr decltype(auto) get() const noexcept { return this->ptr.get(); }
 
-    constexpr auto size() const noexcept { return this->ptr.size(); }
+    constexpr decltype(auto) size() const noexcept { return this->ptr.size(); }
 
     constexpr bool is_owned() const noexcept { return this->owned; }
 
     explicit constexpr operator bool() const noexcept { return bool(this->ptr); }
 
-    constexpr auto release() noexcept { return this->ptr.release(); }
+    constexpr decltype(auto) release() noexcept { return this->ptr.release(); }
 
-    constexpr auto get_allocator() const noexcept { return this->ptr.get_allocator(); }
+    constexpr decltype(auto) get_allocator() const noexcept { return this->ptr.get_allocator(); }
 
     constexpr auto& get_impl() noexcept { return this->ptr; }
 
@@ -1447,11 +1453,6 @@ struct ParameterListTraits
     template <std::size_t K>
     using ParameterTraitsAt = detail::ParameterTraits<std::tuple_element_t<K, std::tuple<Types...>>>;
 
-    static constexpr auto CONTIGUOUS_COUNT =
-        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
-    static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
-        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE));
-
     static constexpr auto IS_NOTHROW_COPY_CONSTRUCTIBLE =
         (std::is_nothrow_copy_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_NOTHROW_MOVE_CONSTRUCTIBLE =
@@ -1479,6 +1480,11 @@ struct ParameterListTraits
         (detail::EQUALITY_MEMCMP_COMPATIBLE<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_LEXICOGRAPHICAL_MEMCMPABLE =
         (detail::LEXICOGRAPHICAL_MEMCMP_COMPATIBLE<typename detail::ParameterTraits<Types>::ValueType> && ...);
+
+    static constexpr auto CONTIGUOUS_COUNT =
+        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
+    static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
+        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE));
 
     static constexpr bool IS_MIXED =
         CONTIGUOUS_FIXED_SIZE_COUNT != 0 && CONTIGUOUS_FIXED_SIZE_COUNT != CONTIGUOUS_COUNT;
@@ -1721,9 +1727,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     using FixedSizes = typename ListTraits::FixedSizes;
     using ContiguousPointer = typename detail::ContiguousVectorTraits<Types...>::PointerType;
     using ContiguousReference = typename detail::ContiguousVectorTraits<Types...>::ReferenceType;
-    using AlignmentNeeds =
-        detail::ConditionalT<(ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT == ListTraits::CONTIGUOUS_COUNT),
-                             detail::IgnoreFirstAlignmentNeeds, detail::DefaultAlignmentNeeds>;
+    using AlignmentNeeds = detail::ConditionalT<ListTraits::IS_FIXED_SIZE_OR_PLAIN, detail::IgnoreFirstAlignmentNeeds,
+                                                detail::DefaultAlignmentNeeds>;
     using FixedSizeGetter = detail::FixedSizeGetter<Types...>;
 
     static constexpr auto SKIP = std::numeric_limits<std::size_t>::max();
@@ -2572,6 +2577,8 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 
 // #include "cntgs/contiguous/detail/typeUtils.hpp"
 
+// #include "cntgs/contiguous/detail/utility.hpp"
+
 
 #include <algorithm>
 #include <array>
@@ -2821,9 +2828,82 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
 };
 
 template <class... Types>
-using ElementLocatorT = detail::ElementLocator<(detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
-                                                detail::ParameterListTraits<Types...>::CONTIGUOUS_COUNT),
-                                               Types...>;
+using ElementLocatorT = detail::ElementLocator<detail::ParameterListTraits<Types...>::IS_FIXED_SIZE_OR_PLAIN, Types...>;
+
+template <class... Types>
+class ElementLocatorAndFixedSizes
+    : private detail::EmptyBaseOptimizationT<
+          detail::ConditionalT<(detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT > 0),
+                               typename detail::ParameterListTraits<Types...>::FixedSizes, detail::Empty>>
+{
+  private:
+    static constexpr auto HAS_FIXED_SIZES = detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT > 0;
+
+    using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
+    using Locator = detail::ElementLocatorT<Types...>;
+    using Base = detail::EmptyBaseOptimizationT<detail::ConditionalT<
+        HAS_FIXED_SIZES, typename detail::ParameterListTraits<Types...>::FixedSizes, detail::Empty>>;
+
+    constexpr const auto& to_arg_for_base([[maybe_unused]] const FixedSizes& fixed_sizes) noexcept
+    {
+        if constexpr (HAS_FIXED_SIZES)
+        {
+            return fixed_sizes;
+        }
+        else
+        {
+            return detail::EMPTY;
+        }
+    }
+
+  public:
+    Locator locator;
+
+    ElementLocatorAndFixedSizes() = default;
+
+    constexpr ElementLocatorAndFixedSizes(const Locator& locator, const FixedSizes& fixed_sizes) noexcept
+        : Base{this->to_arg_for_base(fixed_sizes)}, locator(locator)
+    {
+    }
+
+    constexpr ElementLocatorAndFixedSizes(std::size_t max_element_count, std::byte* memory,
+                                          const FixedSizes& fixed_sizes) noexcept
+        : Base{this->to_arg_for_base(fixed_sizes)}, locator(max_element_count, memory, fixed_sizes)
+    {
+    }
+
+    constexpr auto operator->() noexcept { return std::addressof(this->locator); }
+
+    constexpr auto operator->() const noexcept { return std::addressof(this->locator); }
+
+    constexpr auto& get() noexcept { return this->locator; }
+
+    constexpr const auto& get() const noexcept { return this->locator; }
+
+    constexpr auto& fixed_sizes() noexcept
+    {
+        if constexpr (HAS_FIXED_SIZES)
+        {
+            return Base::get();
+        }
+        else
+        {
+            return *reinterpret_cast<FixedSizes*>(this);
+        }
+    }
+
+    constexpr const auto& fixed_sizes() const noexcept
+    {
+        if constexpr (HAS_FIXED_SIZES)
+        {
+            return Base::get();
+        }
+        else
+        {
+            return *reinterpret_cast<const FixedSizes*>(this);
+        }
+    }
+};
 
 using TypeErasedElementLocator =
     std::aligned_storage_t<std::max(sizeof(detail::ElementLocator<false>), sizeof(detail::ElementLocator<true>)),
@@ -2857,7 +2937,7 @@ class ContiguousVectorIterator
   private:
     using Vector = cntgs::BasicContiguousVector<Allocator, Types...>;
     using ListTraits = detail::ParameterListTraits<Types...>;
-    using ElementLocator = detail::ElementLocatorT<Types...>;
+    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
 
   public:
     using value_type = typename Vector::value_type;
@@ -2869,7 +2949,7 @@ class ContiguousVectorIterator
     ContiguousVectorIterator() = default;
 
     constexpr ContiguousVectorIterator(const Vector& vector, typename Vector::size_type index) noexcept
-        : i(index), memory(vector.memory.get()), fixed_sizes(vector.fixed_sizes), locator(vector.locator)
+        : i(index), memory(vector.memory.get()), locator(vector.locator)
     {
     }
 
@@ -2878,7 +2958,7 @@ class ContiguousVectorIterator
     template <bool OtherIsConst>
     /*implicit*/ constexpr ContiguousVectorIterator(
         const ContiguousVectorIterator<OtherIsConst, Allocator, Types...>& other) noexcept
-        : i(other.i), memory(other.memory), fixed_sizes(other.fixed_sizes), locator(other.locator)
+        : i(other.i), memory(other.memory), locator(other.locator)
     {
     }
 
@@ -2891,7 +2971,6 @@ class ContiguousVectorIterator
     {
         this->i = other.i;
         this->memory = other.memory;
-        this->fixed_sizes = other.fixed_sizes;
         this->locator = other.locator;
         return *this;
     }
@@ -2903,17 +2982,17 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr auto data() const noexcept -> detail::ConditionalT<IsConst, const std::byte*, std::byte*>
     {
-        return this->locator.element_address(this->i, this->memory);
-    }
-
-    [[nodiscard]] constexpr reference operator*() const noexcept
-    {
-        return reference{this->locator.element_address(i, this->memory), this->fixed_sizes};
+        return this->locator->element_address(this->i, this->memory);
     }
 
     [[nodiscard]] constexpr reference operator*() noexcept
     {
-        return reference{this->locator.element_address(i, this->memory), this->fixed_sizes};
+        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
+    }
+
+    [[nodiscard]] constexpr reference operator*() const noexcept
+    {
+        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
     }
 
     [[nodiscard]] constexpr pointer operator->() const noexcept { return {*(*this)}; }
@@ -3018,8 +3097,7 @@ class ContiguousVectorIterator
 
     typename Vector::size_type i{};
     std::byte* memory;
-    typename ListTraits::FixedSizes fixed_sizes;
-    ElementLocator locator;
+    ElementLocatorAndFixedSizes locator;
 };
 }  // namespace cntgs
 
@@ -3178,6 +3256,7 @@ class BasicContiguousVector
     using ListTraits = detail::ParameterListTraits<Types...>;
     using VectorTraits = detail::ContiguousVectorTraits<Types...>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
+    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
     using StorageType =
@@ -3209,8 +3288,7 @@ class BasicContiguousVector
 
     size_type max_element_count{};
     StorageType memory{};
-    FixedSizes fixed_sizes{};
-    ElementLocator locator;
+    ElementLocatorAndFixedSizes locator;
 
     BasicContiguousVector() = default;
 
@@ -3288,10 +3366,7 @@ class BasicContiguousVector
     }
 
     BasicContiguousVector(const BasicContiguousVector& other)
-        : max_element_count(other.max_element_count),
-          memory(other.memory),
-          fixed_sizes(other.fixed_sizes),
-          locator(this->copy_construct_locator(other))
+        : max_element_count(other.max_element_count), memory(other.memory), locator(this->copy_construct_locator(other))
     {
     }
 
@@ -3327,13 +3402,13 @@ class BasicContiguousVector
     template <class... Args>
     void emplace_back(Args&&... args)
     {
-        this->locator.emplace_back(this->fixed_sizes, std::forward<Args>(args)...);
+        this->locator->emplace_back(this->locator.fixed_sizes(), std::forward<Args>(args)...);
     }
 
     void pop_back() noexcept
     {
         ElementTraits::destruct(this->back());
-        this->locator.resize(this->size() - size_type{1}, this->memory.get());
+        this->locator->resize(this->size() - size_type{1}, this->memory.get());
     }
 
     void reserve(size_type new_max_element_count, size_type new_varying_size_bytes = {})
@@ -3350,7 +3425,7 @@ class BasicContiguousVector
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
         this->move_elements_forward(next_position, it_position.index());
-        this->locator.resize(this->size() - size_type{1}, this->memory.get());
+        this->locator->resize(this->size() - size_type{1}, this->memory.get());
         return it_position;
     }
 
@@ -3364,24 +3439,24 @@ class BasicContiguousVector
         {
             this->move_elements_forward(last.index(), first.index());
         }
-        this->locator.resize(current_size - (last.index() - first.index()), this->memory.get());
+        this->locator->resize(current_size - (last.index() - first.index()), this->memory.get());
         return it_first;
     }
 
     void clear() noexcept
     {
         this->destruct();
-        this->locator.resize(0, this->memory.get());
+        this->locator->resize(0, this->memory.get());
     }
 
     [[nodiscard]] reference operator[](size_type i) noexcept
     {
-        return reference{this->locator.element_address(i, this->memory.get()), this->fixed_sizes};
+        return reference{this->locator->element_address(i, this->memory.get()), this->locator.fixed_sizes()};
     }
 
     [[nodiscard]] const_reference operator[](size_type i) const noexcept
     {
-        return const_reference{this->locator.element_address(i, this->memory.get()), this->fixed_sizes};
+        return const_reference{this->locator->element_address(i, this->memory.get()), this->locator.fixed_sizes()};
     }
 
     [[nodiscard]] reference front() noexcept { return (*this)[{}]; }
@@ -3395,27 +3470,30 @@ class BasicContiguousVector
     template <std::size_t I>
     [[nodiscard]] constexpr size_type get_fixed_size() const noexcept
     {
-        return std::get<I>(this->fixed_sizes);
+        return std::get<I>(this->locator.fixed_sizes());
     }
 
-    [[nodiscard]] constexpr bool empty() const noexcept { return this->locator.empty(this->memory.get()); }
+    [[nodiscard]] constexpr bool empty() const noexcept { return this->locator->empty(this->memory.get()); }
 
-    [[nodiscard]] constexpr std::byte* data() noexcept { return this->locator.element_address({}, this->memory.get()); }
+    [[nodiscard]] constexpr std::byte* data() noexcept
+    {
+        return this->locator->element_address({}, this->memory.get());
+    }
 
     [[nodiscard]] constexpr const std::byte* data() const noexcept
     {
-        return this->locator.element_address({}, this->memory.get());
+        return this->locator->element_address({}, this->memory.get());
     }
 
     [[nodiscard]] constexpr std::byte* data_begin() noexcept { return this->data(); }
 
     [[nodiscard]] constexpr const std::byte* data_begin() const noexcept { return this->data(); }
 
-    [[nodiscard]] constexpr std::byte* data_end() noexcept { return this->locator.data_end(); }
+    [[nodiscard]] constexpr std::byte* data_end() noexcept { return this->locator->data_end(); }
 
-    [[nodiscard]] constexpr const std::byte* data_end() const noexcept { return this->locator.data_end(); }
+    [[nodiscard]] constexpr const std::byte* data_end() const noexcept { return this->locator->data_end(); }
 
-    [[nodiscard]] constexpr size_type size() const noexcept { return this->locator.size(this->memory.get()); }
+    [[nodiscard]] constexpr size_type size() const noexcept { return this->locator->size(this->memory.get()); }
 
     [[nodiscard]] constexpr size_type capacity() const noexcept { return this->max_element_count; }
 
@@ -3478,7 +3556,6 @@ class BasicContiguousVector
                                     const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(memory, memory_size, is_memory_owned, allocator),
-          fixed_sizes(fixed_sizes),
           locator(max_element_count, this->memory.get(), fixed_sizes)
     {
     }
@@ -3487,7 +3564,6 @@ class BasicContiguousVector
                                     const FixedSizes& fixed_sizes, const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes), allocator),
-          fixed_sizes(fixed_sizes),
           locator(max_element_count, this->memory.get(), fixed_sizes)
     {
     }
@@ -3496,8 +3572,8 @@ class BasicContiguousVector
         : max_element_count(vector.max_element_count),
           memory(vector.memory, vector.memory_size, is_memory_owned,
                  *std::launder(reinterpret_cast<const allocator_type*>(&vector.allocator))),
-          fixed_sizes(detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes)),
-          locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)))
+          locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)),
+                  detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
     {
     }
 
@@ -3512,10 +3588,10 @@ class BasicContiguousVector
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
     {
-        const auto new_memory_size =
-            this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes, this->fixed_sizes);
+        const auto new_memory_size = this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes,
+                                                                        this->locator.fixed_sizes());
         StorageType new_memory{new_memory_size, this->get_allocator()};
-        this->template insert_into<true, true>(new_max_element_count, new_memory, this->locator);
+        this->template insert_into<true, true>(new_max_element_count, new_memory, this->locator.get());
         this->max_element_count = new_max_element_count;
         this->memory.get_impl().get() = new_memory.release();
         this->memory.get_impl().size() = new_memory_size;
@@ -3554,8 +3630,8 @@ class BasicContiguousVector
             for (size_type i{}; i < this->size(); ++i)
             {
                 auto&& source = (*this)[i];
-                auto&& target =
-                    ElementTraits::load_element_at(new_locator.element_address(i, new_memory), this->fixed_sizes);
+                auto&& target = ElementTraits::load_element_at(new_locator.element_address(i, new_memory),
+                                                               this->locator.fixed_sizes());
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }
@@ -3565,7 +3641,7 @@ class BasicContiguousVector
     {
         if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            this->locator.move_elements_forward(from, to, this->memory.get());
+            this->locator->move_elements_forward(from, to, this->memory.get());
         }
         else
         {
@@ -3579,7 +3655,8 @@ class BasicContiguousVector
     template <std::size_t... I>
     void emplace_at(std::size_t i, const reference& element, std::index_sequence<I...>)
     {
-        this->locator.emplace_at(i, this->memory.get(), this->fixed_sizes, std::move(cntgs::get<I>(element))...);
+        this->locator->emplace_at(i, this->memory.get(), this->locator.fixed_sizes(),
+                                  std::move(cntgs::get<I>(element))...);
         ElementTraits::destruct(element);
     }
 
@@ -3588,7 +3665,6 @@ class BasicContiguousVector
         this->destruct();
         this->max_element_count = other.max_element_count;
         this->memory = std::move(other.memory);
-        this->fixed_sizes = other.fixed_sizes;
         this->locator = other.locator;
     }
 
@@ -3613,16 +3689,15 @@ class BasicContiguousVector
                     // allocate memory first because it may throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
                     this->destruct();
-                    other.template insert_into<true>(other.max_element_count, new_memory, other_locator);
+                    other.template insert_into<true>(other.max_element_count, new_memory, other_locator.get());
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
                     this->destruct();
-                    other.template insert_into<true>(other.max_element_count, this->memory, other_locator);
+                    other.template insert_into<true>(other.max_element_count, this->memory, other_locator.get());
                 }
                 this->max_element_count = other.max_element_count;
-                this->fixed_sizes = other.fixed_sizes;
                 this->locator = other_locator;
             }
         }
@@ -3630,10 +3705,10 @@ class BasicContiguousVector
 
     auto copy_construct_locator(const BasicContiguousVector& other)
     {
-        auto other_locator = other.locator;
+        auto other_locator = other.locator.get();
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
                                                                               other_locator);
-        return other_locator;
+        return ElementLocatorAndFixedSizes{other_locator, other.locator.fixed_sizes()};
     }
 
     void copy_assign(const BasicContiguousVector& other)
@@ -3642,9 +3717,8 @@ class BasicContiguousVector
         this->memory = other.memory;
         auto other_locator = other.locator;
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
-                                                                              other_locator);
+                                                                              other_locator.get());
         this->max_element_count = other.max_element_count;
-        this->fixed_sizes = other.fixed_sizes;
         this->locator = other_locator;
     }
 
@@ -3715,7 +3789,6 @@ constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
 {
     std::swap(lhs.max_element_count, rhs.max_element_count);
     detail::swap(lhs.memory, rhs.memory);
-    std::swap(lhs.fixed_sizes, rhs.fixed_sizes);
     std::swap(lhs.locator, rhs.locator);
 }
 
@@ -3728,8 +3801,8 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
         vector.memory.release(),
         vector.memory.is_owned(),
         detail::type_erase_allocator(vector.get_allocator()),
-        detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.fixed_sizes),
-        detail::type_erase_element_locator(vector.locator),
+        detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes()),
+        detail::type_erase_element_locator(vector.locator.get()),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
             cntgs::BasicContiguousVector<Allocator, T...>{std::move(erased)};

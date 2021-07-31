@@ -24,11 +24,6 @@ struct ParameterListTraits
     template <std::size_t K>
     using ParameterTraitsAt = detail::ParameterTraits<std::tuple_element_t<K, std::tuple<Types...>>>;
 
-    static constexpr auto CONTIGUOUS_COUNT =
-        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
-    static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
-        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE));
-
     static constexpr auto IS_NOTHROW_COPY_CONSTRUCTIBLE =
         (std::is_nothrow_copy_constructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_NOTHROW_MOVE_CONSTRUCTIBLE =
@@ -56,6 +51,11 @@ struct ParameterListTraits
         (detail::EQUALITY_MEMCMP_COMPATIBLE<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_LEXICOGRAPHICAL_MEMCMPABLE =
         (detail::LEXICOGRAPHICAL_MEMCMP_COMPATIBLE<typename detail::ParameterTraits<Types>::ValueType> && ...);
+
+    static constexpr auto CONTIGUOUS_COUNT =
+        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE != detail::ParameterType::PLAIN));
+    static constexpr auto CONTIGUOUS_FIXED_SIZE_COUNT =
+        (std::size_t{} + ... + (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE));
 
     static constexpr bool IS_MIXED =
         CONTIGUOUS_FIXED_SIZE_COUNT != 0 && CONTIGUOUS_FIXED_SIZE_COUNT != CONTIGUOUS_COUNT;

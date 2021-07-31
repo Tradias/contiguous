@@ -512,6 +512,18 @@ TEST_CASE("ContiguousTest: OneFixed emplace_back std::views::iota")
 }
 #endif
 
+TEST_CASE("ContiguousTest: OneVarying sizeof(iterator)")
+{
+    struct Expected
+    {
+        std::size_t i{};
+        std::byte* memory;
+        std::byte** last_element_address{};
+        std::byte* last_element{};
+    };
+    CHECK_EQ(sizeof(Expected), sizeof(OneVarying::iterator));
+}
+
 TEST_CASE("ContiguousTest: OneFixed emplace_back with iterator")
 {
     std::vector expected_elements{1.f, 2.f};

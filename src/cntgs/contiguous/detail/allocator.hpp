@@ -223,17 +223,17 @@ class MaybeOwnedAllocatorAwarePointer
         this->release_ptr_if_not_owned();
     }
 
-    constexpr auto get() const noexcept { return this->ptr.get(); }
+    constexpr decltype(auto) get() const noexcept { return this->ptr.get(); }
 
-    constexpr auto size() const noexcept { return this->ptr.size(); }
+    constexpr decltype(auto) size() const noexcept { return this->ptr.size(); }
 
     constexpr bool is_owned() const noexcept { return this->owned; }
 
     explicit constexpr operator bool() const noexcept { return bool(this->ptr); }
 
-    constexpr auto release() noexcept { return this->ptr.release(); }
+    constexpr decltype(auto) release() noexcept { return this->ptr.release(); }
 
-    constexpr auto get_allocator() const noexcept { return this->ptr.get_allocator(); }
+    constexpr decltype(auto) get_allocator() const noexcept { return this->ptr.get_allocator(); }
 
     constexpr auto& get_impl() noexcept { return this->ptr; }
 

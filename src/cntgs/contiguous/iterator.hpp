@@ -16,7 +16,7 @@ class ContiguousVectorIterator
   private:
     using Vector = cntgs::BasicContiguousVector<Allocator, Types...>;
     using ListTraits = detail::ParameterListTraits<Types...>;
-    using ElementLocator = detail::ElementLocatorT<Types...>;
+    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
 
   public:
     using value_type = typename Vector::value_type;
@@ -28,7 +28,7 @@ class ContiguousVectorIterator
     ContiguousVectorIterator() = default;
 
     constexpr ContiguousVectorIterator(const Vector& vector, typename Vector::size_type index) noexcept
-        : i(index), memory(vector.memory.get()), fixed_sizes(vector.fixed_sizes), locator(vector.locator)
+        : i(index), memory(vector.memory.get()), locator(vector.locator)
     {
     }
 
@@ -37,7 +37,7 @@ class ContiguousVectorIterator
     template <bool OtherIsConst>
     /*implicit*/ constexpr ContiguousVectorIterator(
         const ContiguousVectorIterator<OtherIsConst, Allocator, Types...>& other) noexcept
-        : i(other.i), memory(other.memory), fixed_sizes(other.fixed_sizes), locator(other.locator)
+        : i(other.i), memory(other.memory), locator(other.locator)
     {
     }
 
@@ -50,7 +50,6 @@ class ContiguousVectorIterator
     {
         this->i = other.i;
         this->memory = other.memory;
-        this->fixed_sizes = other.fixed_sizes;
         this->locator = other.locator;
         return *this;
     }
@@ -62,17 +61,17 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr auto data() const noexcept -> detail::ConditionalT<IsConst, const std::byte*, std::byte*>
     {
-        return this->locator.element_address(this->i, this->memory);
-    }
-
-    [[nodiscard]] constexpr reference operator*() const noexcept
-    {
-        return reference{this->locator.element_address(i, this->memory), this->fixed_sizes};
+        return this->locator->element_address(this->i, this->memory);
     }
 
     [[nodiscard]] constexpr reference operator*() noexcept
     {
-        return reference{this->locator.element_address(i, this->memory), this->fixed_sizes};
+        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
+    }
+
+    [[nodiscard]] constexpr reference operator*() const noexcept
+    {
+        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
     }
 
     [[nodiscard]] constexpr pointer operator->() const noexcept { return {*(*this)}; }
@@ -177,8 +176,7 @@ class ContiguousVectorIterator
 
     typename Vector::size_type i{};
     std::byte* memory;
-    typename ListTraits::FixedSizes fixed_sizes;
-    ElementLocator locator;
+    ElementLocatorAndFixedSizes locator;
 };
 }  // namespace cntgs
 

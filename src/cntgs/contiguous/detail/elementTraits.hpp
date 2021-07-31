@@ -69,9 +69,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     using FixedSizes = typename ListTraits::FixedSizes;
     using ContiguousPointer = typename detail::ContiguousVectorTraits<Types...>::PointerType;
     using ContiguousReference = typename detail::ContiguousVectorTraits<Types...>::ReferenceType;
-    using AlignmentNeeds =
-        detail::ConditionalT<(ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT == ListTraits::CONTIGUOUS_COUNT),
-                             detail::IgnoreFirstAlignmentNeeds, detail::DefaultAlignmentNeeds>;
+    using AlignmentNeeds = detail::ConditionalT<ListTraits::IS_FIXED_SIZE_OR_PLAIN, detail::IgnoreFirstAlignmentNeeds,
+                                                detail::DefaultAlignmentNeeds>;
     using FixedSizeGetter = detail::FixedSizeGetter<Types...>;
 
     static constexpr auto SKIP = std::numeric_limits<std::size_t>::max();

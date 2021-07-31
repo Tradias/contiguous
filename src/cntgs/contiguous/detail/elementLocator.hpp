@@ -5,6 +5,7 @@
 #include "cntgs/contiguous/detail/memory.hpp"
 #include "cntgs/contiguous/detail/parameterListTraits.hpp"
 #include "cntgs/contiguous/detail/typeUtils.hpp"
+#include "cntgs/contiguous/detail/utility.hpp"
 
 #include <algorithm>
 #include <array>
@@ -254,9 +255,82 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
 };
 
 template <class... Types>
-using ElementLocatorT = detail::ElementLocator<(detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT ==
-                                                detail::ParameterListTraits<Types...>::CONTIGUOUS_COUNT),
-                                               Types...>;
+using ElementLocatorT = detail::ElementLocator<detail::ParameterListTraits<Types...>::IS_FIXED_SIZE_OR_PLAIN, Types...>;
+
+template <class... Types>
+class ElementLocatorAndFixedSizes
+    : private detail::EmptyBaseOptimizationT<
+          detail::ConditionalT<(detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT > 0),
+                               typename detail::ParameterListTraits<Types...>::FixedSizes, detail::Empty>>
+{
+  private:
+    static constexpr auto HAS_FIXED_SIZES = detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT > 0;
+
+    using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
+    using Locator = detail::ElementLocatorT<Types...>;
+    using Base = detail::EmptyBaseOptimizationT<detail::ConditionalT<
+        HAS_FIXED_SIZES, typename detail::ParameterListTraits<Types...>::FixedSizes, detail::Empty>>;
+
+    constexpr const auto& to_arg_for_base([[maybe_unused]] const FixedSizes& fixed_sizes) noexcept
+    {
+        if constexpr (HAS_FIXED_SIZES)
+        {
+            return fixed_sizes;
+        }
+        else
+        {
+            return detail::EMPTY;
+        }
+    }
+
+  public:
+    Locator locator;
+
+    ElementLocatorAndFixedSizes() = default;
+
+    constexpr ElementLocatorAndFixedSizes(const Locator& locator, const FixedSizes& fixed_sizes) noexcept
+        : Base{this->to_arg_for_base(fixed_sizes)}, locator(locator)
+    {
+    }
+
+    constexpr ElementLocatorAndFixedSizes(std::size_t max_element_count, std::byte* memory,
+                                          const FixedSizes& fixed_sizes) noexcept
+        : Base{this->to_arg_for_base(fixed_sizes)}, locator(max_element_count, memory, fixed_sizes)
+    {
+    }
+
+    constexpr auto operator->() noexcept { return std::addressof(this->locator); }
+
+    constexpr auto operator->() const noexcept { return std::addressof(this->locator); }
+
+    constexpr auto& get() noexcept { return this->locator; }
+
+    constexpr const auto& get() const noexcept { return this->locator; }
+
+    constexpr auto& fixed_sizes() noexcept
+    {
+        if constexpr (HAS_FIXED_SIZES)
+        {
+            return Base::get();
+        }
+        else
+        {
+            return *reinterpret_cast<FixedSizes*>(this);
+        }
+    }
+
+    constexpr const auto& fixed_sizes() const noexcept
+    {
+        if constexpr (HAS_FIXED_SIZES)
+        {
+            return Base::get();
+        }
+        else
+        {
+            return *reinterpret_cast<const FixedSizes*>(this);
+        }
+    }
+};
 
 using TypeErasedElementLocator =
     std::aligned_storage_t<std::max(sizeof(detail::ElementLocator<false>), sizeof(detail::ElementLocator<true>)),
