@@ -90,7 +90,7 @@ endif()
 unset(CNTGS_SOURCE_FILES)
 
 # installation
-if(NOT CNTGS_NO_INSTALL)
+if(CNTGS_INSTALL)
     include(CMakePackageConfigHelpers)
     write_basic_package_version_file(
         "${CMAKE_CURRENT_BINARY_DIR}/generated/cntgsConfigVersion.cmake" ARCH_INDEPENDENT

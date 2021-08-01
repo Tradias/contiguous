@@ -1,4 +1,5 @@
 add_subdirectory(codeGen)
+add_subdirectory(install)
 
 # disassemble code-gen
 function(cntgs_disassemble_code_gen _cntgs_target)

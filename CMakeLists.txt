@@ -7,7 +7,7 @@ project(
     HOMEPAGE_URL https://github.com/Tradias/contiguous
     LANGUAGES CXX)
 
-option(CNTGS_NO_INSTALL on)
+option(CNTGS_INSTALL on)
 option(CNTGS_BUILD_TESTS off)
 option(CNTGS_BUILD_DOCUMENTATION off)
 option(CNTGS_DISCOVER_TESTS off)
