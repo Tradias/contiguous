@@ -59,7 +59,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
   private:
     using Self = ElementTraits<std::index_sequence<I...>, Types...>;
     using ListTraits = detail::ParameterListTraits<Types...>;
-    using FixedSizes = typename ListTraits::FixedSizes;
+    using FixedSizesArray = typename ListTraits::FixedSizesArray;
     using ContiguousPointer = typename detail::ContiguousVectorTraits<Types...>::PointerType;
     using ContiguousReference = typename detail::ContiguousVectorTraits<Types...>::ReferenceType;
     using AlignmentNeeds = detail::ConditionalT<ListTraits::IS_FIXED_SIZE_OR_PLAIN, detail::IgnoreFirstAlignmentNeeds,
@@ -115,7 +115,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     }
 
     template <bool IgnoreAliasing, class... Args>
-    static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes, Args&&... args)
+    static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         ((address = detail::ParameterTraits<Types>::template store<AlignmentNeeds::template VALUE<I>, IgnoreAliasing>(
               std::forward<Args>(args), address, FixedSizeGetter::template get<Types, I>(fixed_sizes))),
@@ -128,21 +128,21 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
 
     template <class... Args>
-    CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes,
-                                                       Args&&... args)
+    CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address,
+                                                       const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         return Self::template emplace_at<true>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
     template <class... Args>
-    static std::byte* emplace_at_aliased(std::byte* CNTGS_RESTRICT address, const FixedSizes& fixed_sizes,
+    static std::byte* emplace_at_aliased(std::byte* CNTGS_RESTRICT address, const FixedSizesArray& fixed_sizes,
                                          Args&&... args)
     {
         return Self::template emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
     template <class AlignmentNeedsType = AlignmentNeeds, class FixedSizeGetterType = FixedSizeGetter,
-              class FixedSizesType = FixedSizes>
+              class FixedSizesType = FixedSizesArray>
     static auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
         ContiguousPointer result;
@@ -153,7 +153,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         return result;
     }
 
-    static constexpr auto calculate_element_size(const FixedSizes& fixed_sizes) noexcept
+    static constexpr auto calculate_element_size(const FixedSizesArray& fixed_sizes) noexcept
     {
         std::size_t result{};
         if constexpr (ListTraits::IS_FIXED_SIZE_OR_PLAIN)

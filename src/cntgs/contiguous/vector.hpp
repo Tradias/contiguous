@@ -54,6 +54,7 @@ class BasicContiguousVector
     using StorageType =
         detail::MaybeOwnedAllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
     using FixedSizes = typename ListTraits::FixedSizes;
+    using FixedSizesArray = typename ListTraits::FixedSizesArray;
 
     static constexpr bool IS_MIXED = ListTraits::IS_MIXED;
     static constexpr bool IS_ALL_FIXED_SIZE = ListTraits::IS_ALL_FIXED_SIZE;
@@ -262,7 +263,7 @@ class BasicContiguousVector
     template <std::size_t I>
     [[nodiscard]] constexpr size_type get_fixed_size() const noexcept
     {
-        return std::get<I>(this->locator.fixed_sizes());
+        return detail::get<I>(this->locator.fixed_sizes());
     }
 
     [[nodiscard]] constexpr bool empty() const noexcept { return this->locator->empty(this->memory.get()); }
@@ -348,15 +349,17 @@ class BasicContiguousVector
                                     const allocator_type& allocator)
         : max_element_count(max_element_count),
           memory(memory, memory_size, is_memory_owned, allocator),
-          locator(max_element_count, this->memory.get(), fixed_sizes)
+          locator(max_element_count, this->memory.get(), FixedSizesArray{fixed_sizes})
     {
     }
 
     constexpr BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
                                     const FixedSizes& fixed_sizes, const allocator_type& allocator)
         : max_element_count(max_element_count),
-          memory(Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes), allocator),
-          locator(max_element_count, this->memory.get(), fixed_sizes)
+          memory(
+              Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, FixedSizesArray{fixed_sizes}),
+              allocator),
+          locator(max_element_count, this->memory.get(), FixedSizesArray{fixed_sizes})
     {
     }
 
@@ -371,7 +374,7 @@ class BasicContiguousVector
 
     [[nodiscard]] static constexpr auto calculate_needed_memory_size(size_type max_element_count,
                                                                      size_type varying_size_bytes,
-                                                                     const FixedSizes& fixed_sizes) noexcept
+                                                                     const FixedSizesArray& fixed_sizes) noexcept
     {
         constexpr auto ALIGNMENT_OVERHEAD = ListTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
         return varying_size_bytes + ElementTraits::calculate_element_size(fixed_sizes) * max_element_count +
@@ -496,10 +499,10 @@ class BasicContiguousVector
 
     auto copy_construct_locator(const BasicContiguousVector& other)
     {
-        auto other_locator = other.locator.get();
+        auto other_locator = other.locator;
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
-                                                                              other_locator);
-        return ElementLocatorAndFixedSizes{other_locator, other.locator.fixed_sizes()};
+                                                                              other_locator.get());
+        return other_locator;
     }
 
     void copy_assign(const BasicContiguousVector& other)

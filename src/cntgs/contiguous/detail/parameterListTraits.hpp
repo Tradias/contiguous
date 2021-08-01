@@ -1,6 +1,7 @@
 #ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
 #define CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
 
+#include "cntgs/contiguous/detail/array.hpp"
 #include "cntgs/contiguous/detail/parameterTraits.hpp"
 #include "cntgs/contiguous/detail/parameterType.hpp"
 #include "cntgs/contiguous/detail/typeUtils.hpp"
@@ -66,6 +67,7 @@ struct ParameterListTraits
     static constexpr bool IS_FIXED_SIZE_OR_PLAIN = IS_ALL_FIXED_SIZE || IS_ALL_PLAIN;
 
     using FixedSizes = std::array<std::size_t, CONTIGUOUS_FIXED_SIZE_COUNT>;
+    using FixedSizesArray = detail::Array<std::size_t, CONTIGUOUS_FIXED_SIZE_COUNT>;
 
     static_assert(detail::MAX_FIXED_SIZE_VECTOR_PARAMETER > CONTIGUOUS_FIXED_SIZE_COUNT,
                   "Maximum number of FixedSize vector parameter exceeded. Define CNTGS_MAX_FIXED_SIZE_VECTOR_PARAMETER "

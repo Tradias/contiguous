@@ -28,13 +28,12 @@ class BasicContiguousReference
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using PointerTuple = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
-
-  public:
     using Tuple = detail::ConditionalT<IsConst, detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
                                        detail::ToTupleOfContiguousReference<std::tuple<Types...>>>;
 
     static constexpr auto IS_CONST = IsConst;
 
+  public:
     Tuple tuple;
 
     BasicContiguousReference() = default;
@@ -42,17 +41,6 @@ class BasicContiguousReference
 
     BasicContiguousReference(const BasicContiguousReference&) = default;
     BasicContiguousReference(BasicContiguousReference&&) = default;
-
-    explicit constexpr BasicContiguousReference(std::byte* CNTGS_RESTRICT address,
-                                                const typename ListTraits::FixedSizes& fixed_sizes = {}) noexcept
-        : BasicContiguousReference(ElementTraits::load_element_at(address, fixed_sizes))
-    {
-    }
-
-    explicit constexpr BasicContiguousReference(const PointerTuple& tuple) noexcept
-        : tuple(detail::convert_tuple_to<Tuple>(tuple))
-    {
-    }
 
     template <bool OtherIsConst>
     /*implicit*/ constexpr BasicContiguousReference(
@@ -213,6 +201,29 @@ class BasicContiguousReference
     }
 
   private:
+    template <bool, class...>
+    friend class BasicContiguousReference;
+
+    template <class, class...>
+    friend class BasicContiguousVector;
+
+    template <class, class...>
+    friend class BasicContiguousElement;
+
+    template <bool, class, class...>
+    friend class ContiguousVectorIterator;
+
+    explicit constexpr BasicContiguousReference(std::byte* CNTGS_RESTRICT address,
+                                                const typename ListTraits::FixedSizesArray& fixed_sizes = {}) noexcept
+        : BasicContiguousReference(ElementTraits::load_element_at(address, fixed_sizes))
+    {
+    }
+
+    explicit constexpr BasicContiguousReference(const PointerTuple& tuple) noexcept
+        : tuple(detail::convert_tuple_to<Tuple>(tuple))
+    {
+    }
+
     template <class Reference>
     void assign(Reference& other) const
     {
@@ -259,7 +270,9 @@ namespace std
 {
 template <std::size_t I, bool IsConst, class... Types>
 struct tuple_element<I, ::cntgs::BasicContiguousReference<IsConst, Types...>>
-    : std::tuple_element<I, typename ::cntgs::BasicContiguousReference<IsConst, Types...>::Tuple>
+    : std::tuple_element<I, ::cntgs::detail::ConditionalT<
+                                IsConst, ::cntgs::detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
+                                ::cntgs::detail::ToTupleOfContiguousReference<std::tuple<Types...>>>>
 {
 };
 

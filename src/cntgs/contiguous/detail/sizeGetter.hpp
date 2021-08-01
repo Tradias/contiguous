@@ -1,6 +1,7 @@
 #ifndef CNTGS_DETAIL_SIZEGETTER_HPP
 #define CNTGS_DETAIL_SIZEGETTER_HPP
 
+#include "cntgs/contiguous/detail/array.hpp"
 #include "cntgs/contiguous/detail/parameterTraits.hpp"
 #include "cntgs/contiguous/detail/parameterType.hpp"
 #include "cntgs/contiguous/detail/typeUtils.hpp"
@@ -36,16 +37,9 @@ struct FixedSizeGetter
         calculate_fixed_size_indices(std::make_index_sequence<sizeof...(Types)>{});
 
     template <class Type, std::size_t I, std::size_t N>
-    static constexpr auto get([[maybe_unused]] const std::array<std::size_t, N>& fixed_sizes) noexcept
+    static constexpr auto get(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
     {
-        if constexpr (detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE)
-        {
-            return std::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
-        }
-        else
-        {
-            return std::size_t{};
-        }
+        return detail::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
     }
 };
 

@@ -1,21 +1,46 @@
 #ifndef CNTGS_DETAIL_ARRAY_HPP
 #define CNTGS_DETAIL_ARRAY_HPP
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <utility>
 
 namespace cntgs::detail
 {
-template <std::size_t N, class T, std::size_t K, std::size_t... I>
-constexpr auto convert_array_to_size(const std::array<T, K>& array, std::index_sequence<I...>)
+template <class T, std::size_t N>
+struct Array
 {
-    return std::array<T, N>{std::get<I>(array)...};
+    std::array<T, N> array;
+};
+
+template <class T>
+struct Array<T, 0>
+{
+    Array() = default;
+
+    explicit constexpr Array(const std::array<T, 0>&) noexcept {}
+};
+
+template <std::size_t I, class T, std::size_t N>
+constexpr decltype(auto) get(const detail::Array<T, N>& array) noexcept
+{
+    return std::get<I>(array.array);
+}
+
+template <std::size_t, class T>
+constexpr auto get(const detail::Array<T, 0>&) noexcept
+{
+    return T{};
+}
+
+template <std::size_t N, class T, std::size_t K, std::size_t... I>
+constexpr auto convert_array_to_size(const detail::Array<T, K>& array, std::index_sequence<I...>)
+{
+    return detail::Array<T, N>{detail::get<I>(array)...};
 }
 
 template <std::size_t N, class T, std::size_t K>
-constexpr auto convert_array_to_size(const std::array<T, K>& array)
+constexpr auto convert_array_to_size(const detail::Array<T, K>& array)
 {
     return detail::convert_array_to_size<N>(array, std::make_index_sequence<std::min(N, K)>{});
 }
