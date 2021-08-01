@@ -139,6 +139,13 @@ struct AreEqualityComparable<Lhs, Rhs,
 {
 };
 
+template <class T>
+inline constexpr auto IS_NOTRHOW_EQUALITY_COMPARABLE = noexcept(std::declval<const T&>() == std::declval<const T&>());
+
+template <class T>
+inline constexpr auto IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE = noexcept(std::declval<const T&>() <
+                                                                       std::declval<const T&>());
+
 template <class T, class U>
 inline constexpr auto MEMCPY_COMPATIBLE =
     detail::EQUAL_SIZEOF<T, U>&& std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<U>&&

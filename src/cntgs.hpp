@@ -173,6 +173,13 @@ struct AreEqualityComparable<Lhs, Rhs,
 {
 };
 
+template <class T>
+inline constexpr auto IS_NOTRHOW_EQUALITY_COMPARABLE = noexcept(std::declval<const T&>() == std::declval<const T&>());
+
+template <class T>
+inline constexpr auto IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE = noexcept(std::declval<const T&>() <
+                                                                       std::declval<const T&>());
+
 template <class T, class U>
 inline constexpr auto MEMCPY_COMPATIBLE =
     detail::EQUAL_SIZEOF<T, U>&& std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<U>&&
@@ -823,6 +830,7 @@ class AllocatorAwarePointer
             {
                 this->get_allocator() = std::move(other.get_allocator());
             }
+            this->deallocate();
             this->get() = other.release();
             this->size() = other.size();
         }
@@ -1538,6 +1546,10 @@ struct ParameterListTraits
         (std::is_nothrow_move_assignable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_NOTHROW_SWAPPABLE =
         (std::is_nothrow_swappable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTHROW_EQUALITY_COMPARABLE =
+        (detail::IS_NOTRHOW_EQUALITY_COMPARABLE<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE =
+        (detail::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE<typename detail::ParameterTraits<Types>::ValueType> && ...);
 
     static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE =
         (std::is_trivially_destructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
@@ -2177,72 +2189,84 @@ class BasicContiguousReference
 
     template <bool OtherIsConst>
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return ElementTraits::equal(*this, other);
     }
 
     template <class Allocator>
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return *this == other.reference;
     }
 
     template <bool OtherIsConst>
     [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(*this == other);
     }
 
     template <class Allocator>
     [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(*this == other.reference);
     }
 
     template <bool OtherIsConst>
     [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return ElementTraits::lexicographical_compare(*this, other);
     }
 
     template <class Allocator>
     [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return *this < other.reference;
     }
 
     template <bool OtherIsConst>
     [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other < *this);
     }
 
     template <class Allocator>
     [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other.reference < *this);
     }
 
     template <bool OtherIsConst>
     [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other < *this;
     }
 
     template <class Allocator>
     [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other.reference < *this;
     }
 
     template <bool OtherIsConst>
     [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(*this < other);
     }
 
     template <class Allocator>
     [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(*this < other.reference);
     }
@@ -2400,7 +2424,7 @@ class BasicContiguousElement
     BasicContiguousElement(BasicContiguousElement&&) = default;
 
     template <class OtherAllocator>
-    explicit constexpr BasicContiguousElement(BasicContiguousElement<OtherAllocator, Types...>&& other)
+    explicit constexpr BasicContiguousElement(BasicContiguousElement<OtherAllocator, Types...>&& other) noexcept
         : memory(std::move(other.memory)), reference(std::move(other.reference))
     {
     }
@@ -2412,16 +2436,7 @@ class BasicContiguousElement
     {
     }
 
-    ~BasicContiguousElement() noexcept
-    {
-        if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
-        {
-            if (this->memory)
-            {
-                ElementTraits::destruct(this->reference);
-            }
-        }
-    }
+    ~BasicContiguousElement() noexcept { this->destruct(); }
 
     BasicContiguousElement& operator=(const BasicContiguousElement& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
@@ -2472,66 +2487,78 @@ class BasicContiguousElement
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return this->reference == other;
     }
 
     [[nodiscard]] constexpr auto operator==(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return this->reference == other.reference;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(this->reference == other);
     }
 
     [[nodiscard]] constexpr auto operator!=(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(this->reference == other.reference);
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return this->reference < other;
     }
 
     [[nodiscard]] constexpr auto operator<(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return this->reference < other.reference;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other < this->reference);
     }
 
     [[nodiscard]] constexpr auto operator<=(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other.reference < this->reference);
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other < this->reference;
     }
 
     [[nodiscard]] constexpr auto operator>(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other.reference < this->reference;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(this->reference < other);
     }
 
     [[nodiscard]] constexpr auto operator>=(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(this->reference < other.reference);
     }
@@ -2581,6 +2608,17 @@ class BasicContiguousElement
     {
         return detail::assume_aligned<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
             reinterpret_cast<std::byte*>(this->memory.get()));
+    }
+
+    void destruct() noexcept
+    {
+        if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+        {
+            if (this->memory)
+            {
+                ElementTraits::destruct(this->reference);
+            }
+        }
     }
 };
 
@@ -2664,7 +2702,7 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 namespace cntgs::detail
 {
 template <class Locator>
-auto move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator)
+auto move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator) noexcept
 {
     const auto target = locator.element_address(to, memory_begin);
     const auto source = locator.element_address(from, memory_begin);
@@ -2718,7 +2756,7 @@ class BaseElementLocator
         this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 
-    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin)
+    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) noexcept
     {
         const auto diff = detail::move_elements_forward(from, to, memory_begin, *this);
         const auto first_element_address = reinterpret_cast<std::byte**>(memory_begin);
@@ -2843,7 +2881,7 @@ class BaseAllFixedSizeElementLocator
 
     constexpr void resize(std::size_t new_size, const std::byte*) noexcept { this->element_count = new_size; }
 
-    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*)
+    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) noexcept
     {
         detail::move_elements_forward(from, to, {}, *this);
     }
@@ -3532,36 +3570,42 @@ class BasicContiguousVector
 
     template <class TAllocator>
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return this->equal(other);
     }
 
     template <class TAllocator>
     [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(*this == other);
     }
 
     template <class TAllocator>
     [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return this->lexicographical_compare(other);
     }
 
     template <class TAllocator>
     [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other < *this);
     }
 
     template <class TAllocator>
     [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other < *this;
     }
 
     template <class TAllocator>
     [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(*this < other);
     }
@@ -3678,7 +3722,7 @@ class BasicContiguousVector
         ElementTraits::destruct(element);
     }
 
-    constexpr void steal(BasicContiguousVector&& other)
+    constexpr void steal(BasicContiguousVector&& other) noexcept
     {
         this->destruct();
         this->max_element_count = other.max_element_count;

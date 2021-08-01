@@ -138,6 +138,7 @@ class AllocatorAwarePointer
             {
                 this->get_allocator() = std::move(other.get_allocator());
             }
+            this->deallocate();
             this->get() = other.release();
             this->size() = other.size();
         }

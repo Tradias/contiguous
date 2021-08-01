@@ -78,7 +78,7 @@ class BasicContiguousElement
     BasicContiguousElement(BasicContiguousElement&&) = default;
 
     template <class OtherAllocator>
-    explicit constexpr BasicContiguousElement(BasicContiguousElement<OtherAllocator, Types...>&& other)
+    explicit constexpr BasicContiguousElement(BasicContiguousElement<OtherAllocator, Types...>&& other) noexcept
         : memory(std::move(other.memory)), reference(std::move(other.reference))
     {
     }
@@ -90,16 +90,7 @@ class BasicContiguousElement
     {
     }
 
-    ~BasicContiguousElement() noexcept
-    {
-        if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
-        {
-            if (this->memory)
-            {
-                ElementTraits::destruct(this->reference);
-            }
-        }
-    }
+    ~BasicContiguousElement() noexcept { this->destruct(); }
 
     BasicContiguousElement& operator=(const BasicContiguousElement& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
@@ -150,66 +141,78 @@ class BasicContiguousElement
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return this->reference == other;
     }
 
     [[nodiscard]] constexpr auto operator==(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return this->reference == other.reference;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(this->reference == other);
     }
 
     [[nodiscard]] constexpr auto operator!=(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(this->reference == other.reference);
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return this->reference < other;
     }
 
     [[nodiscard]] constexpr auto operator<(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return this->reference < other.reference;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other < this->reference);
     }
 
     [[nodiscard]] constexpr auto operator<=(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other.reference < this->reference);
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other < this->reference;
     }
 
     [[nodiscard]] constexpr auto operator>(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other.reference < this->reference;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousReference<IsConst, Types...>& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(this->reference < other);
     }
 
     [[nodiscard]] constexpr auto operator>=(const BasicContiguousElement& other) const
+        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(this->reference < other.reference);
     }
@@ -259,6 +262,17 @@ class BasicContiguousElement
     {
         return detail::assume_aligned<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
             reinterpret_cast<std::byte*>(this->memory.get()));
+    }
+
+    void destruct() noexcept
+    {
+        if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+        {
+            if (this->memory)
+            {
+                ElementTraits::destruct(this->reference);
+            }
+        }
     }
 };
 

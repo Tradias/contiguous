@@ -35,6 +35,10 @@ struct ParameterListTraits
         (std::is_nothrow_move_assignable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
     static constexpr auto IS_NOTHROW_SWAPPABLE =
         (std::is_nothrow_swappable_v<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTHROW_EQUALITY_COMPARABLE =
+        (detail::IS_NOTRHOW_EQUALITY_COMPARABLE<typename detail::ParameterTraits<Types>::ValueType> && ...);
+    static constexpr auto IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE =
+        (detail::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE<typename detail::ParameterTraits<Types>::ValueType> && ...);
 
     static constexpr auto IS_TRIVIALLY_DESTRUCTIBLE =
         (std::is_trivially_destructible_v<typename detail::ParameterTraits<Types>::ValueType> && ...);

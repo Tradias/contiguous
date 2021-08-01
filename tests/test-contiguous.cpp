@@ -72,6 +72,18 @@ struct TestMemoryResource
     }
 };
 
+template <bool IsNoThrow>
+struct Thrower
+{
+    Thrower() noexcept(IsNoThrow);
+    Thrower(const Thrower&) noexcept(IsNoThrow);
+    Thrower(Thrower&&) noexcept(IsNoThrow);
+    Thrower& operator=(const Thrower&) noexcept(IsNoThrow);
+    Thrower& operator=(Thrower&&) noexcept(IsNoThrow);
+    bool operator==(const Thrower&) const noexcept(IsNoThrow);
+    bool operator<(const Thrower&) const noexcept(IsNoThrow);
+};
+
 static constexpr std::array FLOATS1{1.f, 2.f};
 static constexpr std::array FLOATS1_ALT{11.f, 22.f};
 static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
@@ -696,10 +708,71 @@ TEST_CASE("ContiguousTest: ContiguousVector of FixedSize unsigned char compariso
     }
 }
 
-TEST_CASE("ContiguousTest: ContiguousVector::value_type is conditionally nothrow")
+template <template <bool> class T>
+void check_conditionally_nothrow_comparison()
 {
-    CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::FixedSize<float>, float>::value_type>);
-    CHECK(std::is_nothrow_destructible_v<cntgs::ContiguousVector<cntgs::VaryingSize<float>>::value_type>);
+    CHECK(noexcept(std::declval<const T<true>&>() == std::declval<const T<true>&>()));
+    CHECK(noexcept(std::declval<const T<true>&>() < std::declval<const T<true>&>()));
+    CHECK_FALSE(noexcept(std::declval<const T<false>&>() == std::declval<const T<false>&>()));
+    CHECK_FALSE(noexcept(std::declval<const T<false>&>() < std::declval<const T<false>&>()));
+}
+
+template <template <bool> class T>
+void check_always_nothrow_move_construct()
+{
+    CHECK(std::is_nothrow_move_constructible_v<T<true>>);
+    CHECK(std::is_nothrow_move_constructible_v<T<false>>);
+}
+
+template <template <bool> class T>
+void check_conditionally_nothrow_move_assign()
+{
+    CHECK(std::is_nothrow_move_assignable_v<T<true>>);
+    CHECK_FALSE(std::is_nothrow_move_assignable_v<T<false>>);
+}
+
+template <template <bool> class T>
+void check_conditionally_nothrow_copy_assign()
+{
+    CHECK(std::is_nothrow_copy_assignable_v<T<true>>);
+    CHECK_FALSE(std::is_nothrow_copy_assignable_v<T<false>>);
+}
+
+template <bool IsNoThrow>
+using NoThrowVector = cntgs::ContiguousVector<cntgs::FixedSize<Thrower<IsNoThrow>>>;
+
+TEST_CASE("ContiguousTest: ContiguousVector is conditionally nothrow")
+{
+    check_conditionally_nothrow_comparison<NoThrowVector>();
+    check_always_nothrow_move_construct<NoThrowVector>();
+    CHECK(std::is_nothrow_move_assignable_v<NoThrowVector<true>>);
+    CHECK(std::is_nothrow_move_assignable_v<NoThrowVector<false>>);
+    CHECK_FALSE(std::is_nothrow_move_assignable_v<
+                cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, float>>);
+}
+
+template <bool IsNoThrow>
+using NoThrowElement = typename cntgs::ContiguousVector<cntgs::FixedSize<Thrower<IsNoThrow>>>::value_type;
+
+TEST_CASE("ContiguousTest: ContiguousElement is conditionally nothrow")
+{
+    check_conditionally_nothrow_comparison<NoThrowElement>();
+    check_always_nothrow_move_construct<NoThrowElement>();
+    check_conditionally_nothrow_move_assign<NoThrowElement>();
+    check_conditionally_nothrow_copy_assign<NoThrowElement>();
+}
+
+template <bool IsNoThrow>
+using NoThrowReference = typename cntgs::ContiguousVector<cntgs::FixedSize<Thrower<IsNoThrow>>>::reference;
+
+TEST_CASE("ContiguousTest: ContiguousReference is conditionally nothrow")
+{
+    check_conditionally_nothrow_comparison<NoThrowReference>();
+    check_always_nothrow_move_construct<NoThrowReference>();
+    CHECK(std::is_nothrow_copy_constructible_v<NoThrowReference<true>>);
+    CHECK(std::is_nothrow_copy_constructible_v<NoThrowReference<false>>);
+    check_conditionally_nothrow_move_assign<NoThrowReference>();
+    check_conditionally_nothrow_copy_assign<NoThrowReference>();
 }
 
 template <class T>

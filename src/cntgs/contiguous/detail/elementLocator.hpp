@@ -15,7 +15,7 @@
 namespace cntgs::detail
 {
 template <class Locator>
-auto move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator)
+auto move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator) noexcept
 {
     const auto target = locator.element_address(to, memory_begin);
     const auto source = locator.element_address(from, memory_begin);
@@ -69,7 +69,7 @@ class BaseElementLocator
         this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 
-    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin)
+    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) noexcept
     {
         const auto diff = detail::move_elements_forward(from, to, memory_begin, *this);
         const auto first_element_address = reinterpret_cast<std::byte**>(memory_begin);
@@ -194,7 +194,7 @@ class BaseAllFixedSizeElementLocator
 
     constexpr void resize(std::size_t new_size, const std::byte*) noexcept { this->element_count = new_size; }
 
-    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*)
+    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) noexcept
     {
         detail::move_elements_forward(from, to, {}, *this);
     }
