@@ -15,7 +15,6 @@ class ContiguousVectorIterator
 {
   private:
     using Vector = cntgs::BasicContiguousVector<Allocator, Types...>;
-    using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
 
   public:

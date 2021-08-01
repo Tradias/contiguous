@@ -9,9 +9,9 @@
 #include "cntgs/contiguous/detail/memory.hpp"
 #include "cntgs/contiguous/detail/parameterListTraits.hpp"
 #include "cntgs/contiguous/detail/parameterTraits.hpp"
-#include "cntgs/contiguous/detail/tuple.hpp"
 #include "cntgs/contiguous/detail/utility.hpp"
 #include "cntgs/contiguous/detail/vectorTraits.hpp"
+#include "cntgs/contiguous/element.hpp"
 #include "cntgs/contiguous/iterator.hpp"
 #include "cntgs/contiguous/parameter.hpp"
 #include "cntgs/contiguous/reference.hpp"
@@ -19,11 +19,7 @@
 #include "cntgs/contiguous/typeErasedVector.hpp"
 
 #include <algorithm>
-#include <array>
-#include <cstring>
-#include <memory>
-#include <new>
-#include <tuple>
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 
@@ -386,7 +382,7 @@ class BasicContiguousVector
         const auto new_memory_size = this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes,
                                                                         this->locator.fixed_sizes());
         StorageType new_memory{new_memory_size, this->get_allocator()};
-        this->template insert_into<true, true>(new_max_element_count, new_memory, this->locator.get());
+        this->template insert_into<true, true>(new_max_element_count, new_memory, *this->locator);
         this->max_element_count = new_max_element_count;
         this->memory.assign(std::move(new_memory));
     }
@@ -483,13 +479,13 @@ class BasicContiguousVector
                     // allocate memory first because it may throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
                     this->destruct();
-                    other.template insert_into<true>(other.max_element_count, new_memory, other_locator.get());
+                    other.template insert_into<true>(other.max_element_count, new_memory, *other_locator);
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
                     this->destruct();
-                    other.template insert_into<true>(other.max_element_count, this->memory, other_locator.get());
+                    other.template insert_into<true>(other.max_element_count, this->memory, *other_locator);
                 }
                 this->max_element_count = other.max_element_count;
                 this->locator = other_locator;
@@ -501,7 +497,7 @@ class BasicContiguousVector
     {
         auto other_locator = other.locator;
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
-                                                                              other_locator.get());
+                                                                              *other_locator);
         return other_locator;
     }
 
@@ -511,7 +507,7 @@ class BasicContiguousVector
         this->memory = other.memory;
         auto other_locator = other.locator;
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
-                                                                              other_locator.get());
+                                                                              *other_locator);
         this->max_element_count = other.max_element_count;
         this->locator = other_locator;
     }
@@ -589,6 +585,8 @@ constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
 template <class Allocator, class... T>
 auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 {
+    static_assert(std::is_trivially_copyable_v<Allocator>,
+                  "Only trivially copyable allocator types can be type-erased.");
     return cntgs::TypeErasedVector{
         vector.memory.size(),
         vector.max_element_count,
@@ -596,7 +594,7 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
         vector.memory.is_owned(),
         detail::type_erase_allocator(vector.get_allocator()),
         detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes()),
-        detail::type_erase_element_locator(vector.locator.get()),
+        detail::type_erase_element_locator(*vector.locator),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
             cntgs::BasicContiguousVector<Allocator, T...>{std::move(erased)};

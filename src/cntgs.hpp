@@ -17,16 +17,6 @@
 #ifndef CNTGS_DETAIL_ATTRIBUTES_HPP
 #define CNTGS_DETAIL_ATTRIBUTES_HPP
 
-#ifdef NDEBUG
-#ifdef _MSC_VER
-#define CNTGS_FORCE_INLINE __forceinline
-#else
-#define CNTGS_FORCE_INLINE __attribute__((always_inline)) inline
-#endif
-#else
-#define CNTGS_FORCE_INLINE inline
-#endif
-
 #ifdef _MSC_VER
 #define CNTGS_RESTRICT_RETURN __declspec(restrict)
 #else
@@ -542,6 +532,45 @@ auto memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, st
     return target + size * sizeof(T);
 }
 
+template <class Range, class TargetIterator>
+constexpr auto uninitialized_move(Range&& source, TargetIterator&& target)
+{
+#ifdef __cpp_lib_ranges
+    return std::ranges::uninitialized_move(
+               std::forward<Range>(source),
+               std::ranges::subrange{std::forward<TargetIterator>(target), std::unreachable_sentinel})
+        .out;
+#else
+    return std::uninitialized_move(std::begin(source), std::end(source), std::forward<TargetIterator>(target));
+#endif
+}
+
+template <class Range, class TargetIterator>
+constexpr auto uninitialized_copy(Range&& source, TargetIterator&& target)
+{
+#ifdef __cpp_lib_ranges
+    return std::ranges::uninitialized_copy(
+               std::forward<Range>(source),
+               std::ranges::subrange{std::forward<TargetIterator>(target), std::unreachable_sentinel})
+        .out;
+#else
+    return std::uninitialized_copy(std::begin(source), std::end(source), std::forward<TargetIterator>(target));
+#endif
+}
+
+template <class SourceIterator, class DifferenceType, class TargetIterator>
+constexpr auto uninitialized_copy_n(SourceIterator&& source, DifferenceType count, TargetIterator&& target)
+{
+#ifdef __cpp_lib_ranges
+    return std::ranges::uninitialized_copy_n(std::forward<SourceIterator>(source),
+                                             static_cast<std::iter_difference_t<SourceIterator>>(count),
+                                             std::forward<TargetIterator>(target), std::unreachable_sentinel)
+        .out;
+#else
+    return std::uninitialized_copy_n(std::forward<SourceIterator>(source), count, std::forward<TargetIterator>(target));
+#endif
+}
+
 template <bool IgnoreAliasing, class TargetType, class Range>
 auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address)
 {
@@ -555,11 +584,11 @@ auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNT
     {
         if constexpr (!std::is_lvalue_reference_v<Range>)
         {
-            return reinterpret_cast<std::byte*>(std::uninitialized_move(std::begin(range), std::end(range), address));
+            return reinterpret_cast<std::byte*>(detail::uninitialized_move(std::forward<Range>(range), address));
         }
         else
         {
-            return reinterpret_cast<std::byte*>(std::uninitialized_copy(std::begin(range), std::end(range), address));
+            return reinterpret_cast<std::byte*>(detail::uninitialized_copy(std::forward<Range>(range), address));
         }
     }
 }
@@ -588,7 +617,7 @@ auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType
     }
     else
     {
-        return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, address));
+        return reinterpret_cast<std::byte*>(detail::uninitialized_copy_n(iterator, size, address));
     }
 }
 
@@ -1631,8 +1660,6 @@ struct ContiguousReferenceSizeGetter
 #define CNTGS_DETAIL_VECTORTRAITS_HPP
 
 // #include "cntgs/contiguous/detail/forward.hpp"
-
-// #include "cntgs/contiguous/detail/memory.hpp"
 
 // #include "cntgs/contiguous/detail/tuple.hpp"
 #ifndef CNTGS_DETAIL_TUPLE_HPP
@@ -2914,9 +2941,9 @@ class ElementLocatorAndFixedSizes
 
     constexpr auto operator->() const noexcept { return std::addressof(this->locator); }
 
-    constexpr auto& get() noexcept { return this->locator; }
+    constexpr auto& operator*() noexcept { return this->locator; }
 
-    constexpr const auto& get() const noexcept { return this->locator; }
+    constexpr const auto& operator*() const noexcept { return this->locator; }
 
     constexpr auto& fixed_sizes() noexcept { return Base::get(); }
 
@@ -2954,7 +2981,6 @@ class ContiguousVectorIterator
 {
   private:
     using Vector = cntgs::BasicContiguousVector<Allocator, Types...>;
-    using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
 
   public:
@@ -3131,18 +3157,16 @@ class ContiguousVectorIterator
 #ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
 #define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
 
+// #include "cntgs/contiguous/detail/allocator.hpp"
+
 // #include "cntgs/contiguous/detail/array.hpp"
 
 // #include "cntgs/contiguous/detail/elementLocator.hpp"
 
-// #include "cntgs/contiguous/detail/memory.hpp"
-
 // #include "cntgs/contiguous/detail/utility.hpp"
 
-// #include "cntgs/contiguous/detail/vectorTraits.hpp"
 
-
-#include <memory>
+#include <cstddef>
 
 namespace cntgs
 {
@@ -3205,11 +3229,11 @@ class TypeErasedVector
 
 // #include "cntgs/contiguous/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/tuple.hpp"
-
 // #include "cntgs/contiguous/detail/utility.hpp"
 
 // #include "cntgs/contiguous/detail/vectorTraits.hpp"
+
+// #include "cntgs/contiguous/element.hpp"
 
 // #include "cntgs/contiguous/iterator.hpp"
 
@@ -3223,11 +3247,7 @@ class TypeErasedVector
 
 
 #include <algorithm>
-#include <array>
-#include <cstring>
-#include <memory>
-#include <new>
-#include <tuple>
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 
@@ -3590,7 +3610,7 @@ class BasicContiguousVector
         const auto new_memory_size = this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes,
                                                                         this->locator.fixed_sizes());
         StorageType new_memory{new_memory_size, this->get_allocator()};
-        this->template insert_into<true, true>(new_max_element_count, new_memory, this->locator.get());
+        this->template insert_into<true, true>(new_max_element_count, new_memory, *this->locator);
         this->max_element_count = new_max_element_count;
         this->memory.assign(std::move(new_memory));
     }
@@ -3687,13 +3707,13 @@ class BasicContiguousVector
                     // allocate memory first because it may throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
                     this->destruct();
-                    other.template insert_into<true>(other.max_element_count, new_memory, other_locator.get());
+                    other.template insert_into<true>(other.max_element_count, new_memory, *other_locator);
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
                     this->destruct();
-                    other.template insert_into<true>(other.max_element_count, this->memory, other_locator.get());
+                    other.template insert_into<true>(other.max_element_count, this->memory, *other_locator);
                 }
                 this->max_element_count = other.max_element_count;
                 this->locator = other_locator;
@@ -3705,7 +3725,7 @@ class BasicContiguousVector
     {
         auto other_locator = other.locator;
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
-                                                                              other_locator.get());
+                                                                              *other_locator);
         return other_locator;
     }
 
@@ -3715,7 +3735,7 @@ class BasicContiguousVector
         this->memory = other.memory;
         auto other_locator = other.locator;
         const_cast<BasicContiguousVector&>(other).template insert_into<false>(other.max_element_count, this->memory,
-                                                                              other_locator.get());
+                                                                              *other_locator);
         this->max_element_count = other.max_element_count;
         this->locator = other_locator;
     }
@@ -3793,6 +3813,8 @@ constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
 template <class Allocator, class... T>
 auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 {
+    static_assert(std::is_trivially_copyable_v<Allocator>,
+                  "Only trivially copyable allocator types can be type-erased.");
     return cntgs::TypeErasedVector{
         vector.memory.size(),
         vector.max_element_count,
@@ -3800,7 +3822,7 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
         vector.memory.is_owned(),
         detail::type_erase_allocator(vector.get_allocator()),
         detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes()),
-        detail::type_erase_element_locator(vector.locator.get()),
+        detail::type_erase_element_locator(*vector.locator),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
             cntgs::BasicContiguousVector<Allocator, T...>{std::move(erased)};

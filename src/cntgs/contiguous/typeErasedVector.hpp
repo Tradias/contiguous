@@ -1,13 +1,12 @@
 #ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
 #define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
 
+#include "cntgs/contiguous/detail/allocator.hpp"
 #include "cntgs/contiguous/detail/array.hpp"
 #include "cntgs/contiguous/detail/elementLocator.hpp"
-#include "cntgs/contiguous/detail/memory.hpp"
 #include "cntgs/contiguous/detail/utility.hpp"
-#include "cntgs/contiguous/detail/vectorTraits.hpp"
 
-#include <memory>
+#include <cstddef>
 
 namespace cntgs
 {

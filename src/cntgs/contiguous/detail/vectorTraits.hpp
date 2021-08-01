@@ -2,7 +2,6 @@
 #define CNTGS_DETAIL_VECTORTRAITS_HPP
 
 #include "cntgs/contiguous/detail/forward.hpp"
-#include "cntgs/contiguous/detail/memory.hpp"
 #include "cntgs/contiguous/detail/tuple.hpp"
 
 #include <tuple>

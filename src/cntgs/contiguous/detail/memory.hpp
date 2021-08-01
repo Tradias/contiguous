@@ -33,6 +33,45 @@ auto memcpy(const T* CNTGS_RESTRICT source, std::byte* CNTGS_RESTRICT target, st
     return target + size * sizeof(T);
 }
 
+template <class Range, class TargetIterator>
+constexpr auto uninitialized_move(Range&& source, TargetIterator&& target)
+{
+#ifdef __cpp_lib_ranges
+    return std::ranges::uninitialized_move(
+               std::forward<Range>(source),
+               std::ranges::subrange{std::forward<TargetIterator>(target), std::unreachable_sentinel})
+        .out;
+#else
+    return std::uninitialized_move(std::begin(source), std::end(source), std::forward<TargetIterator>(target));
+#endif
+}
+
+template <class Range, class TargetIterator>
+constexpr auto uninitialized_copy(Range&& source, TargetIterator&& target)
+{
+#ifdef __cpp_lib_ranges
+    return std::ranges::uninitialized_copy(
+               std::forward<Range>(source),
+               std::ranges::subrange{std::forward<TargetIterator>(target), std::unreachable_sentinel})
+        .out;
+#else
+    return std::uninitialized_copy(std::begin(source), std::end(source), std::forward<TargetIterator>(target));
+#endif
+}
+
+template <class SourceIterator, class DifferenceType, class TargetIterator>
+constexpr auto uninitialized_copy_n(SourceIterator&& source, DifferenceType count, TargetIterator&& target)
+{
+#ifdef __cpp_lib_ranges
+    return std::ranges::uninitialized_copy_n(std::forward<SourceIterator>(source),
+                                             static_cast<std::iter_difference_t<SourceIterator>>(count),
+                                             std::forward<TargetIterator>(target), std::unreachable_sentinel)
+        .out;
+#else
+    return std::uninitialized_copy_n(std::forward<SourceIterator>(source), count, std::forward<TargetIterator>(target));
+#endif
+}
+
 template <bool IgnoreAliasing, class TargetType, class Range>
 auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address)
 {
@@ -46,11 +85,11 @@ auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNT
     {
         if constexpr (!std::is_lvalue_reference_v<Range>)
         {
-            return reinterpret_cast<std::byte*>(std::uninitialized_move(std::begin(range), std::end(range), address));
+            return reinterpret_cast<std::byte*>(detail::uninitialized_move(std::forward<Range>(range), address));
         }
         else
         {
-            return reinterpret_cast<std::byte*>(std::uninitialized_copy(std::begin(range), std::end(range), address));
+            return reinterpret_cast<std::byte*>(detail::uninitialized_copy(std::forward<Range>(range), address));
         }
     }
 }
@@ -79,7 +118,7 @@ auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType
     }
     else
     {
-        return reinterpret_cast<std::byte*>(std::uninitialized_copy_n(iterator, size, address));
+        return reinterpret_cast<std::byte*>(detail::uninitialized_copy_n(iterator, size, address));
     }
 }
 

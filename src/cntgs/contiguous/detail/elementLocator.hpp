@@ -292,9 +292,9 @@ class ElementLocatorAndFixedSizes
 
     constexpr auto operator->() const noexcept { return std::addressof(this->locator); }
 
-    constexpr auto& get() noexcept { return this->locator; }
+    constexpr auto& operator*() noexcept { return this->locator; }
 
-    constexpr const auto& get() const noexcept { return this->locator; }
+    constexpr const auto& operator*() const noexcept { return this->locator; }
 
     constexpr auto& fixed_sizes() noexcept { return Base::get(); }
 
