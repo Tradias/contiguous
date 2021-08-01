@@ -585,8 +585,6 @@ constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
 template <class Allocator, class... T>
 auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 {
-    static_assert(std::is_trivially_copyable_v<Allocator>,
-                  "Only trivially copyable allocator types can be type-erased.");
     return cntgs::TypeErasedVector{
         vector.memory.size(),
         vector.max_element_count,
