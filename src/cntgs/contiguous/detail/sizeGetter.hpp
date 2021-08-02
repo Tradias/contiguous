@@ -13,8 +13,9 @@
 namespace cntgs::detail
 {
 template <class... Types>
-struct FixedSizeGetter
+class FixedSizeGetter
 {
+  private:
     template <std::size_t... I>
     static constexpr auto calculate_fixed_size_indices(std::index_sequence<I...>) noexcept
     {
@@ -36,19 +37,27 @@ struct FixedSizeGetter
     static constexpr auto FIXED_SIZE_INDICES =
         calculate_fixed_size_indices(std::make_index_sequence<sizeof...(Types)>{});
 
-    template <class Type, std::size_t I, std::size_t N>
+  public:
+    template <class Type>
+    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
+
+    template <class, std::size_t I, std::size_t N>
     static constexpr auto get(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
     {
         return detail::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
     }
 };
 
-struct ContiguousReferenceSizeGetter
+class ContiguousReferenceSizeGetter
 {
+  public:
+    template <class Type>
+    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
+
     template <class Type, std::size_t I, class... U>
     static constexpr auto get([[maybe_unused]] const std::tuple<U...>& tuple) noexcept
     {
-        if constexpr (detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE)
+        if constexpr (detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE)
         {
             return std::get<I>(tuple).size();
         }

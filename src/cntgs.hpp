@@ -1207,7 +1207,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto VALUE_BYTES = sizeof(T);
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = std::max(VALUE_BYTES, ALIGNMENT);
 
-    template <bool NeedsAlignment>
+    template <bool NeedsAlignment, bool>
     static auto load(std::byte* address, std::size_t) noexcept
     {
         address = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
@@ -1404,14 +1404,17 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = MEMORY_OVERHEAD + ALIGNMENT - 1;
 
-    template <bool NeedsAlignment>
-    static auto load(std::byte* address, std::size_t) noexcept
+    template <bool NeedsAlignment, bool IsSizeProvided>
+    static auto load(std::byte* address, std::size_t size) noexcept
     {
-        const auto size = *reinterpret_cast<std::size_t*>(address);
+        if constexpr (!IsSizeProvided)
+        {
+            size = *reinterpret_cast<std::size_t*>(address);
+        }
         address += MEMORY_OVERHEAD;
         const auto first_byte = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
         const auto first = std::launder(reinterpret_cast<IteratorType>(first_byte));
-        const auto last = std::launder(reinterpret_cast<IteratorType>(first_byte + size));
+        const auto last = std::launder(reinterpret_cast<IteratorType>(first_byte) + size);
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
@@ -1424,7 +1427,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
             reinterpret_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         auto* new_address =
             detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), aligned_address);
-        *size = new_address - reinterpret_cast<std::byte*>(aligned_address);
+        *size = reinterpret_cast<IteratorType>(new_address) - aligned_address;
         return new_address;
     }
 
@@ -1449,7 +1452,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto VALUE_BYTES = sizeof(T);
 
-    template <bool NeedsAlignment>
+    template <bool NeedsAlignment, bool>
     static auto load(std::byte* address, std::size_t size) noexcept
     {
         const auto first =
@@ -1616,8 +1619,9 @@ struct ParameterListTraits
 namespace cntgs::detail
 {
 template <class... Types>
-struct FixedSizeGetter
+class FixedSizeGetter
 {
+  private:
     template <std::size_t... I>
     static constexpr auto calculate_fixed_size_indices(std::index_sequence<I...>) noexcept
     {
@@ -1639,19 +1643,27 @@ struct FixedSizeGetter
     static constexpr auto FIXED_SIZE_INDICES =
         calculate_fixed_size_indices(std::make_index_sequence<sizeof...(Types)>{});
 
-    template <class Type, std::size_t I, std::size_t N>
+  public:
+    template <class Type>
+    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
+
+    template <class, std::size_t I, std::size_t N>
     static constexpr auto get(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
     {
         return detail::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
     }
 };
 
-struct ContiguousReferenceSizeGetter
+class ContiguousReferenceSizeGetter
 {
+  public:
+    template <class Type>
+    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
+
     template <class Type, std::size_t I, class... U>
     static constexpr auto get([[maybe_unused]] const std::tuple<U...>& tuple) noexcept
     {
-        if constexpr (detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE)
+        if constexpr (detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE)
         {
             return std::get<I>(tuple).size();
         }
@@ -1886,7 +1898,8 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     {
         ContiguousPointer result;
         ((std::tie(std::get<I>(result), address) =
-              detail::ParameterTraits<Types>::template load<AlignmentNeedsType::template VALUE<I>>(
+              detail::ParameterTraits<Types>::template load<AlignmentNeedsType::template VALUE<I>,
+                                                            FixedSizeGetterType::CAN_PROVIDE_SIZE<Types>>(
                   address, FixedSizeGetterType::template get<Types, I>(fixed_sizes))),
          ...);
         return result;
@@ -2774,7 +2787,6 @@ class ElementLocator : public BaseElementLocator
   private:
     using Self = ElementLocator<IsAllFixedSize, Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
     using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
 
   public:
@@ -2813,6 +2825,14 @@ class ElementLocator : public BaseElementLocator
                    std::byte* new_memory_begin) noexcept
     {
         this->copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count, new_memory_begin);
+    }
+
+    static constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
+                                                    const FixedSizesArray& fixed_sizes) noexcept
+    {
+        constexpr auto ALIGNMENT_OVERHEAD = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
+        return varying_size_bytes + ElementTraits::calculate_element_size(fixed_sizes) * max_element_count +
+               Self::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
   private:
@@ -2893,7 +2913,6 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
   private:
     using Self = detail::ElementLocator<true, Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
     using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
 
   public:
@@ -2929,6 +2948,14 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
     void copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
     {
         this->copy_into(*this, new_memory_begin);
+    }
+
+    constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
+                                             const FixedSizesArray&) noexcept
+    {
+        constexpr auto ALIGNMENT_OVERHEAD = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
+        return varying_size_bytes + this->stride * max_element_count + Self::reserved_bytes(max_element_count) +
+               ALIGNMENT_OVERHEAD;
     }
 
   private:
@@ -3651,8 +3678,8 @@ class BasicContiguousVector
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
     {
-        const auto new_memory_size = this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes,
-                                                                        this->locator.fixed_sizes());
+        const auto new_memory_size = this->locator->calculate_new_memory_size(
+            new_max_element_count, new_varying_size_bytes, this->locator.fixed_sizes());
         StorageType new_memory{new_memory_size, this->get_allocator()};
         this->template insert_into<true, true>(new_max_element_count, new_memory, *this->locator);
         this->max_element_count = new_max_element_count;
@@ -3692,8 +3719,9 @@ class BasicContiguousVector
             for (size_type i{}; i < this->size(); ++i)
             {
                 auto&& source = (*this)[i];
-                auto&& target = ElementTraits::load_element_at(new_locator.element_address(i, new_memory),
-                                                               this->locator.fixed_sizes());
+                auto&& target = ElementTraits::template load_element_at<detail::DefaultAlignmentNeeds,
+                                                                        detail::ContiguousReferenceSizeGetter>(
+                    new_locator.element_address(i, new_memory), source.tuple);
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }

@@ -34,7 +34,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto VALUE_BYTES = sizeof(T);
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = std::max(VALUE_BYTES, ALIGNMENT);
 
-    template <bool NeedsAlignment>
+    template <bool NeedsAlignment, bool>
     static auto load(std::byte* address, std::size_t) noexcept
     {
         address = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
@@ -231,14 +231,17 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     static constexpr auto MEMORY_OVERHEAD = sizeof(std::size_t);
     static constexpr auto ALIGNED_SIZE_IN_MEMORY = MEMORY_OVERHEAD + ALIGNMENT - 1;
 
-    template <bool NeedsAlignment>
-    static auto load(std::byte* address, std::size_t) noexcept
+    template <bool NeedsAlignment, bool IsSizeProvided>
+    static auto load(std::byte* address, std::size_t size) noexcept
     {
-        const auto size = *reinterpret_cast<std::size_t*>(address);
+        if constexpr (!IsSizeProvided)
+        {
+            size = *reinterpret_cast<std::size_t*>(address);
+        }
         address += MEMORY_OVERHEAD;
         const auto first_byte = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
         const auto first = std::launder(reinterpret_cast<IteratorType>(first_byte));
-        const auto last = std::launder(reinterpret_cast<IteratorType>(first_byte + size));
+        const auto last = std::launder(reinterpret_cast<IteratorType>(first_byte) + size);
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
@@ -251,7 +254,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
             reinterpret_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address));
         auto* new_address =
             detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), aligned_address);
-        *size = new_address - reinterpret_cast<std::byte*>(aligned_address);
+        *size = reinterpret_cast<IteratorType>(new_address) - aligned_address;
         return new_address;
     }
 
@@ -276,7 +279,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     static constexpr auto ALIGNMENT = Alignment;
     static constexpr auto VALUE_BYTES = sizeof(T);
 
-    template <bool NeedsAlignment>
+    template <bool NeedsAlignment, bool>
     static auto load(std::byte* address, std::size_t size) noexcept
     {
         const auto first =

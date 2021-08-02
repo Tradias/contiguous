@@ -5,6 +5,10 @@
 #include <tuple>
 #include <vector>
 
+using CntgsFixedSizeVector = cntgs::ContiguousVector<cntgs::FixedSize<char>, cntgs::FixedSize<uint32_t>, uint32_t>;
+using CntgsFixedSizeAlignedVector =
+    cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<char, 32>>, cntgs::FixedSize<uint32_t>, uint32_t>;
+
 auto reference_two_fixed_lookup_and_accumulate(const ReferenceFixedSizeVector& vector, uint32_t& out, size_t index,
                                                const std::vector<char>& first, const std::vector<uint32_t>& second,
                                                uint32_t third)
@@ -21,8 +25,6 @@ auto reference_two_fixed_lookup_and_accumulate(const ReferenceFixedSizeVector& v
         out += firsts[i];
     }
 }
-
-using CntgsFixedSizeVector = cntgs::ContiguousVector<cntgs::FixedSize<char>, cntgs::FixedSize<uint32_t>, uint32_t>;
 
 auto contiguous_two_fixed_lookup_and_accumulate(const CntgsFixedSizeVector& vector, uint32_t& out, size_t index,
                                                 const std::vector<char>& first, const std::vector<uint32_t>& second,
@@ -89,9 +91,6 @@ auto reference_two_fixed_aligned_lookup_and_accumulate(const ReferenceFixedSizeV
         out += firsts[i];
     }
 }
-
-using CntgsFixedSizeAlignedVector =
-    cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<char, 32>>, cntgs::FixedSize<uint32_t>, uint32_t>;
 
 auto contiguous_two_fixed_aligned_lookup_and_accumulate(const CntgsFixedSizeAlignedVector& vector, uint32_t& out,
                                                         size_t index, const std::vector<char>& first,

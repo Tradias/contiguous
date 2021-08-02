@@ -385,8 +385,8 @@ class BasicContiguousVector
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
     {
-        const auto new_memory_size = this->calculate_needed_memory_size(new_max_element_count, new_varying_size_bytes,
-                                                                        this->locator.fixed_sizes());
+        const auto new_memory_size = this->locator->calculate_new_memory_size(
+            new_max_element_count, new_varying_size_bytes, this->locator.fixed_sizes());
         StorageType new_memory{new_memory_size, this->get_allocator()};
         this->template insert_into<true, true>(new_max_element_count, new_memory, *this->locator);
         this->max_element_count = new_max_element_count;
@@ -426,8 +426,9 @@ class BasicContiguousVector
             for (size_type i{}; i < this->size(); ++i)
             {
                 auto&& source = (*this)[i];
-                auto&& target = ElementTraits::load_element_at(new_locator.element_address(i, new_memory),
-                                                               this->locator.fixed_sizes());
+                auto&& target = ElementTraits::template load_element_at<detail::DefaultAlignmentNeeds,
+                                                                        detail::ContiguousReferenceSizeGetter>(
+                    new_locator.element_address(i, new_memory), source.tuple);
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }

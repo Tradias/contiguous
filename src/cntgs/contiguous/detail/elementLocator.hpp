@@ -87,7 +87,6 @@ class ElementLocator : public BaseElementLocator
   private:
     using Self = ElementLocator<IsAllFixedSize, Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
     using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
 
   public:
@@ -126,6 +125,14 @@ class ElementLocator : public BaseElementLocator
                    std::byte* new_memory_begin) noexcept
     {
         this->copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count, new_memory_begin);
+    }
+
+    static constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
+                                                    const FixedSizesArray& fixed_sizes) noexcept
+    {
+        constexpr auto ALIGNMENT_OVERHEAD = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
+        return varying_size_bytes + ElementTraits::calculate_element_size(fixed_sizes) * max_element_count +
+               Self::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
   private:
@@ -206,7 +213,6 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
   private:
     using Self = detail::ElementLocator<true, Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using FixedSizes = typename detail::ParameterListTraits<Types...>::FixedSizes;
     using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
 
   public:
@@ -242,6 +248,14 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
     void copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
     {
         this->copy_into(*this, new_memory_begin);
+    }
+
+    constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
+                                             const FixedSizesArray&) noexcept
+    {
+        constexpr auto ALIGNMENT_OVERHEAD = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
+        return varying_size_bytes + this->stride * max_element_count + Self::reserved_bytes(max_element_count) +
+               ALIGNMENT_OVERHEAD;
     }
 
   private:
