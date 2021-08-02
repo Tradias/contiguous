@@ -1899,7 +1899,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         ContiguousPointer result;
         ((std::tie(std::get<I>(result), address) =
               detail::ParameterTraits<Types>::template load<AlignmentNeedsType::template VALUE<I>,
-                                                            FixedSizeGetterType::CAN_PROVIDE_SIZE<Types>>(
+                                                            FixedSizeGetterType::template CAN_PROVIDE_SIZE<Types>>(
                   address, FixedSizeGetterType::template get<Types, I>(fixed_sizes))),
          ...);
         return result;
