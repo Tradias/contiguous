@@ -138,7 +138,7 @@ using std::assume_aligned;
 template <std::size_t Alignment, class T>
 [[nodiscard]] constexpr T* assume_aligned(T* const ptr) noexcept
 {
-    return static_cast<T*>(__builtin_assume_aligned(ptr, Alignment));
+    return static_cast<T*>(::__builtin_assume_aligned(ptr, Alignment));
 }
 #endif
 

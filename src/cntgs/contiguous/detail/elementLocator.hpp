@@ -69,12 +69,12 @@ class BaseElementLocator
         this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 
-    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) noexcept
+    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) const noexcept
     {
         const auto diff = detail::move_elements_forward(from, to, memory_begin, *this);
         const auto first_element_address = reinterpret_cast<std::byte**>(memory_begin);
         std::transform(first_element_address + from, this->last_element_address, first_element_address + to,
-                       [&](auto&& address)
+                       [&](auto address)
                        {
                            return address - diff;
                        });
@@ -201,7 +201,7 @@ class BaseAllFixedSizeElementLocator
 
     constexpr void resize(std::size_t new_size, const std::byte*) noexcept { this->element_count = new_size; }
 
-    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) noexcept
+    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) const noexcept
     {
         detail::move_elements_forward(from, to, {}, *this);
     }

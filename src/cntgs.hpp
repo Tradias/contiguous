@@ -644,7 +644,7 @@ using std::assume_aligned;
 template <std::size_t Alignment, class T>
 [[nodiscard]] constexpr T* assume_aligned(T* const ptr) noexcept
 {
-    return static_cast<T*>(__builtin_assume_aligned(ptr, Alignment));
+    return static_cast<T*>(::__builtin_assume_aligned(ptr, Alignment));
 }
 #endif
 
@@ -2769,12 +2769,12 @@ class BaseElementLocator
         this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 
-    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) noexcept
+    void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) const noexcept
     {
         const auto diff = detail::move_elements_forward(from, to, memory_begin, *this);
         const auto first_element_address = reinterpret_cast<std::byte**>(memory_begin);
         std::transform(first_element_address + from, this->last_element_address, first_element_address + to,
-                       [&](auto&& address)
+                       [&](auto address)
                        {
                            return address - diff;
                        });
@@ -2901,7 +2901,7 @@ class BaseAllFixedSizeElementLocator
 
     constexpr void resize(std::size_t new_size, const std::byte*) noexcept { this->element_count = new_size; }
 
-    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) noexcept
+    void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) const noexcept
     {
         detail::move_elements_forward(from, to, {}, *this);
     }
@@ -3248,7 +3248,7 @@ class TypeErasedVector
     detail::TypeErasedAllocator allocator;
 
     TypeErasedVector(std::size_t memory_size, std::size_t max_element_count, std::byte* memory, bool is_memory_owned,
-                     detail::TypeErasedAllocator allocator,
+                     const detail::TypeErasedAllocator& allocator,
                      const detail::Array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>& fixed_sizes,
                      detail::TypeErasedElementLocator locator, void (*destructor)(cntgs::TypeErasedVector&)) noexcept
         : memory_size(memory_size),
@@ -3864,7 +3864,7 @@ class BasicContiguousVector
 
     constexpr void destruct() noexcept { this->destruct(this->begin(), this->end()); }
 
-    constexpr void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
+    static constexpr void destruct([[maybe_unused]] iterator first, [[maybe_unused]] iterator last) noexcept
     {
         if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
