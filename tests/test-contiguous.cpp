@@ -19,6 +19,8 @@
 
 namespace test_contiguous
 {
+TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
+
 using namespace cntgs;
 
 using UInt8 = unsigned char;
@@ -1863,4 +1865,6 @@ TEST_CASE("ContiguousTest: OneVaryingString clear")
     auto vector = varying_vector_of_strings();
     check_clear_followed_by_emplace_back(vector);
 }
+
+TEST_SUITE_END();
 }  // namespace test_contiguous

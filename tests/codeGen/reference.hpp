@@ -16,7 +16,6 @@ struct ReferenceFixedSizeVector
     uint32_t next_index;
     uint32_t capacity;
 
-    std::unique_ptr<char[]> ptr;
     char* memory;
 
     inline auto get_node(const uint32_t i) const { return memory + i * byte_size_per_node; }
@@ -50,11 +49,11 @@ struct ReferenceFixedSizeVector
             return;
         }
         const auto new_capacity = new_max_element_count * byte_size_per_node;
-        auto new_memory = std::unique_ptr<char[]>(new char[new_capacity]);
-        std::memcpy(new_memory.get(), memory, capacity * byte_size_per_node);
+        auto new_memory = std::allocator<char>{}.allocate(new_capacity);
+        std::memcpy(new_memory, memory, capacity * byte_size_per_node);
+        std::allocator<char>{}.deallocate(memory, capacity);
         capacity = new_capacity;
-        ptr = std::move(new_memory);
-        memory = ptr.get();
+        memory = new_memory;
     }
 
     void erase(uint32_t i)

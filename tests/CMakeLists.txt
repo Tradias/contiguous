@@ -67,9 +67,11 @@ set(CNTGS_TEST_SOURCE_FILES "test-contiguous.cpp" "test-code-gen.cpp")
 
 cntgs_add_test(cntgs-test-cpp17 "${CMAKE_CURRENT_BINARY_DIR}/cntgs-code-gen-objects-cpp17.asm"
                ${CNTGS_TEST_SOURCE_FILES})
+target_compile_definitions(cntgs-test-cpp17 PRIVATE "CNTGS_TEST_CPP_VERSION=\"C++17\"")
 
 cntgs_add_test(cntgs-test-cpp20 "${CMAKE_CURRENT_BINARY_DIR}/cntgs-code-gen-objects-cpp20.asm"
                ${CNTGS_TEST_SOURCE_FILES})
+target_compile_definitions(cntgs-test-cpp20 PRIVATE "CNTGS_TEST_CPP_VERSION=\"C++20\"")
 target_compile_features(cntgs-test-cpp20 PRIVATE cxx_std_20)
 
 unset(CNTGS_TEST_SOURCE_FILES)

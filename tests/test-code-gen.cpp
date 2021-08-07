@@ -12,6 +12,8 @@
 
 namespace test_contiguous
 {
+TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
+
 auto get_disassembly_of_functions(const std::vector<std::string>& function_names)
 {
     return cntgs::test::get_disassembly_of_functions(CNTGS_CODE_GEN_DISASSEMBLY_FILE, function_names);
@@ -69,4 +71,6 @@ TEST_CASE("CodeGenTest: two FixedSize erase(iterator) vs. std::vector")
 {
     check_code_gen_sizes("reference_two_fixed_erase_within", "contiguous_two_fixed_erase_within");
 }
+
+TEST_SUITE_END();
 }  // namespace test_contiguous
