@@ -1,12 +1,17 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_PARAMETERTRAITS_HPP
 #define CNTGS_DETAIL_PARAMETERTRAITS_HPP
 
-#include "cntgs/contiguous/detail/attributes.hpp"
-#include "cntgs/contiguous/detail/memory.hpp"
-#include "cntgs/contiguous/detail/parameterType.hpp"
-#include "cntgs/contiguous/detail/typeUtils.hpp"
-#include "cntgs/contiguous/parameter.hpp"
-#include "cntgs/contiguous/span.hpp"
+#include "cntgs/detail/attributes.hpp"
+#include "cntgs/detail/memory.hpp"
+#include "cntgs/detail/parameterType.hpp"
+#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/parameter.hpp"
+#include "cntgs/span.hpp"
 
 #include <algorithm>
 #include <cstddef>

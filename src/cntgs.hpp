@@ -1,19 +1,44 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_CNTGS_CONTIGUOUS_HPP
 #define CNTGS_CNTGS_CONTIGUOUS_HPP
 
-// #include "cntgs/contiguous/element.hpp"
-#ifndef CNTGS_CONTIGUOUS_ELEMENT_HPP
-#define CNTGS_CONTIGUOUS_ELEMENT_HPP
+// #include "cntgs/element.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-// #include "cntgs/contiguous/detail/allocator.hpp"
+#ifndef CNTGS_CNTGS_ELEMENT_HPP
+#define CNTGS_CNTGS_ELEMENT_HPP
+
+// #include "cntgs/detail/allocator.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ALLOCATOR_HPP
 #define CNTGS_DETAIL_ALLOCATOR_HPP
 
-// #include "cntgs/contiguous/detail/memory.hpp"
+// #include "cntgs/detail/memory.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_MEMORY_HPP
 #define CNTGS_DETAIL_MEMORY_HPP
 
-// #include "cntgs/contiguous/detail/attributes.hpp"
+// #include "cntgs/detail/attributes.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ATTRIBUTES_HPP
 #define CNTGS_DETAIL_ATTRIBUTES_HPP
 
@@ -27,11 +52,21 @@
 
 #endif  // CNTGS_DETAIL_ATTRIBUTES_HPP
 
-// #include "cntgs/contiguous/detail/iteratorUtils.hpp"
+// #include "cntgs/detail/iteratorUtils.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ITERATORUTILS_HPP
 #define CNTGS_DETAIL_ITERATORUTILS_HPP
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_TYPEUTILS_HPP
 #define CNTGS_DETAIL_TYPEUTILS_HPP
 
@@ -281,7 +316,12 @@ inline constexpr auto CONTIGUOUS_ITERATOR_V =
 
 #endif  // CNTGS_DETAIL_ITERATORUTILS_HPP
 
-// #include "cntgs/contiguous/detail/range.hpp"
+// #include "cntgs/detail/range.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_RANGE_HPP
 #define CNTGS_DETAIL_RANGE_HPP
 
@@ -316,15 +356,25 @@ struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype
 
 #endif  // CNTGS_DETAIL_RANGE_HPP
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
 
-// #include "cntgs/contiguous/detail/utility.hpp"
+// #include "cntgs/detail/utility.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_UTILITY_HPP
 #define CNTGS_DETAIL_UTILITY_HPP
 
-// #include "cntgs/contiguous/span.hpp"
-#ifndef CNTGS_CONTIGUOUS_SPAN_HPP
-#define CNTGS_CONTIGUOUS_SPAN_HPP
+// #include "cntgs/span.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_CNTGS_SPAN_HPP
+#define CNTGS_CNTGS_SPAN_HPP
 
 #include <cstddef>
 #include <iterator>
@@ -394,7 +444,7 @@ struct Span
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_SPAN_HPP
+#endif  // CNTGS_CNTGS_SPAN_HPP
 
 
 #include <utility>
@@ -511,7 +561,7 @@ constexpr decltype(auto) as_const(T& value) noexcept
 
 #endif  // CNTGS_DETAIL_UTILITY_HPP
 
-// #include "cntgs/contiguous/span.hpp"
+// #include "cntgs/span.hpp"
 
 
 #include <algorithm>
@@ -693,7 +743,7 @@ template <bool NeedsAlignment, std::size_t Alignment, class T>
 
 #endif  // CNTGS_DETAIL_MEMORY_HPP
 
-// #include "cntgs/contiguous/detail/utility.hpp"
+// #include "cntgs/detail/utility.hpp"
 
 
 #include <cstddef>
@@ -973,15 +1023,25 @@ auto type_erase_allocator(T&& allocator) noexcept
 
 #endif  // CNTGS_DETAIL_ALLOCATOR_HPP
 
-// #include "cntgs/contiguous/detail/elementTraits.hpp"
+// #include "cntgs/detail/elementTraits.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ELEMENTTRAITS_HPP
 #define CNTGS_DETAIL_ELEMENTTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/algorithm.hpp"
+// #include "cntgs/detail/algorithm.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ALGORITHM_HPP
 #define CNTGS_DETAIL_ALGORITHM_HPP
 
-// #include "cntgs/contiguous/detail/memory.hpp"
+// #include "cntgs/detail/memory.hpp"
 
 
 #include <algorithm>
@@ -1020,9 +1080,14 @@ constexpr auto trivial_lexicographical_compare(const T* begin, const T* end, con
 
 #endif  // CNTGS_DETAIL_ALGORITHM_HPP
 
-// #include "cntgs/contiguous/detail/attributes.hpp"
+// #include "cntgs/detail/attributes.hpp"
 
-// #include "cntgs/contiguous/detail/forward.hpp"
+// #include "cntgs/detail/forward.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_FORWARD_HPP
 #define CNTGS_DETAIL_FORWARD_HPP
 
@@ -1056,13 +1121,23 @@ class BasicContiguousElement;
 
 #endif  // CNTGS_DETAIL_FORWARD_HPP
 
-// #include "cntgs/contiguous/detail/memory.hpp"
+// #include "cntgs/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
+// #include "cntgs/detail/parameterListTraits.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
 #define CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/array.hpp"
+// #include "cntgs/detail/array.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ARRAY_HPP
 #define CNTGS_DETAIL_ARRAY_HPP
 
@@ -1113,15 +1188,25 @@ constexpr auto convert_array_to_size(const detail::Array<T, K>& array)
 
 #endif  // CNTGS_DETAIL_ARRAY_HPP
 
-// #include "cntgs/contiguous/detail/parameterTraits.hpp"
+// #include "cntgs/detail/parameterTraits.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_PARAMETERTRAITS_HPP
 #define CNTGS_DETAIL_PARAMETERTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/attributes.hpp"
+// #include "cntgs/detail/attributes.hpp"
 
-// #include "cntgs/contiguous/detail/memory.hpp"
+// #include "cntgs/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterType.hpp"
+// #include "cntgs/detail/parameterType.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_PARAMETERTYPE_HPP
 #define CNTGS_DETAIL_PARAMETERTYPE_HPP
 
@@ -1137,11 +1222,16 @@ enum class ParameterType
 
 #endif  // CNTGS_DETAIL_PARAMETERTYPE_HPP
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
 
-// #include "cntgs/contiguous/parameter.hpp"
-#ifndef CNTGS_CONTIGUOUS_PARAMETER_HPP
-#define CNTGS_CONTIGUOUS_PARAMETER_HPP
+// #include "cntgs/parameter.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_CNTGS_PARAMETER_HPP
+#define CNTGS_CNTGS_PARAMETER_HPP
 
 #include <cstddef>
 
@@ -1176,9 +1266,9 @@ struct AlignAs
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_PARAMETER_HPP
+#endif  // CNTGS_CNTGS_PARAMETER_HPP
 
-// #include "cntgs/contiguous/span.hpp"
+// #include "cntgs/span.hpp"
 
 
 #include <algorithm>
@@ -1515,9 +1605,9 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
 
 #endif  // CNTGS_DETAIL_PARAMETERTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/parameterType.hpp"
+// #include "cntgs/detail/parameterType.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
 
 
 #include <array>
@@ -1597,19 +1687,24 @@ struct ParameterListTraits
 
 #endif  // CNTGS_DETAIL_PARAMETERLISTTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/parameterTraits.hpp"
+// #include "cntgs/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/sizeGetter.hpp"
+// #include "cntgs/detail/sizeGetter.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_SIZEGETTER_HPP
 #define CNTGS_DETAIL_SIZEGETTER_HPP
 
-// #include "cntgs/contiguous/detail/array.hpp"
+// #include "cntgs/detail/array.hpp"
 
-// #include "cntgs/contiguous/detail/parameterTraits.hpp"
+// #include "cntgs/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/parameterType.hpp"
+// #include "cntgs/detail/parameterType.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
 
 
 #include <array>
@@ -1677,23 +1772,33 @@ class ContiguousReferenceSizeGetter
 
 #endif  // CNTGS_DETAIL_SIZEGETTER_HPP
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
 
-// #include "cntgs/contiguous/detail/vectorTraits.hpp"
+// #include "cntgs/detail/vectorTraits.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_VECTORTRAITS_HPP
 #define CNTGS_DETAIL_VECTORTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/forward.hpp"
+// #include "cntgs/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/tuple.hpp"
+// #include "cntgs/detail/tuple.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_TUPLE_HPP
 #define CNTGS_DETAIL_TUPLE_HPP
 
-// #include "cntgs/contiguous/detail/forward.hpp"
+// #include "cntgs/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/parameterTraits.hpp"
+// #include "cntgs/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/utility.hpp"
+// #include "cntgs/detail/utility.hpp"
 
 
 #include <tuple>
@@ -2051,33 +2156,38 @@ using ElementTraitsT = detail::ElementTraits<std::make_index_sequence<sizeof...(
 
 #endif  // CNTGS_DETAIL_ELEMENTTRAITS_HPP
 
-// #include "cntgs/contiguous/detail/forward.hpp"
+// #include "cntgs/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/memory.hpp"
+// #include "cntgs/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
+// #include "cntgs/detail/parameterListTraits.hpp"
 
-// #include "cntgs/contiguous/detail/sizeGetter.hpp"
+// #include "cntgs/detail/sizeGetter.hpp"
 
-// #include "cntgs/contiguous/detail/utility.hpp"
+// #include "cntgs/detail/utility.hpp"
 
-// #include "cntgs/contiguous/detail/vectorTraits.hpp"
+// #include "cntgs/detail/vectorTraits.hpp"
 
-// #include "cntgs/contiguous/reference.hpp"
-#ifndef CNTGS_CONTIGUOUS_REFERENCE_HPP
-#define CNTGS_CONTIGUOUS_REFERENCE_HPP
+// #include "cntgs/reference.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-// #include "cntgs/contiguous/detail/attributes.hpp"
+#ifndef CNTGS_CNTGS_REFERENCE_HPP
+#define CNTGS_CNTGS_REFERENCE_HPP
 
-// #include "cntgs/contiguous/detail/elementTraits.hpp"
+// #include "cntgs/detail/attributes.hpp"
 
-// #include "cntgs/contiguous/detail/forward.hpp"
+// #include "cntgs/detail/elementTraits.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
+// #include "cntgs/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/tuple.hpp"
+// #include "cntgs/detail/parameterListTraits.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/tuple.hpp"
+
+// #include "cntgs/detail/typeUtils.hpp"
 
 
 #include <cstddef>
@@ -2367,7 +2477,7 @@ struct tuple_size<::cntgs::BasicContiguousReference<IsConst, Types...>>
 };
 }  // namespace std
 
-#endif  // CNTGS_CONTIGUOUS_REFERENCE_HPP
+#endif  // CNTGS_CNTGS_REFERENCE_HPP
 
 
 #include <cstddef>
@@ -2685,27 +2795,37 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 };
 }  // namespace std
 
-#endif  // CNTGS_CONTIGUOUS_ELEMENT_HPP
+#endif  // CNTGS_CNTGS_ELEMENT_HPP
 
-// #include "cntgs/contiguous/iterator.hpp"
-#ifndef CNTGS_CONTIGUOUS_ITERATOR_HPP
-#define CNTGS_CONTIGUOUS_ITERATOR_HPP
+// #include "cntgs/iterator.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-// #include "cntgs/contiguous/detail/elementLocator.hpp"
+#ifndef CNTGS_CNTGS_ITERATOR_HPP
+#define CNTGS_CNTGS_ITERATOR_HPP
+
+// #include "cntgs/detail/elementLocator.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 #define CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 
-// #include "cntgs/contiguous/detail/array.hpp"
+// #include "cntgs/detail/array.hpp"
 
-// #include "cntgs/contiguous/detail/elementTraits.hpp"
+// #include "cntgs/detail/elementTraits.hpp"
 
-// #include "cntgs/contiguous/detail/memory.hpp"
+// #include "cntgs/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
+// #include "cntgs/detail/parameterListTraits.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
 
-// #include "cntgs/contiguous/detail/utility.hpp"
+// #include "cntgs/detail/utility.hpp"
 
 
 #include <algorithm>
@@ -3030,11 +3150,11 @@ auto type_erase_element_locator(T&& locator) noexcept
 
 #endif  // CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 
-// #include "cntgs/contiguous/detail/forward.hpp"
+// #include "cntgs/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/iteratorUtils.hpp"
+// #include "cntgs/detail/iteratorUtils.hpp"
 
-// #include "cntgs/contiguous/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
 
 
 #include <iterator>
@@ -3210,25 +3330,30 @@ class ContiguousVectorIterator
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_ITERATOR_HPP
+#endif  // CNTGS_CNTGS_ITERATOR_HPP
 
-// #include "cntgs/contiguous/parameter.hpp"
+// #include "cntgs/parameter.hpp"
 
-// #include "cntgs/contiguous/reference.hpp"
+// #include "cntgs/reference.hpp"
 
-// #include "cntgs/contiguous/span.hpp"
+// #include "cntgs/span.hpp"
 
-// #include "cntgs/contiguous/typeErasedVector.hpp"
-#ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
-#define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
+// #include "cntgs/typeErasedVector.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-// #include "cntgs/contiguous/detail/allocator.hpp"
+#ifndef CNTGS_CNTGS_TYPEERASEDVECTOR_HPP
+#define CNTGS_CNTGS_TYPEERASEDVECTOR_HPP
 
-// #include "cntgs/contiguous/detail/array.hpp"
+// #include "cntgs/detail/allocator.hpp"
 
-// #include "cntgs/contiguous/detail/elementLocator.hpp"
+// #include "cntgs/detail/array.hpp"
 
-// #include "cntgs/contiguous/detail/utility.hpp"
+// #include "cntgs/detail/elementLocator.hpp"
+
+// #include "cntgs/detail/utility.hpp"
 
 
 #include <cstddef>
@@ -3272,43 +3397,48 @@ class TypeErasedVector
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
+#endif  // CNTGS_CNTGS_TYPEERASEDVECTOR_HPP
 
-// #include "cntgs/contiguous/vector.hpp"
-#ifndef CNTGS_CONTIGUOUS_VECTOR_HPP
-#define CNTGS_CONTIGUOUS_VECTOR_HPP
+// #include "cntgs/vector.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-// #include "cntgs/contiguous/detail/algorithm.hpp"
+#ifndef CNTGS_CNTGS_VECTOR_HPP
+#define CNTGS_CNTGS_VECTOR_HPP
 
-// #include "cntgs/contiguous/detail/allocator.hpp"
+// #include "cntgs/detail/algorithm.hpp"
 
-// #include "cntgs/contiguous/detail/array.hpp"
+// #include "cntgs/detail/allocator.hpp"
 
-// #include "cntgs/contiguous/detail/elementLocator.hpp"
+// #include "cntgs/detail/array.hpp"
 
-// #include "cntgs/contiguous/detail/forward.hpp"
+// #include "cntgs/detail/elementLocator.hpp"
 
-// #include "cntgs/contiguous/detail/memory.hpp"
+// #include "cntgs/detail/forward.hpp"
 
-// #include "cntgs/contiguous/detail/parameterListTraits.hpp"
+// #include "cntgs/detail/memory.hpp"
 
-// #include "cntgs/contiguous/detail/parameterTraits.hpp"
+// #include "cntgs/detail/parameterListTraits.hpp"
 
-// #include "cntgs/contiguous/detail/utility.hpp"
+// #include "cntgs/detail/parameterTraits.hpp"
 
-// #include "cntgs/contiguous/detail/vectorTraits.hpp"
+// #include "cntgs/detail/utility.hpp"
 
-// #include "cntgs/contiguous/element.hpp"
+// #include "cntgs/detail/vectorTraits.hpp"
 
-// #include "cntgs/contiguous/iterator.hpp"
+// #include "cntgs/element.hpp"
 
-// #include "cntgs/contiguous/parameter.hpp"
+// #include "cntgs/iterator.hpp"
 
-// #include "cntgs/contiguous/reference.hpp"
+// #include "cntgs/parameter.hpp"
 
-// #include "cntgs/contiguous/span.hpp"
+// #include "cntgs/reference.hpp"
 
-// #include "cntgs/contiguous/typeErasedVector.hpp"
+// #include "cntgs/span.hpp"
+
+// #include "cntgs/typeErasedVector.hpp"
 
 
 #include <algorithm>
@@ -3900,7 +4030,7 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
 }
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_VECTOR_HPP
+#endif  // CNTGS_CNTGS_VECTOR_HPP
 
 
 #endif  // CNTGS_CNTGS_CONTIGUOUS_HPP

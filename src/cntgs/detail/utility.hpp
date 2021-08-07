@@ -1,7 +1,12 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_UTILITY_HPP
 #define CNTGS_DETAIL_UTILITY_HPP
 
-#include "cntgs/contiguous/span.hpp"
+#include "cntgs/span.hpp"
 
 #include <utility>
 

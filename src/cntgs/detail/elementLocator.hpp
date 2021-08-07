@@ -1,12 +1,17 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 #define CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 
-#include "cntgs/contiguous/detail/array.hpp"
-#include "cntgs/contiguous/detail/elementTraits.hpp"
-#include "cntgs/contiguous/detail/memory.hpp"
-#include "cntgs/contiguous/detail/parameterListTraits.hpp"
-#include "cntgs/contiguous/detail/typeUtils.hpp"
-#include "cntgs/contiguous/detail/utility.hpp"
+#include "cntgs/detail/array.hpp"
+#include "cntgs/detail/elementTraits.hpp"
+#include "cntgs/detail/memory.hpp"
+#include "cntgs/detail/parameterListTraits.hpp"
+#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/utility.hpp"
 
 #include <algorithm>
 #include <array>

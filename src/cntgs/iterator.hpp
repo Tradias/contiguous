@@ -1,10 +1,15 @@
-#ifndef CNTGS_CONTIGUOUS_ITERATOR_HPP
-#define CNTGS_CONTIGUOUS_ITERATOR_HPP
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-#include "cntgs/contiguous/detail/elementLocator.hpp"
-#include "cntgs/contiguous/detail/forward.hpp"
-#include "cntgs/contiguous/detail/iteratorUtils.hpp"
-#include "cntgs/contiguous/detail/typeUtils.hpp"
+#ifndef CNTGS_CNTGS_ITERATOR_HPP
+#define CNTGS_CNTGS_ITERATOR_HPP
+
+#include "cntgs/detail/elementLocator.hpp"
+#include "cntgs/detail/forward.hpp"
+#include "cntgs/detail/iteratorUtils.hpp"
+#include "cntgs/detail/typeUtils.hpp"
 
 #include <iterator>
 
@@ -179,4 +184,4 @@ class ContiguousVectorIterator
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_ITERATOR_HPP
+#endif  // CNTGS_CNTGS_ITERATOR_HPP

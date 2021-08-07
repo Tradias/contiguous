@@ -13,6 +13,7 @@ target_link_libraries(your_library PUBLIC cntgs::cntgs)
 OR 
 
 add_subdirectory(/path/to/repository/root)
+target_link_libraries(your_library PUBLIC cntgs::cntgs)
 ```
 
 # Usage
@@ -24,7 +25,7 @@ Storing elements in the Form
 ```
 
 ```c++
-#include <cntgs/contiguous.h>
+#include <cntgs/contiguous.hpp>
 
 using Vector = cntgs::ContiguousVector<cntgs::VaryingSize<int16_t>, float>;
 
@@ -51,7 +52,7 @@ Storing elements in the Form
 ```
 
 ```c++
-#include <cntgs/contiguous.h>
+#include <cntgs/contiguous.hpp>
 
 using Vector = cntgs::ContiguousVector<cntgs::FixedSize<float>, cntgs::FixedSize<uint32_t>, uint32_t>;
 
@@ -79,7 +80,7 @@ assert(second_fixed_size_element_count == vector.get_fixed_size<1>());
 Type erase a ContiguousVector
 
 ```c++
-#include <cntgs/contiguous.h>
+#include <cntgs/contiguous.hpp>
 
 using Vector = cntgs::ContiguousVector<...>;
 

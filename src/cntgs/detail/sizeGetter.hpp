@@ -1,10 +1,15 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_SIZEGETTER_HPP
 #define CNTGS_DETAIL_SIZEGETTER_HPP
 
-#include "cntgs/contiguous/detail/array.hpp"
-#include "cntgs/contiguous/detail/parameterTraits.hpp"
-#include "cntgs/contiguous/detail/parameterType.hpp"
-#include "cntgs/contiguous/detail/typeUtils.hpp"
+#include "cntgs/detail/array.hpp"
+#include "cntgs/detail/parameterTraits.hpp"
+#include "cntgs/detail/parameterType.hpp"
+#include "cntgs/detail/typeUtils.hpp"
 
 #include <array>
 #include <cstddef>

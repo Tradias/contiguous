@@ -1,10 +1,15 @@
-#ifndef CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
-#define CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-#include "cntgs/contiguous/detail/allocator.hpp"
-#include "cntgs/contiguous/detail/array.hpp"
-#include "cntgs/contiguous/detail/elementLocator.hpp"
-#include "cntgs/contiguous/detail/utility.hpp"
+#ifndef CNTGS_CNTGS_TYPEERASEDVECTOR_HPP
+#define CNTGS_CNTGS_TYPEERASEDVECTOR_HPP
+
+#include "cntgs/detail/allocator.hpp"
+#include "cntgs/detail/array.hpp"
+#include "cntgs/detail/elementLocator.hpp"
+#include "cntgs/detail/utility.hpp"
 
 #include <cstddef>
 
@@ -47,4 +52,4 @@ class TypeErasedVector
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_TYPEERASEDVECTOR_HPP
+#endif  // CNTGS_CNTGS_TYPEERASEDVECTOR_HPP

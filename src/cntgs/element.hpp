@@ -1,15 +1,20 @@
-#ifndef CNTGS_CONTIGUOUS_ELEMENT_HPP
-#define CNTGS_CONTIGUOUS_ELEMENT_HPP
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-#include "cntgs/contiguous/detail/allocator.hpp"
-#include "cntgs/contiguous/detail/elementTraits.hpp"
-#include "cntgs/contiguous/detail/forward.hpp"
-#include "cntgs/contiguous/detail/memory.hpp"
-#include "cntgs/contiguous/detail/parameterListTraits.hpp"
-#include "cntgs/contiguous/detail/sizeGetter.hpp"
-#include "cntgs/contiguous/detail/utility.hpp"
-#include "cntgs/contiguous/detail/vectorTraits.hpp"
-#include "cntgs/contiguous/reference.hpp"
+#ifndef CNTGS_CNTGS_ELEMENT_HPP
+#define CNTGS_CNTGS_ELEMENT_HPP
+
+#include "cntgs/detail/allocator.hpp"
+#include "cntgs/detail/elementTraits.hpp"
+#include "cntgs/detail/forward.hpp"
+#include "cntgs/detail/memory.hpp"
+#include "cntgs/detail/parameterListTraits.hpp"
+#include "cntgs/detail/sizeGetter.hpp"
+#include "cntgs/detail/utility.hpp"
+#include "cntgs/detail/vectorTraits.hpp"
+#include "cntgs/reference.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -326,4 +331,4 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Types...>>
 };
 }  // namespace std
 
-#endif  // CNTGS_CONTIGUOUS_ELEMENT_HPP
+#endif  // CNTGS_CNTGS_ELEMENT_HPP

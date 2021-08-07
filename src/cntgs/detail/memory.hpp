@@ -1,12 +1,17 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_MEMORY_HPP
 #define CNTGS_DETAIL_MEMORY_HPP
 
-#include "cntgs/contiguous/detail/attributes.hpp"
-#include "cntgs/contiguous/detail/iteratorUtils.hpp"
-#include "cntgs/contiguous/detail/range.hpp"
-#include "cntgs/contiguous/detail/typeUtils.hpp"
-#include "cntgs/contiguous/detail/utility.hpp"
-#include "cntgs/contiguous/span.hpp"
+#include "cntgs/detail/attributes.hpp"
+#include "cntgs/detail/iteratorUtils.hpp"
+#include "cntgs/detail/range.hpp"
+#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/utility.hpp"
+#include "cntgs/span.hpp"
 
 #include <algorithm>
 #include <cstddef>

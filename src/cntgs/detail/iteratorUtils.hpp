@@ -1,7 +1,12 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ITERATORUTILS_HPP
 #define CNTGS_DETAIL_ITERATORUTILS_HPP
 
-#include "cntgs/contiguous/detail/typeUtils.hpp"
+#include "cntgs/detail/typeUtils.hpp"
 
 #include <iterator>
 #include <version>

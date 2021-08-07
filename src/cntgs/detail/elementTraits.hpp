@@ -1,15 +1,20 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ELEMENTTRAITS_HPP
 #define CNTGS_DETAIL_ELEMENTTRAITS_HPP
 
-#include "cntgs/contiguous/detail/algorithm.hpp"
-#include "cntgs/contiguous/detail/attributes.hpp"
-#include "cntgs/contiguous/detail/forward.hpp"
-#include "cntgs/contiguous/detail/memory.hpp"
-#include "cntgs/contiguous/detail/parameterListTraits.hpp"
-#include "cntgs/contiguous/detail/parameterTraits.hpp"
-#include "cntgs/contiguous/detail/sizeGetter.hpp"
-#include "cntgs/contiguous/detail/typeUtils.hpp"
-#include "cntgs/contiguous/detail/vectorTraits.hpp"
+#include "cntgs/detail/algorithm.hpp"
+#include "cntgs/detail/attributes.hpp"
+#include "cntgs/detail/forward.hpp"
+#include "cntgs/detail/memory.hpp"
+#include "cntgs/detail/parameterListTraits.hpp"
+#include "cntgs/detail/parameterTraits.hpp"
+#include "cntgs/detail/sizeGetter.hpp"
+#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/vectorTraits.hpp"
 
 #include <array>
 #include <cstddef>

@@ -1,8 +1,13 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ALLOCATOR_HPP
 #define CNTGS_DETAIL_ALLOCATOR_HPP
 
-#include "cntgs/contiguous/detail/memory.hpp"
-#include "cntgs/contiguous/detail/utility.hpp"
+#include "cntgs/detail/memory.hpp"
+#include "cntgs/detail/utility.hpp"
 
 #include <cstddef>
 #include <memory>

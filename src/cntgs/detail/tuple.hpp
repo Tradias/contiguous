@@ -1,9 +1,14 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_TUPLE_HPP
 #define CNTGS_DETAIL_TUPLE_HPP
 
-#include "cntgs/contiguous/detail/forward.hpp"
-#include "cntgs/contiguous/detail/parameterTraits.hpp"
-#include "cntgs/contiguous/detail/utility.hpp"
+#include "cntgs/detail/forward.hpp"
+#include "cntgs/detail/parameterTraits.hpp"
+#include "cntgs/detail/utility.hpp"
 
 #include <tuple>
 #include <utility>

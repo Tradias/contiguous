@@ -1,12 +1,17 @@
-#ifndef CNTGS_CONTIGUOUS_REFERENCE_HPP
-#define CNTGS_CONTIGUOUS_REFERENCE_HPP
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-#include "cntgs/contiguous/detail/attributes.hpp"
-#include "cntgs/contiguous/detail/elementTraits.hpp"
-#include "cntgs/contiguous/detail/forward.hpp"
-#include "cntgs/contiguous/detail/parameterListTraits.hpp"
-#include "cntgs/contiguous/detail/tuple.hpp"
-#include "cntgs/contiguous/detail/typeUtils.hpp"
+#ifndef CNTGS_CNTGS_REFERENCE_HPP
+#define CNTGS_CNTGS_REFERENCE_HPP
+
+#include "cntgs/detail/attributes.hpp"
+#include "cntgs/detail/elementTraits.hpp"
+#include "cntgs/detail/forward.hpp"
+#include "cntgs/detail/parameterListTraits.hpp"
+#include "cntgs/detail/tuple.hpp"
+#include "cntgs/detail/typeUtils.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -295,4 +300,4 @@ struct tuple_size<::cntgs::BasicContiguousReference<IsConst, Types...>>
 };
 }  // namespace std
 
-#endif  // CNTGS_CONTIGUOUS_REFERENCE_HPP
+#endif  // CNTGS_CNTGS_REFERENCE_HPP

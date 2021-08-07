@@ -1,5 +1,10 @@
-#ifndef CNTGS_CONTIGUOUS_PARAMETER_HPP
-#define CNTGS_CONTIGUOUS_PARAMETER_HPP
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_CNTGS_PARAMETER_HPP
+#define CNTGS_CNTGS_PARAMETER_HPP
 
 #include <cstddef>
 
@@ -34,4 +39,4 @@ struct AlignAs
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_PARAMETER_HPP
+#endif  // CNTGS_CNTGS_PARAMETER_HPP

@@ -1,5 +1,10 @@
-#ifndef CNTGS_CONTIGUOUS_SPAN_HPP
-#define CNTGS_CONTIGUOUS_SPAN_HPP
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_CNTGS_SPAN_HPP
+#define CNTGS_CNTGS_SPAN_HPP
 
 #include <cstddef>
 #include <iterator>
@@ -69,4 +74,4 @@ struct Span
 };
 }  // namespace cntgs
 
-#endif  // CNTGS_CONTIGUOUS_SPAN_HPP
+#endif  // CNTGS_CNTGS_SPAN_HPP

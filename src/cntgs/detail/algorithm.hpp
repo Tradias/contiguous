@@ -1,7 +1,12 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #ifndef CNTGS_DETAIL_ALGORITHM_HPP
 #define CNTGS_DETAIL_ALGORITHM_HPP
 
-#include "cntgs/contiguous/detail/memory.hpp"
+#include "cntgs/detail/memory.hpp"
 
 #include <algorithm>
 #include <array>
