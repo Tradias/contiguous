@@ -23,6 +23,7 @@ if(CNTGS_BUILD_TESTS)
     enable_testing()
     include(doctest)
     add_subdirectory(tests)
+    add_subdirectory(example)
     add_subdirectory(benchmark)
 endif()
 

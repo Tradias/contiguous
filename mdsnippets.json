@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/SimonCropp/MarkdownSnippets/master/schema.json",
+    "Convention": "InPlaceOverwrite",
+    "WriteHeader": false,
+    "ReadOnly": false,
+    "LinkFormat": "GitHub",
+    "ExcludeDirectories": [
+        "src",
+        "build"
+    ],
+    "MaxWidth": 150
+}

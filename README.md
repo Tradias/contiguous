@@ -4,106 +4,131 @@
 
 A C++ library for storing structs in contiguous memory. Header-only, zero dependencies, no exceptions, no rtti, C++17
 
-# Installation
+# Usage
 
 ```cmake
 find_package(cntgs)
 target_link_libraries(your_library PUBLIC cntgs::cntgs)
 
-OR 
+# OR 
 
 add_subdirectory(/path/to/repository/root)
 target_link_libraries(your_library PUBLIC cntgs::cntgs)
 ```
 
-# Usage
+# Examples
 
-Storing elements in the Form
-
-```
-[varying number of int16_t, one float, varying number of int16_t, one float, ...]
-```
-
-```c++
-#include <cntgs/contiguous.hpp>
-
-using Vector = cntgs::ContiguousVector<cntgs::VaryingSize<int16_t>, float>;
-
-const auto element_count = 5;
-const auto total_varying_element_count = 20;
-
-Vector vector{element_count, total_varying_element_count * sizeof(int16_t)};
-assert(element_count == vector.capacity());
-
-vector.emplace_back(<container to int16_t>, <float>);
-assert(1 == vector.size());
-
-size_t index = 10;
-auto&& [varying, the_float] = vector[index];
-// Types are:
-// varying: Span<int16_t>
-// the_float: float&
-```
-
-Storing elements in the Form
+## Store varying number of objects per element
 
 ```
-[fixed number of floats, fixed number of uint32_t, one uint32_t, fixed number of floats, fixed number of uint32_t, one uint32_t, ...]
+[varying number of int, one float, varying number of int, one float, ...]
 ```
 
-```c++
-#include <cntgs/contiguous.hpp>
+<!-- snippet: varying-vector -->
+<a id='snippet-varying-vector'></a>
+```cpp
+const auto initial_capacity = 2;
+const auto varying_object_count = 5;
 
-using Vector = cntgs::ContiguousVector<cntgs::FixedSize<float>, cntgs::FixedSize<uint32_t>, uint32_t>;
+using Vector = cntgs::ContiguousVector<cntgs::VaryingSize<int32_t>,  //
+                                       float>;
+Vector vector{initial_capacity, varying_object_count * sizeof(int32_t)};
 
-const auto element_count = 2;
-const auto first_fixed_size_element_count = 10;
-const auto second_fixed_size_element_count = 12;
+assert(initial_capacity == vector.capacity());
 
-Vector vector{element_count, {first_fixed_size_element_count, second_fixed_size_element_count}};
-assert(2 == vector.capacity());
+vector.emplace_back(std::array{1, 2}, 10.f);
+vector.emplace_back(std::array{3, 4, 5}, 20.f);
 
-vector.emplace_back(<container or iterator to floats>, <container or iterator to uint32_t>, <uint32_t>);
-assert(1 == vector.size());
+assert(2 == vector.size());
 
-size_t index = 10;
-auto&& [first_fixed_size, second_fixed_size, uinteger] = vector[index];
-// Types are:
-// first_fixed_size: Span<float>
-// second_fixed_size: Span<uint32_t>
-// uinteger: uint32_t&
+auto&& [varying_int, the_float] = vector[0];
 
-assert(first_fixed_size_element_count == vector.get_fixed_size<0>());
-assert(second_fixed_size_element_count == vector.get_fixed_size<1>());
+assert((std::is_same_v<cntgs::Span<int32_t>, decltype(varying_int)>));
+assert((std::is_same_v<float&, decltype(the_float)>));
+```
+<sup><a href='/example/varying-vector.cpp#L13-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-varying-vector' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+## Store fixed number of objects per element
+
+```
+[fixed number of floats, fixed number of uint32_t, one float, fixed number of floats, fixed number of uint32_t, one float, ...]
 ```
 
-Type erase a ContiguousVector
+<!-- snippet: fixed-vector -->
+<a id='snippet-fixed-vector'></a>
+```cpp
+const auto first_object_count = 3;
+const auto second_object_count = 5;
 
-```c++
-#include <cntgs/contiguous.hpp>
+using Vector = cntgs::ContiguousVector<cntgs::FixedSize<float>,     //
+                                       cntgs::FixedSize<uint32_t>,  //
+                                       float>;
+Vector vector{1, {first_object_count, second_object_count}};
 
-using Vector = cntgs::ContiguousVector<...>;
+std::array first{1.f, 2.f, 3.f};
+std::array second{10u, 20u, 30u, 40u, 50u};
+vector.emplace_back(first, second.begin(), 0.f);
 
-Vector vector;
+auto&& [firsts, seconds, the_uint] = vector[0];
 
-auto type_erased_vector = cntgs::type_erase(std::move(vector));
-// Type is cntgs::TypeErasedVector
+assert(8 == std::addressof(the_uint) - firsts.data());
 
-Vector restored{type_erased_vector};
-// optionally transfer ownership
+assert(first_object_count == vector.get_fixed_size<0>());
+assert(second_object_count == vector.get_fixed_size<1>());
+```
+<sup><a href='/example/fixed-vector.cpp#L13-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-fixed-vector' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+## Type erase a ContiguousVector
+
+<!-- snippet: type-erased-vector -->
+<a id='snippet-type-erased-vector'></a>
+```cpp
+using Vector = cntgs::ContiguousVector<cntgs::FixedSize<float>,  //
+                                       cntgs::VaryingSize<uint32_t>>;
+Vector vector{1, 2 * sizeof(uint32_t), {1}};
+fill_vector(vector);
+
+cntgs::TypeErasedVector type_erased_vector = cntgs::type_erase(std::move(vector));
+
 Vector restored{std::move(type_erased_vector)};
 ```
+<sup><a href='/example/type-erased-vector.cpp#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-type-erased-vector' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
-Specify alignment. Note that the default alignment of types stored by a ContiguousVector is 0. Unaligned memory access is not supported by all processors (e.g. RISC).
-On most processors however, unaligned access works correctly and comes with basically no performance penalty.
+## Specify alignment
+
+Note that the default alignment of types stored by a ContiguousVector is 1. Misaligned memory access is not supported by all processors (e.g. RISC).
+On most processors however, misaligned access works correctly with basically no performance penalty.
 
 Each element in the following ContiguousVector is comprised of a fixed number of 32-byte aligned floats, followed by a variable number of 8-byte aligned integers, followed by one 8-byte aligned integer.
 
-```c++
-#include <cntgs/contiguous.h>
-
-using Vector = cntgs::ContiguousVector<
-  cntgs::FixedSize<cntgs::AlignAs<float, 32>>, 
-  cntgs::VaryingSize<cntgs::AlignAs<int32_t, 8>>,
-  cntgs::AlignAs<int32_t, 8>>;
+<!-- snippet: vector-with-alignment -->
+<a id='snippet-vector-with-alignment'></a>
+```cpp
+using Vector = cntgs::ContiguousVector<              //
+    cntgs::FixedSize<cntgs::AlignAs<float, 32>>,     //
+    cntgs::VaryingSize<cntgs::AlignAs<int32_t, 8>>,  //
+    cntgs::AlignAs<int32_t, 8>>;
 ```
+<sup><a href='/example/vector-with-alignment.cpp#L29-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-vector-with-alignment' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+## Stack storage
+
+<!-- snippet: vector-with-stack-storage -->
+<a id='snippet-vector-with-stack-storage'></a>
+```cpp
+using Vector = cntgs::ContiguousVector<  //
+    cntgs::FixedSize<float>, cntgs::FixedSize<int32_t>>;
+
+std::array<std::byte, 512> buffer;
+Vector vector{cntgs::Span{buffer.data(), buffer.size()}, 5, {2, 2}};
+
+// even with compile time initialization (C++20)
+static constinit std::array<std::byte, 512> BUFFER{};
+static constinit Vector VECTOR{cntgs::Span{BUFFER.data(), BUFFER.size()}, 5, {2, 2}};
+```
+<sup><a href='/example/vector-with-stack-storage.cpp#L14-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-vector-with-stack-storage' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
