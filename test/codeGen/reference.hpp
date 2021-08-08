@@ -17,6 +17,17 @@ struct ReferenceFixedSizeVector
     uint32_t capacity;
 
     char* memory;
+    bool is_owned;
+
+    ReferenceFixedSizeVector();
+
+    ~ReferenceFixedSizeVector()
+    {
+        if (is_owned)
+        {
+            std::allocator<char>{}.deallocate(memory, capacity);
+        }
+    }
 
     inline auto get_node(const uint32_t i) const { return memory + i * byte_size_per_node; }
 
@@ -54,6 +65,7 @@ struct ReferenceFixedSizeVector
         std::allocator<char>{}.deallocate(memory, capacity);
         capacity = new_capacity;
         memory = new_memory;
+        is_owned = true;
     }
 
     void erase(uint32_t i)
