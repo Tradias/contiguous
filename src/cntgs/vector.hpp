@@ -392,29 +392,29 @@ class BasicContiguousVector
     {
         const auto new_memory_size = this->locator->calculate_new_memory_size(
             new_max_element_count, new_varying_size_bytes, this->locator.fixed_sizes());
-        StorageType new_memory{new_memory_size, this->get_allocator()};
-        BasicContiguousVector::insert_into<true, true>(new_max_element_count, new_memory.get(), *this, *this->locator);
+        typename StorageType::StorageType new_memory{new_memory_size, this->get_allocator()};
+        BasicContiguousVector::insert_into<true, true>(*this->locator, new_max_element_count, new_memory.get(), *this);
         this->max_element_count = new_max_element_count;
-        this->memory.assign(std::move(new_memory));
+        this->memory.reset(std::move(new_memory));
     }
 
     template <bool UseMove, bool IsDestruct = false, class Self = BasicContiguousVector>
-    static void insert_into(size_type new_max_element_count, std::byte* new_memory, Self& self, ElementLocator& locator)
+    static void insert_into(ElementLocator& locator, size_type new_max_element_count, std::byte* new_memory, Self& from)
     {
         static constexpr auto IS_TRIVIAL =
             UseMove ? ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE : ListTraits::IS_TRIVIALLY_COPY_CONSTRUCTIBLE;
-        if constexpr (IS_TRIVIAL && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+        if constexpr (IS_TRIVIAL && (!IsDestruct || ListTraits::IS_TRIVIALLY_DESTRUCTIBLE))
         {
-            locator.copy_into(self.max_element_count, self.memory.get(), new_max_element_count, new_memory);
+            locator.trivially_copy_into(from.max_element_count, from.memory.get(), new_max_element_count, new_memory);
         }
         else
         {
-            ElementLocator new_locator{locator, self.max_element_count, self.memory.get(), new_max_element_count,
+            ElementLocator new_locator{locator, from.max_element_count, from.memory.get(), new_max_element_count,
                                        new_memory};
-            BasicContiguousVector::uninitialized_construct_if_non_trivial<UseMove>(self, new_memory, new_locator);
+            BasicContiguousVector::uninitialized_construct_if_non_trivial<UseMove>(from, new_memory, new_locator);
             if constexpr (IsDestruct)
             {
-                self.destruct();
+                from.destruct();
             }
             locator = new_locator;
         }
@@ -491,15 +491,15 @@ class BasicContiguousVector
                     // allocate memory first because it might throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
                     this->destruct();
-                    BasicContiguousVector::insert_into<true>(other.max_element_count, new_memory.get(), other,
-                                                             *other_locator);
+                    BasicContiguousVector::insert_into<true>(*other_locator, other.max_element_count, new_memory.get(),
+                                                             other);
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
                     this->destruct();
-                    BasicContiguousVector::insert_into<true>(other.max_element_count, this->memory.get(), other,
-                                                             *other_locator);
+                    BasicContiguousVector::insert_into<true>(*other_locator, other.max_element_count,
+                                                             this->memory.get(), other);
                 }
                 this->max_element_count = other.max_element_count;
                 this->locator = other_locator;
@@ -510,7 +510,7 @@ class BasicContiguousVector
     auto copy_construct_locator(const BasicContiguousVector& other)
     {
         auto other_locator = other.locator;
-        BasicContiguousVector::insert_into<false>(other.max_element_count, this->memory.get(), other, *other_locator);
+        BasicContiguousVector::insert_into<false>(*other_locator, other.max_element_count, this->memory.get(), other);
         return other_locator;
     }
 
@@ -519,7 +519,7 @@ class BasicContiguousVector
         this->destruct();
         this->memory = other.memory;
         auto other_locator = other.locator;
-        BasicContiguousVector::insert_into<false>(other.max_element_count, this->memory.get(), other, *other_locator);
+        BasicContiguousVector::insert_into<false>(*other_locator, other.max_element_count, this->memory.get(), other);
         this->max_element_count = other.max_element_count;
         this->locator = other_locator;
     }

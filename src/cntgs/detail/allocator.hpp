@@ -166,7 +166,7 @@ class AllocatorAwarePointer
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
 
-    constexpr auto assign(AllocatorAwarePointer&& other) noexcept
+    constexpr auto reset(AllocatorAwarePointer&& other) noexcept
     {
         this->deallocate();
         this->get() = other.release();
@@ -177,10 +177,9 @@ class AllocatorAwarePointer
 template <class Allocator>
 class MaybeOwnedAllocatorAwarePointer
 {
-  private:
+  public:
     using StorageType = detail::AllocatorAwarePointer<Allocator>;
 
-  public:
     using allocator_type = typename StorageType::allocator_type;
     using pointer = typename StorageType::pointer;
     using value_type = typename StorageType::value_type;
@@ -238,9 +237,9 @@ class MaybeOwnedAllocatorAwarePointer
 
     constexpr decltype(auto) get_allocator() const noexcept { return this->ptr.get_allocator(); }
 
-    constexpr auto assign(MaybeOwnedAllocatorAwarePointer&& other) noexcept
+    constexpr auto reset(StorageType&& other) noexcept
     {
-        this->ptr.assign(std::move(other.ptr));
+        this->ptr.reset(std::move(other));
         this->owned = true;
     }
 

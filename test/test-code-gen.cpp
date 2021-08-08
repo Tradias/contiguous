@@ -58,7 +58,7 @@ TEST_CASE("CodeGenTest: two FixedSize random lookup")
 #if defined(_MSC_VER) || __GNUC__ > 9
 TEST_CASE("CodeGenTest: two FixedSize reserve growth")
 {
-    check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 6);
+    check_code_gen_sizes("reference_two_fixed_reserve_growth", "contiguous_two_fixed_reserve_growth", 7);
 }
 #endif
 

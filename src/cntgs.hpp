@@ -903,7 +903,7 @@ class AllocatorAwarePointer
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
 
-    constexpr auto assign(AllocatorAwarePointer&& other) noexcept
+    constexpr auto reset(AllocatorAwarePointer&& other) noexcept
     {
         this->deallocate();
         this->get() = other.release();
@@ -914,10 +914,9 @@ class AllocatorAwarePointer
 template <class Allocator>
 class MaybeOwnedAllocatorAwarePointer
 {
-  private:
+  public:
     using StorageType = detail::AllocatorAwarePointer<Allocator>;
 
-  public:
     using allocator_type = typename StorageType::allocator_type;
     using pointer = typename StorageType::pointer;
     using value_type = typename StorageType::value_type;
@@ -975,9 +974,9 @@ class MaybeOwnedAllocatorAwarePointer
 
     constexpr decltype(auto) get_allocator() const noexcept { return this->ptr.get_allocator(); }
 
-    constexpr auto assign(MaybeOwnedAllocatorAwarePointer&& other) noexcept
+    constexpr auto reset(StorageType&& other) noexcept
     {
-        this->ptr.assign(std::move(other.ptr));
+        this->ptr.reset(std::move(other));
         this->owned = true;
     }
 
@@ -2905,7 +2904,6 @@ template <bool IsAllFixedSize, class... Types>
 class ElementLocator : public BaseElementLocator
 {
   private:
-    using Self = ElementLocator<IsAllFixedSize, Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
 
@@ -2914,14 +2912,15 @@ class ElementLocator : public BaseElementLocator
 
     ElementLocator(std::size_t max_element_count, std::byte* memory_begin, const FixedSizesArray&) noexcept
         : BaseElementLocator(reinterpret_cast<std::byte**>(memory_begin),
-                             Self::calculate_element_start(max_element_count, memory_begin))
+                             ElementLocator::calculate_element_start(max_element_count, memory_begin))
     {
     }
 
     ElementLocator(ElementLocator& old_locator, std::size_t old_max_element_count, std::byte* old_memory_begin,
                    std::size_t new_max_element_count, std::byte* new_memory_begin) noexcept
     {
-        this->copy_into(old_locator, old_max_element_count, old_memory_begin, new_max_element_count, new_memory_begin);
+        this->trivially_copy_into(old_locator, old_max_element_count, old_memory_begin, new_max_element_count,
+                                  new_memory_begin);
     }
 
     template <class... Args>
@@ -2941,10 +2940,11 @@ class ElementLocator : public BaseElementLocator
             ElementTraits::emplace_at_aliased(element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
     }
 
-    void copy_into(std::size_t old_max_element_count, std::byte* old_memory_begin, std::size_t new_max_element_count,
-                   std::byte* new_memory_begin) noexcept
+    void trivially_copy_into(std::size_t old_max_element_count, std::byte* old_memory_begin,
+                             std::size_t new_max_element_count, std::byte* new_memory_begin) noexcept
     {
-        this->copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count, new_memory_begin);
+        this->trivially_copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count,
+                                  new_memory_begin);
     }
 
     static constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
@@ -2952,18 +2952,19 @@ class ElementLocator : public BaseElementLocator
     {
         constexpr auto ALIGNMENT_OVERHEAD = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
         return varying_size_bytes + ElementTraits::calculate_element_size(fixed_sizes) * max_element_count +
-               Self::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
+               ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
   private:
-    void copy_into(ElementLocator& old_locator, std::size_t old_max_element_count, std::byte* old_memory_begin,
-                   std::size_t new_max_element_count, std::byte* new_memory_begin) noexcept
+    void trivially_copy_into(ElementLocator& old_locator, std::size_t old_max_element_count,
+                             std::byte* old_memory_begin, std::size_t new_max_element_count,
+                             std::byte* new_memory_begin) noexcept
     {
-        const auto new_start = Self::calculate_element_start(new_max_element_count, new_memory_begin);
-        const auto old_start = Self::calculate_element_start(old_max_element_count, old_memory_begin);
+        const auto new_start = ElementLocator::calculate_element_start(new_max_element_count, new_memory_begin);
+        const auto old_start = ElementLocator::calculate_element_start(old_max_element_count, old_memory_begin);
         const auto size_diff = std::distance(new_memory_begin, new_start) - std::distance(old_memory_begin, old_start);
-        const auto new_last_element_address = Self::copy_element_addresses(new_memory_begin, old_memory_begin,
-                                                                           old_locator.last_element_address, size_diff);
+        const auto new_last_element_address = ElementLocator::copy_element_addresses(
+            new_memory_begin, old_memory_begin, old_locator.last_element_address, size_diff);
         const auto old_used_memory_size = std::distance(old_start, old_locator.last_element);
         std::memcpy(new_start, old_start, old_used_memory_size);
         this->last_element_address = new_last_element_address;
@@ -3031,7 +3032,6 @@ template <class... Types>
 class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
 {
   private:
-    using Self = detail::ElementLocator<true, Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
 
@@ -3040,7 +3040,7 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
 
     constexpr ElementLocator(std::size_t, std::byte* memory_begin, const FixedSizesArray& fixed_sizes) noexcept
         : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_size(fixed_sizes),
-                                         Self::calculate_element_start(memory_begin))
+                                         ElementLocator::calculate_element_start(memory_begin))
     {
     }
 
@@ -3048,7 +3048,7 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
                    std::byte* new_memory_begin) noexcept
         : BaseAllFixedSizeElementLocator(old_locator.element_count, old_locator.stride, {})
     {
-        this->copy_into(old_locator, new_memory_begin);
+        this->trivially_copy_into(old_locator, new_memory_begin);
     }
 
     template <class... Args>
@@ -3065,23 +3065,23 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
         ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
     }
 
-    void copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
+    void trivially_copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
     {
-        this->copy_into(*this, new_memory_begin);
+        this->trivially_copy_into(*this, new_memory_begin);
     }
 
     constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
                                              const FixedSizesArray&) noexcept
     {
         constexpr auto ALIGNMENT_OVERHEAD = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
-        return varying_size_bytes + this->stride * max_element_count + Self::reserved_bytes(max_element_count) +
-               ALIGNMENT_OVERHEAD;
+        return varying_size_bytes + this->stride * max_element_count +
+               ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
   private:
-    void copy_into(const ElementLocator& old_locator, std::byte* new_memory_begin) noexcept
+    void trivially_copy_into(const ElementLocator& old_locator, std::byte* new_memory_begin) noexcept
     {
-        const auto new_start = Self::calculate_element_start(new_memory_begin);
+        const auto new_start = ElementLocator::calculate_element_start(new_memory_begin);
         std::memcpy(new_start, old_locator.start, old_locator.element_count * old_locator.stride);
         this->start = new_start;
     }
@@ -3810,29 +3810,29 @@ class BasicContiguousVector
     {
         const auto new_memory_size = this->locator->calculate_new_memory_size(
             new_max_element_count, new_varying_size_bytes, this->locator.fixed_sizes());
-        StorageType new_memory{new_memory_size, this->get_allocator()};
-        BasicContiguousVector::insert_into<true, true>(new_max_element_count, new_memory.get(), *this, *this->locator);
+        typename StorageType::StorageType new_memory{new_memory_size, this->get_allocator()};
+        BasicContiguousVector::insert_into<true, true>(*this->locator, new_max_element_count, new_memory.get(), *this);
         this->max_element_count = new_max_element_count;
-        this->memory.assign(std::move(new_memory));
+        this->memory.reset(std::move(new_memory));
     }
 
     template <bool UseMove, bool IsDestruct = false, class Self = BasicContiguousVector>
-    static void insert_into(size_type new_max_element_count, std::byte* new_memory, Self& self, ElementLocator& locator)
+    static void insert_into(ElementLocator& locator, size_type new_max_element_count, std::byte* new_memory, Self& from)
     {
         static constexpr auto IS_TRIVIAL =
             UseMove ? ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE : ListTraits::IS_TRIVIALLY_COPY_CONSTRUCTIBLE;
-        if constexpr (IS_TRIVIAL && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+        if constexpr (IS_TRIVIAL && (!IsDestruct || ListTraits::IS_TRIVIALLY_DESTRUCTIBLE))
         {
-            locator.copy_into(self.max_element_count, self.memory.get(), new_max_element_count, new_memory);
+            locator.trivially_copy_into(from.max_element_count, from.memory.get(), new_max_element_count, new_memory);
         }
         else
         {
-            ElementLocator new_locator{locator, self.max_element_count, self.memory.get(), new_max_element_count,
+            ElementLocator new_locator{locator, from.max_element_count, from.memory.get(), new_max_element_count,
                                        new_memory};
-            BasicContiguousVector::uninitialized_construct_if_non_trivial<UseMove>(self, new_memory, new_locator);
+            BasicContiguousVector::uninitialized_construct_if_non_trivial<UseMove>(from, new_memory, new_locator);
             if constexpr (IsDestruct)
             {
-                self.destruct();
+                from.destruct();
             }
             locator = new_locator;
         }
@@ -3909,15 +3909,15 @@ class BasicContiguousVector
                     // allocate memory first because it might throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
                     this->destruct();
-                    BasicContiguousVector::insert_into<true>(other.max_element_count, new_memory.get(), other,
-                                                             *other_locator);
+                    BasicContiguousVector::insert_into<true>(*other_locator, other.max_element_count, new_memory.get(),
+                                                             other);
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
                     this->destruct();
-                    BasicContiguousVector::insert_into<true>(other.max_element_count, this->memory.get(), other,
-                                                             *other_locator);
+                    BasicContiguousVector::insert_into<true>(*other_locator, other.max_element_count,
+                                                             this->memory.get(), other);
                 }
                 this->max_element_count = other.max_element_count;
                 this->locator = other_locator;
@@ -3928,7 +3928,7 @@ class BasicContiguousVector
     auto copy_construct_locator(const BasicContiguousVector& other)
     {
         auto other_locator = other.locator;
-        BasicContiguousVector::insert_into<false>(other.max_element_count, this->memory.get(), other, *other_locator);
+        BasicContiguousVector::insert_into<false>(*other_locator, other.max_element_count, this->memory.get(), other);
         return other_locator;
     }
 
@@ -3937,7 +3937,7 @@ class BasicContiguousVector
         this->destruct();
         this->memory = other.memory;
         auto other_locator = other.locator;
-        BasicContiguousVector::insert_into<false>(other.max_element_count, this->memory.get(), other, *other_locator);
+        BasicContiguousVector::insert_into<false>(*other_locator, other.max_element_count, this->memory.get(), other);
         this->max_element_count = other.max_element_count;
         this->locator = other_locator;
     }
