@@ -155,28 +155,29 @@ template <std::size_t Alignment, class T>
 template <std::size_t Alignment>
 [[nodiscard]] constexpr auto align(std::uintptr_t position) noexcept
 {
-    if constexpr (Alignment == 1)
+    if constexpr (Alignment > 1)
     {
-        return position;
+        return detail::align(position, Alignment);
     }
     else
     {
-        return detail::align(position, Alignment);
+        return position;
     }
 }
 
 template <std::size_t Alignment, class T>
 [[nodiscard]] constexpr T* align(T* ptr) noexcept
 {
-#ifdef __cpp_lib_is_constant_evaluated
-    if (std::is_constant_evaluated())
+    if constexpr (Alignment > 1)
+    {
+        const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
+        const auto aligned = detail::align<Alignment>(uintptr);
+        return detail::assume_aligned<Alignment>(reinterpret_cast<T*>(aligned));
+    }
+    else
     {
         return ptr;
     }
-#endif
-    const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
-    const auto aligned = detail::align<Alignment>(uintptr);
-    return detail::assume_aligned<Alignment>(reinterpret_cast<T*>(aligned));
 }
 
 template <bool NeedsAlignment, std::size_t Alignment, class T>

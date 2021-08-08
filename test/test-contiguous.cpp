@@ -1281,8 +1281,8 @@ TEST_CASE("ContiguousTest: type_erase OneFixed, restore and copy assign")
     vector.emplace_back(STRING1);
     auto vector_copy{vector};
     vector_copy.emplace_back(STRING2);
-    auto erased = cntgs::type_erase(std::move(vector));
-    auto restored = cntgs::restore<Vector>(erased);
+    auto&& erased = cntgs::type_erase(std::move(vector));
+    auto&& restored = cntgs::restore<Vector>(std::move(erased));
     restored = vector_copy;
     auto&& [a] = restored.back();
     CHECK_EQ(STRING2, a);
@@ -1293,8 +1293,8 @@ TEST_CASE("ContiguousTest: type_erase empty OneFixed, restore and copy assign")
     using Vector = cntgs::ContiguousVector<std::string>;
     Vector vector{0};
     auto vector_copy{vector};
-    auto erased = cntgs::type_erase(std::move(vector));
-    auto restored = cntgs::restore<Vector>(erased);
+    auto&& erased = cntgs::type_erase(std::move(vector));
+    auto&& restored = cntgs::restore<Vector>(std::move(erased));
     restored = vector_copy;
     restored.reserve(1);
     restored.emplace_back(STRING1);
