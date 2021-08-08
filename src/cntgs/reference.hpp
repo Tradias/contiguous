@@ -218,8 +218,7 @@ class BasicContiguousReference
     }
 
   private:
-    template <bool, class...>
-    friend class BasicContiguousReference;
+    friend cntgs::BasicContiguousReference<!IsConst, Types...>;
 
     template <class, class...>
     friend class BasicContiguousVector;

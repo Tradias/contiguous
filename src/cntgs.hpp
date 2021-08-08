@@ -2394,8 +2394,7 @@ class BasicContiguousReference
     }
 
   private:
-    template <bool, class...>
-    friend class BasicContiguousReference;
+    friend cntgs::BasicContiguousReference<!IsConst, Types...>;
 
     template <class, class...>
     friend class BasicContiguousVector;
@@ -3321,8 +3320,7 @@ class ContiguousVectorIterator
     }
 
   private:
-    template <bool, class, class...>
-    friend class ContiguousVectorIterator;
+    friend cntgs::ContiguousVectorIterator<!IsConst, Allocator, Types...>;
 
     typename Vector::size_type i{};
     std::byte* memory;
