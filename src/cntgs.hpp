@@ -3433,6 +3433,35 @@ class TypeErasedVector
 
 // #include "cntgs/detail/utility.hpp"
 
+// #include "cntgs/detail/vector.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_DETAIL_VECTOR_HPP
+#define CNTGS_DETAIL_VECTOR_HPP
+
+// #include "cntgs/detail/forward.hpp"
+
+
+namespace cntgs::detail
+{
+template <class Vector>
+struct ContiguousVectorAccess
+{
+    using ListTraits = typename Vector::ListTraits;
+    
+    template <class... Args>
+    static auto construct(Args&&... args)
+    {
+        return Vector{std::forward<Args>(args)...};
+    }
+};
+}  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_VECTOR_HPP
+
 // #include "cntgs/detail/vectorTraits.hpp"
 
 // #include "cntgs/element.hpp"
@@ -3511,16 +3540,6 @@ class BasicContiguousVector
 
     BasicContiguousVector() = default;
 
-    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : BasicContiguousVector(vector, std::exchange(vector.is_memory_owned.value, false))
-    {
-    }
-
-    explicit BasicContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
-        : BasicContiguousVector(vector, false)
-    {
-    }
-
     template <bool IsMixed = IS_MIXED>
     BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
                           const allocator_type& allocator = {}, std::enable_if_t<IsMixed>* = nullptr)
@@ -3532,15 +3551,6 @@ class BasicContiguousVector
     constexpr BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
                                     const allocator_type& allocator = {}, std::enable_if_t<IsAllFixedSize>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, fixed_sizes, allocator)
-    {
-    }
-
-    template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    constexpr BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size,
-                                    size_type max_element_count, const FixedSizes& fixed_sizes,
-                                    const allocator_type& allocator = {},
-                                    std::enable_if_t<IsAllFixedSize>* = nullptr) noexcept
-        : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, fixed_sizes, allocator)
     {
     }
 
@@ -3561,17 +3571,15 @@ class BasicContiguousVector
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    constexpr BasicContiguousVector(size_type max_element_count, const allocator_type& allocator = {},
-                                    std::enable_if_t<IsNoneSpecial>* = nullptr)
-        : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator)
+    explicit constexpr BasicContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator_type{})
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    constexpr BasicContiguousVector(std::byte* transferred_ownership, size_type memory_size,
-                                    size_type max_element_count, const allocator_type& allocator = {},
-                                    std::enable_if_t<IsNoneSpecial>* = nullptr) noexcept
-        : BasicContiguousVector(transferred_ownership, memory_size, true, max_element_count, FixedSizes{}, allocator)
+    constexpr BasicContiguousVector(size_type max_element_count, const allocator_type& allocator,
+                                    std::enable_if_t<IsNoneSpecial>* = nullptr)
+        : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator)
     {
     }
 
@@ -3776,6 +3784,8 @@ class BasicContiguousVector
 
     // private API
   private:
+    friend detail::ContiguousVectorAccess<BasicContiguousVector>;
+
     constexpr BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned,
                                     size_type max_element_count, const FixedSizes& fixed_sizes,
                                     const allocator_type& allocator)
@@ -3801,6 +3811,16 @@ class BasicContiguousVector
                  *std::launder(reinterpret_cast<const allocator_type*>(&vector.allocator))),
           locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)),
                   detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
+    {
+    }
+
+    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
+        : BasicContiguousVector(vector, std::exchange(vector.is_memory_owned.value, false))
+    {
+    }
+
+    explicit BasicContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
+        : BasicContiguousVector(vector, false)
     {
     }
 
@@ -4019,8 +4039,8 @@ constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
     std::swap(lhs.locator, rhs.locator);
 }
 
-template <class Allocator, class... T>
-auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
+template <class Allocator, class... Types>
+auto type_erase(cntgs::BasicContiguousVector<Allocator, Types...>&& vector) noexcept
 {
     return cntgs::TypeErasedVector{
         vector.memory.size(),
@@ -4032,8 +4052,23 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, T...>&& vector) noexcept
         detail::type_erase_element_locator(*vector.locator),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
-            cntgs::BasicContiguousVector<Allocator, T...>{std::move(erased)};
+            detail::ContiguousVectorAccess<cntgs::BasicContiguousVector<Allocator, Types...>>::construct(
+                std::move(erased));
         }};
+}
+
+template <class Vector>
+auto restore(const cntgs::TypeErasedVector& vector) noexcept
+    -> detail::ConditionalT<detail::ContiguousVectorAccess<Vector>::ListTraits::IS_TRIVIALLY_DESTRUCTIBLE, Vector,
+                            std::add_const_t<Vector>>
+{
+    return detail::ContiguousVectorAccess<Vector>::construct(vector);
+}
+
+template <class Vector>
+auto restore(cntgs::TypeErasedVector&& vector) noexcept
+{
+    return detail::ContiguousVectorAccess<Vector>::construct(std::move(vector));
 }
 }  // namespace cntgs
 

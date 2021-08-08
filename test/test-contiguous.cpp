@@ -1,6 +1,5 @@
 #include "cntgs/contiguous.hpp"
 #include "utils/functional.hpp"
-#include "utils/memory.hpp"
 #include "utils/range.hpp"
 
 #include <doctest/doctest.h>
@@ -1240,30 +1239,24 @@ TEST_CASE("ContiguousTest: TwoVarying erase(Iterator, Iterator)")
     }
 }
 
-TEST_CASE("ContiguousTest: OneFixed construct with unique_ptr and span")
+TEST_CASE("ContiguousTest: OneFixed construct with span")
 {
-    std::optional<OneFixed> vector;
     const auto memory_size = 2 * (sizeof(uint32_t) + 2 * sizeof(float));
-    test::AllocationGuard<std::byte> ptr{memory_size};
-    SUBCASE("unique_ptr") { vector.emplace(ptr.release(), memory_size, 2, std::array{FLOATS1.size()}); }
-    SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.ptr, memory_size}, 2, std::array{FLOATS1.size()}); }
-    CHECK(vector);
-    vector->emplace_back(10u, FLOATS1);
-    auto&& [i, e] = (*vector)[0];
+    auto ptr = std::make_unique<std::byte[]>(memory_size);
+    OneFixed vector{cntgs::Span<std::byte>{ptr.get(), memory_size}, 2, std::array{FLOATS1.size()}};
+    vector.emplace_back(10u, FLOATS1);
+    auto&& [i, e] = vector[0];
     CHECK_EQ(10u, i);
     CHECK(test::range_equal(FLOATS1, e));
 }
 
-TEST_CASE("ContiguousTest: Plain construct with unique_ptr and span")
+TEST_CASE("ContiguousTest: Plain construct with span")
 {
-    std::optional<Plain> vector;
     const auto memory_size = 2 * (sizeof(uint32_t) + sizeof(float));
-    test::AllocationGuard<std::byte> ptr{memory_size};
-    SUBCASE("unique_ptr") { vector.emplace(ptr.release(), memory_size, 2); }
-    SUBCASE("span") { vector.emplace(cntgs::Span<std::byte>{ptr.ptr, memory_size}, 2); }
-    CHECK(vector);
-    vector->emplace_back(10u, 5.f);
-    auto&& [i, f] = (*vector)[0];
+    auto ptr = std::make_unique<std::byte[]>(memory_size);
+    Plain vector{cntgs::Span<std::byte>{ptr.get(), memory_size}, 2};
+    vector.emplace_back(10u, 5.f);
+    auto&& [i, f] = vector[0];
     CHECK_EQ(10u, i);
     CHECK_EQ(5.f, f);
 }
@@ -1274,32 +1267,34 @@ TEST_CASE("ContiguousTest: type_erase OneFixed and restore")
     vector.emplace_back(10u, FLOATS2);
     auto erased = cntgs::type_erase(std::move(vector));
     OneFixed restored;
-    SUBCASE("by lvalue reference") { restored = OneFixed{erased}; }
-    SUBCASE("by move") { restored = OneFixed{std::move(erased)}; }
+    SUBCASE("by lvalue reference") { restored = cntgs::restore<OneFixed>(erased); }
+    SUBCASE("by move") { restored = cntgs::restore<OneFixed>(std::move(erased)); }
     auto&& [i, e] = restored[0];
     CHECK_EQ(10u, i);
     CHECK(test::range_equal(FLOATS2, e));
 }
 
-TEST_CASE("ContiguousTest: type_erase OneFixed and restore and copy assign")
+TEST_CASE("ContiguousTest: type_erase OneFixed, restore and copy assign")
 {
-    cntgs::ContiguousVector<std::string> vector{2};
+    using Vector = cntgs::ContiguousVector<std::string>;
+    Vector vector{2};
     vector.emplace_back(STRING1);
     auto vector_copy{vector};
     vector_copy.emplace_back(STRING2);
     auto erased = cntgs::type_erase(std::move(vector));
-    cntgs::ContiguousVector<std::string> restored{erased};
+    auto restored = cntgs::restore<Vector>(erased);
     restored = vector_copy;
     auto&& [a] = restored.back();
     CHECK_EQ(STRING2, a);
 }
 
-TEST_CASE("ContiguousTest: type_erase empty OneFixed and restore and copy assign")
+TEST_CASE("ContiguousTest: type_erase empty OneFixed, restore and copy assign")
 {
-    cntgs::ContiguousVector<std::string> vector{0};
+    using Vector = cntgs::ContiguousVector<std::string>;
+    Vector vector{0};
     auto vector_copy{vector};
     auto erased = cntgs::type_erase(std::move(vector));
-    cntgs::ContiguousVector<std::string> restored{erased};
+    auto restored = cntgs::restore<Vector>(erased);
     restored = vector_copy;
     restored.reserve(1);
     restored.emplace_back(STRING1);
@@ -1309,14 +1304,15 @@ TEST_CASE("ContiguousTest: type_erase empty OneFixed and restore and copy assign
 
 TEST_CASE("ContiguousTest: std::string TypeErasedVector")
 {
-    cntgs::ContiguousVector<std::string> vector{2};
+    using Vector = cntgs::ContiguousVector<std::string>;
+    Vector vector{2};
     vector.emplace_back(STRING1);
     vector.emplace_back(STRING2);
     auto erased = cntgs::type_erase(std::move(vector));
     auto move_constructed_erased{std::move(erased)};
-    std::optional<cntgs::ContiguousVector<std::string>> restored;
-    SUBCASE("by move") { restored.emplace(std::move(move_constructed_erased)); }
-    SUBCASE("by lvalue reference") { restored.emplace(move_constructed_erased); }
+    std::optional<const Vector> restored;
+    SUBCASE("by lvalue reference") { restored.emplace(cntgs::restore<Vector>(move_constructed_erased)); }
+    SUBCASE("by move") { restored.emplace(cntgs::restore<Vector>(std::move(move_constructed_erased))); }
     auto&& [string_one] = (*restored)[0];
     CHECK_EQ(STRING1, string_one);
     auto&& [string_two] = (*restored)[1];

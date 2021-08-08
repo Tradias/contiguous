@@ -92,7 +92,7 @@ fill_vector(vector);
 
 cntgs::TypeErasedVector type_erased_vector = cntgs::type_erase(std::move(vector));
 
-Vector restored{std::move(type_erased_vector)};
+auto restored = cntgs::restore<Vector>(std::move(type_erased_vector));
 ```
 <sup><a href='/example/type-erased-vector.cpp#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-type-erased-vector' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->

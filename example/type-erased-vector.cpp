@@ -23,7 +23,7 @@ int main()
 
     cntgs::TypeErasedVector type_erased_vector = cntgs::type_erase(std::move(vector));
 
-    Vector restored{std::move(type_erased_vector)};
+    auto restored = cntgs::restore<Vector>(std::move(type_erased_vector));
     // end-snippet
 
     assert(1u == cntgs::get<0>(restored[0]).front());
