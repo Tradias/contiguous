@@ -125,7 +125,7 @@ class AllocatorAwarePointer
                 }
             }
             this->propagate_on_container_copy_assignment(other);
-            if (this->size() < other.size())
+            if (this->size() < other.size() || !this->get())
             {
                 this->deallocate();
                 this->size() = other.size();
@@ -166,7 +166,7 @@ class AllocatorAwarePointer
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
 
-    constexpr auto reset(AllocatorAwarePointer&& other) noexcept
+    constexpr void reset(AllocatorAwarePointer&& other) noexcept
     {
         this->deallocate();
         this->get() = other.release();
@@ -204,7 +204,16 @@ class MaybeOwnedAllocatorAwarePointer
 
     MaybeOwnedAllocatorAwarePointer(MaybeOwnedAllocatorAwarePointer&& other) = default;
 
-    MaybeOwnedAllocatorAwarePointer& operator=(const MaybeOwnedAllocatorAwarePointer& other) = default;
+    MaybeOwnedAllocatorAwarePointer& operator=(const MaybeOwnedAllocatorAwarePointer& other)
+    {
+        if (this != std::addressof(other))
+        {
+            this->release_ptr_if_not_owned();
+            this->ptr = other.ptr;
+            this->owned = other.owned;
+        }
+        return *this;
+    }
 
     constexpr MaybeOwnedAllocatorAwarePointer& operator=(MaybeOwnedAllocatorAwarePointer&& other) noexcept
     {
@@ -237,7 +246,7 @@ class MaybeOwnedAllocatorAwarePointer
 
     constexpr decltype(auto) get_allocator() const noexcept { return this->ptr.get_allocator(); }
 
-    constexpr auto reset(StorageType&& other) noexcept
+    constexpr void reset(StorageType&& other) noexcept
     {
         this->ptr.reset(std::move(other));
         this->owned = true;
