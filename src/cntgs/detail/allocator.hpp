@@ -175,94 +175,6 @@ class AllocatorAwarePointer
 };
 
 template <class Allocator>
-class MaybeOwnedAllocatorAwarePointer
-{
-  public:
-    using StorageType = detail::AllocatorAwarePointer<Allocator>;
-
-    using allocator_type = typename StorageType::allocator_type;
-    using pointer = typename StorageType::pointer;
-    using value_type = typename StorageType::value_type;
-
-    StorageType ptr{};
-    bool owned{};
-
-    MaybeOwnedAllocatorAwarePointer() = default;
-
-    constexpr MaybeOwnedAllocatorAwarePointer(pointer ptr, std::size_t size, bool is_owned,
-                                              const allocator_type& allocator) noexcept
-        : ptr(ptr, size, allocator), owned(is_owned)
-    {
-    }
-
-    constexpr MaybeOwnedAllocatorAwarePointer(std::size_t size, const allocator_type& allocator) noexcept
-        : ptr(size, allocator), owned(true)
-    {
-    }
-
-    MaybeOwnedAllocatorAwarePointer(const MaybeOwnedAllocatorAwarePointer& other) = default;
-
-    MaybeOwnedAllocatorAwarePointer(MaybeOwnedAllocatorAwarePointer&& other) = default;
-
-    MaybeOwnedAllocatorAwarePointer& operator=(const MaybeOwnedAllocatorAwarePointer& other)
-    {
-        if (this != std::addressof(other))
-        {
-            this->release_ptr_if_not_owned();
-            this->ptr = other.ptr;
-            this->owned = other.owned;
-        }
-        return *this;
-    }
-
-    constexpr MaybeOwnedAllocatorAwarePointer& operator=(MaybeOwnedAllocatorAwarePointer&& other) noexcept
-    {
-        if (this != std::addressof(other))
-        {
-            this->release_ptr_if_not_owned();
-            this->ptr = std::move(other.ptr);
-            this->owned = other.owned;
-        }
-        return *this;
-    }
-
-#if __cpp_constexpr_dynamic_alloc
-    constexpr
-#endif
-        ~MaybeOwnedAllocatorAwarePointer() noexcept
-    {
-        this->release_ptr_if_not_owned();
-    }
-
-    constexpr decltype(auto) get() const noexcept { return this->ptr.get(); }
-
-    constexpr decltype(auto) size() const noexcept { return this->ptr.size(); }
-
-    constexpr bool is_owned() const noexcept { return this->owned; }
-
-    explicit constexpr operator bool() const noexcept { return bool(this->ptr); }
-
-    constexpr decltype(auto) release() noexcept { return this->ptr.release(); }
-
-    constexpr decltype(auto) get_allocator() const noexcept { return this->ptr.get_allocator(); }
-
-    constexpr void reset(StorageType&& other) noexcept
-    {
-        this->ptr.reset(std::move(other));
-        this->owned = true;
-    }
-
-  private:
-    constexpr void release_ptr_if_not_owned() noexcept
-    {
-        if (!this->owned)
-        {
-            (void)this->ptr.release();
-        }
-    }
-};
-
-template <class Allocator>
 constexpr void swap(detail::AllocatorAwarePointer<Allocator>& lhs,
                     detail::AllocatorAwarePointer<Allocator>& rhs) noexcept
 {
@@ -273,14 +185,6 @@ constexpr void swap(detail::AllocatorAwarePointer<Allocator>& lhs,
     }
     swap(lhs.get(), rhs.get());
     swap(lhs.size(), rhs.size());
-}
-
-template <class Allocator>
-constexpr void swap(detail::MaybeOwnedAllocatorAwarePointer<Allocator>& lhs,
-                    detail::MaybeOwnedAllocatorAwarePointer<Allocator>& rhs) noexcept
-{
-    detail::swap(lhs.ptr, rhs.ptr);
-    std::swap(lhs.owned, rhs.owned);
 }
 
 template <class T>

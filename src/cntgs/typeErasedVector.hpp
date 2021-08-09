@@ -27,14 +27,14 @@ class TypeErasedVector
     void (*destructor)(cntgs::TypeErasedVector&);
     detail::TypeErasedAllocator allocator;
 
-    TypeErasedVector(std::size_t memory_size, std::size_t max_element_count, std::byte* memory, bool is_memory_owned,
+    TypeErasedVector(std::size_t memory_size, std::size_t max_element_count, std::byte* memory,
                      const detail::TypeErasedAllocator& allocator,
                      const detail::Array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>& fixed_sizes,
                      detail::TypeErasedElementLocator locator, void (*destructor)(cntgs::TypeErasedVector&)) noexcept
         : memory_size(memory_size),
           max_element_count(max_element_count),
           memory(memory),
-          is_memory_owned(is_memory_owned),
+          is_memory_owned(true),
           fixed_sizes(fixed_sizes),
           locator(locator),
           destructor(destructor),

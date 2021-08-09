@@ -1239,35 +1239,12 @@ TEST_CASE("ContiguousTest: TwoVarying erase(Iterator, Iterator)")
     }
 }
 
-TEST_CASE("ContiguousTest: OneFixed construct with span")
-{
-    const auto memory_size = 2 * (sizeof(uint32_t) + 2 * sizeof(float));
-    auto ptr = std::make_unique<std::byte[]>(memory_size);
-    OneFixed vector{cntgs::Span<std::byte>{ptr.get(), memory_size}, 2, std::array{FLOATS1.size()}};
-    vector.emplace_back(10u, FLOATS1);
-    auto&& [i, e] = vector[0];
-    CHECK_EQ(10u, i);
-    CHECK(test::range_equal(FLOATS1, e));
-}
-
-TEST_CASE("ContiguousTest: Plain construct with span")
-{
-    const auto memory_size = 2 * (sizeof(uint32_t) + sizeof(float));
-    auto ptr = std::make_unique<std::byte[]>(memory_size);
-    Plain vector{cntgs::Span<std::byte>{ptr.get(), memory_size}, 2};
-    vector.emplace_back(10u, 5.f);
-    auto&& [i, f] = vector[0];
-    CHECK_EQ(10u, i);
-    CHECK_EQ(5.f, f);
-}
-
 TEST_CASE("ContiguousTest: type_erase OneFixed and restore")
 {
     OneFixed vector{2, {FLOATS2.size()}};
     vector.emplace_back(10u, FLOATS2);
     auto erased = cntgs::type_erase(std::move(vector));
     OneFixed restored;
-    SUBCASE("by lvalue reference") { restored = cntgs::restore<OneFixed>(erased); }
     SUBCASE("by move") { restored = cntgs::restore<OneFixed>(std::move(erased)); }
     auto&& [i, e] = restored[0];
     CHECK_EQ(10u, i);
@@ -1310,8 +1287,7 @@ TEST_CASE("ContiguousTest: std::string TypeErasedVector")
     vector.emplace_back(STRING2);
     auto erased = cntgs::type_erase(std::move(vector));
     auto move_constructed_erased{std::move(erased)};
-    std::optional<const Vector> restored;
-    SUBCASE("by lvalue reference") { restored.emplace(cntgs::restore<Vector>(move_constructed_erased)); }
+    std::optional<Vector> restored;
     SUBCASE("by move") { restored.emplace(cntgs::restore<Vector>(std::move(move_constructed_erased))); }
     auto&& [string_one] = (*restored)[0];
     CHECK_EQ(STRING1, string_one);
@@ -1403,16 +1379,6 @@ TEST_CASE("ContiguousTest: OneFixed constinit")
         v.reserve(2);
         v.emplace_back(10u, FLOATS1);
         check_size1_and_capacity2(v);
-    }
-    SUBCASE("from mutable std::array")
-    {
-        static constinit std::array<std::byte, 12> MEM{};
-        static constinit OneFixed v{cntgs::Span{MEM.data(), MEM.size()}, 2, {2}};
-        v.emplace_back(10u, FLOATS1);
-        check_size1_and_capacity2(v);
-        auto&& [a, b] = v[0];
-        CHECK_EQ(10u, a);
-        CHECK(test::range_equal(FLOATS1, b));
     }
     SUBCASE("constexpr")
     {

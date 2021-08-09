@@ -913,94 +913,6 @@ class AllocatorAwarePointer
 };
 
 template <class Allocator>
-class MaybeOwnedAllocatorAwarePointer
-{
-  public:
-    using StorageType = detail::AllocatorAwarePointer<Allocator>;
-
-    using allocator_type = typename StorageType::allocator_type;
-    using pointer = typename StorageType::pointer;
-    using value_type = typename StorageType::value_type;
-
-    StorageType ptr{};
-    bool owned{};
-
-    MaybeOwnedAllocatorAwarePointer() = default;
-
-    constexpr MaybeOwnedAllocatorAwarePointer(pointer ptr, std::size_t size, bool is_owned,
-                                              const allocator_type& allocator) noexcept
-        : ptr(ptr, size, allocator), owned(is_owned)
-    {
-    }
-
-    constexpr MaybeOwnedAllocatorAwarePointer(std::size_t size, const allocator_type& allocator) noexcept
-        : ptr(size, allocator), owned(true)
-    {
-    }
-
-    MaybeOwnedAllocatorAwarePointer(const MaybeOwnedAllocatorAwarePointer& other) = default;
-
-    MaybeOwnedAllocatorAwarePointer(MaybeOwnedAllocatorAwarePointer&& other) = default;
-
-    MaybeOwnedAllocatorAwarePointer& operator=(const MaybeOwnedAllocatorAwarePointer& other)
-    {
-        if (this != std::addressof(other))
-        {
-            this->release_ptr_if_not_owned();
-            this->ptr = other.ptr;
-            this->owned = other.owned;
-        }
-        return *this;
-    }
-
-    constexpr MaybeOwnedAllocatorAwarePointer& operator=(MaybeOwnedAllocatorAwarePointer&& other) noexcept
-    {
-        if (this != std::addressof(other))
-        {
-            this->release_ptr_if_not_owned();
-            this->ptr = std::move(other.ptr);
-            this->owned = other.owned;
-        }
-        return *this;
-    }
-
-#if __cpp_constexpr_dynamic_alloc
-    constexpr
-#endif
-        ~MaybeOwnedAllocatorAwarePointer() noexcept
-    {
-        this->release_ptr_if_not_owned();
-    }
-
-    constexpr decltype(auto) get() const noexcept { return this->ptr.get(); }
-
-    constexpr decltype(auto) size() const noexcept { return this->ptr.size(); }
-
-    constexpr bool is_owned() const noexcept { return this->owned; }
-
-    explicit constexpr operator bool() const noexcept { return bool(this->ptr); }
-
-    constexpr decltype(auto) release() noexcept { return this->ptr.release(); }
-
-    constexpr decltype(auto) get_allocator() const noexcept { return this->ptr.get_allocator(); }
-
-    constexpr void reset(StorageType&& other) noexcept
-    {
-        this->ptr.reset(std::move(other));
-        this->owned = true;
-    }
-
-  private:
-    constexpr void release_ptr_if_not_owned() noexcept
-    {
-        if (!this->owned)
-        {
-            (void)this->ptr.release();
-        }
-    }
-};
-
-template <class Allocator>
 constexpr void swap(detail::AllocatorAwarePointer<Allocator>& lhs,
                     detail::AllocatorAwarePointer<Allocator>& rhs) noexcept
 {
@@ -1011,14 +923,6 @@ constexpr void swap(detail::AllocatorAwarePointer<Allocator>& lhs,
     }
     swap(lhs.get(), rhs.get());
     swap(lhs.size(), rhs.size());
-}
-
-template <class Allocator>
-constexpr void swap(detail::MaybeOwnedAllocatorAwarePointer<Allocator>& lhs,
-                    detail::MaybeOwnedAllocatorAwarePointer<Allocator>& rhs) noexcept
-{
-    detail::swap(lhs.ptr, rhs.ptr);
-    std::swap(lhs.owned, rhs.owned);
 }
 
 template <class T>
@@ -3380,14 +3284,14 @@ class TypeErasedVector
     void (*destructor)(cntgs::TypeErasedVector&);
     detail::TypeErasedAllocator allocator;
 
-    TypeErasedVector(std::size_t memory_size, std::size_t max_element_count, std::byte* memory, bool is_memory_owned,
+    TypeErasedVector(std::size_t memory_size, std::size_t max_element_count, std::byte* memory,
                      const detail::TypeErasedAllocator& allocator,
                      const detail::Array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>& fixed_sizes,
                      detail::TypeErasedElementLocator locator, void (*destructor)(cntgs::TypeErasedVector&)) noexcept
         : memory_size(memory_size),
           max_element_count(max_element_count),
           memory(memory),
-          is_memory_owned(is_memory_owned),
+          is_memory_owned(true),
           fixed_sizes(fixed_sizes),
           locator(locator),
           destructor(destructor),
@@ -3507,8 +3411,7 @@ class BasicContiguousVector
     using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
-    using StorageType =
-        detail::MaybeOwnedAllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
+    using StorageType = detail::AllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
     using FixedSizes = typename ListTraits::FixedSizes;
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
 
@@ -3555,15 +3458,6 @@ class BasicContiguousVector
     {
     }
 
-    template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    constexpr BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                                    const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
-                                    std::enable_if_t<IsAllFixedSize>* = nullptr) noexcept
-        : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, fixed_sizes,
-                                allocator)
-    {
-    }
-
     template <bool IsAllVaryingSize = IS_ALL_VARYING_SIZE>
     BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
                           const allocator_type& allocator = {}, std::enable_if_t<IsAllVaryingSize>* = nullptr)
@@ -3581,15 +3475,6 @@ class BasicContiguousVector
     constexpr BasicContiguousVector(size_type max_element_count, const allocator_type& allocator,
                                     std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator)
-    {
-    }
-
-    template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    constexpr BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                                    const allocator_type& allocator = {},
-                                    std::enable_if_t<IsNoneSpecial>* = nullptr) noexcept
-        : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, FixedSizes{},
-                                allocator)
     {
     }
 
@@ -3806,23 +3691,14 @@ class BasicContiguousVector
     {
     }
 
-    BasicContiguousVector(const cntgs::TypeErasedVector& vector, bool is_memory_owned) noexcept
+    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
         : max_element_count(vector.max_element_count),
-          memory(vector.memory, vector.memory_size, is_memory_owned,
-                 *std::launder(reinterpret_cast<const allocator_type*>(&vector.allocator))),
-          locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)),
+          memory(vector.memory, vector.memory_size,
+                 *std::launder(reinterpret_cast<allocator_type*>(&vector.allocator))),
+          locator(*std::launder(reinterpret_cast<ElementLocator*>(&vector.locator)),
                   detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
     {
-    }
-
-    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : BasicContiguousVector(vector, std::exchange(vector.is_memory_owned.value, false))
-    {
-    }
-
-    explicit BasicContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
-        : BasicContiguousVector(vector, false)
-    {
+        vector.is_memory_owned.value = false;
     }
 
     [[nodiscard]] static constexpr auto calculate_needed_memory_size(size_type max_element_count,
@@ -3838,7 +3714,7 @@ class BasicContiguousVector
     {
         const auto new_memory_size = this->locator->calculate_new_memory_size(
             new_max_element_count, new_varying_size_bytes, this->locator.fixed_sizes());
-        typename StorageType::StorageType new_memory{new_memory_size, this->get_allocator()};
+        StorageType new_memory{new_memory_size, this->get_allocator()};
         BasicContiguousVector::insert_into<true, true>(*this->locator, new_max_element_count, new_memory.get(), *this);
         this->max_element_count = new_max_element_count;
         this->memory.reset(std::move(new_memory));
@@ -4014,7 +3890,7 @@ class BasicContiguousVector
 
     constexpr void destruct_if_owned() noexcept
     {
-        if (this->memory && this->memory.is_owned())
+        if (this->memory)
         {
             this->destruct();
         }
@@ -4047,23 +3923,17 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, Types...>&& vector) noex
         vector.memory.size(),
         vector.max_element_count,
         vector.memory.release(),
-        vector.memory.is_owned(),
         detail::type_erase_allocator(vector.get_allocator()),
         detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes()),
         detail::type_erase_element_locator(*vector.locator),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
-            detail::ContiguousVectorAccess<cntgs::BasicContiguousVector<Allocator, Types...>>::construct(
-                std::move(erased));
+            if (erased.is_memory_owned.value)
+            {
+                detail::ContiguousVectorAccess<cntgs::BasicContiguousVector<Allocator, Types...>>::construct(
+                    std::move(erased));
+            }
         }};
-}
-
-template <class Vector>
-auto restore(const cntgs::TypeErasedVector& vector) noexcept
-    -> detail::ConditionalT<detail::ContiguousVectorAccess<Vector>::ListTraits::IS_TRIVIALLY_DESTRUCTIBLE, Vector,
-                            std::add_const_t<Vector>>
-{
-    return detail::ContiguousVectorAccess<Vector>::construct(vector);
 }
 
 template <class Vector>

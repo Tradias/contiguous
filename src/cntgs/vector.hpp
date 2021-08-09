@@ -53,8 +53,7 @@ class BasicContiguousVector
     using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
-    using StorageType =
-        detail::MaybeOwnedAllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
+    using StorageType = detail::AllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
     using FixedSizes = typename ListTraits::FixedSizes;
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
 
@@ -101,15 +100,6 @@ class BasicContiguousVector
     {
     }
 
-    template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
-    constexpr BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                                    const FixedSizes& fixed_sizes, const allocator_type& allocator = {},
-                                    std::enable_if_t<IsAllFixedSize>* = nullptr) noexcept
-        : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, fixed_sizes,
-                                allocator)
-    {
-    }
-
     template <bool IsAllVaryingSize = IS_ALL_VARYING_SIZE>
     BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
                           const allocator_type& allocator = {}, std::enable_if_t<IsAllVaryingSize>* = nullptr)
@@ -127,15 +117,6 @@ class BasicContiguousVector
     constexpr BasicContiguousVector(size_type max_element_count, const allocator_type& allocator,
                                     std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator)
-    {
-    }
-
-    template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    constexpr BasicContiguousVector(cntgs::Span<std::byte> mutable_view, size_type max_element_count,
-                                    const allocator_type& allocator = {},
-                                    std::enable_if_t<IsNoneSpecial>* = nullptr) noexcept
-        : BasicContiguousVector(mutable_view.data(), mutable_view.size(), false, max_element_count, FixedSizes{},
-                                allocator)
     {
     }
 
@@ -352,23 +333,14 @@ class BasicContiguousVector
     {
     }
 
-    BasicContiguousVector(const cntgs::TypeErasedVector& vector, bool is_memory_owned) noexcept
+    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
         : max_element_count(vector.max_element_count),
-          memory(vector.memory, vector.memory_size, is_memory_owned,
-                 *std::launder(reinterpret_cast<const allocator_type*>(&vector.allocator))),
-          locator(*std::launder(reinterpret_cast<const ElementLocator*>(&vector.locator)),
+          memory(vector.memory, vector.memory_size,
+                 *std::launder(reinterpret_cast<allocator_type*>(&vector.allocator))),
+          locator(*std::launder(reinterpret_cast<ElementLocator*>(&vector.locator)),
                   detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
     {
-    }
-
-    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : BasicContiguousVector(vector, std::exchange(vector.is_memory_owned.value, false))
-    {
-    }
-
-    explicit BasicContiguousVector(const cntgs::TypeErasedVector& vector) noexcept
-        : BasicContiguousVector(vector, false)
-    {
+        vector.is_memory_owned.value = false;
     }
 
     [[nodiscard]] static constexpr auto calculate_needed_memory_size(size_type max_element_count,
@@ -384,7 +356,7 @@ class BasicContiguousVector
     {
         const auto new_memory_size = this->locator->calculate_new_memory_size(
             new_max_element_count, new_varying_size_bytes, this->locator.fixed_sizes());
-        typename StorageType::StorageType new_memory{new_memory_size, this->get_allocator()};
+        StorageType new_memory{new_memory_size, this->get_allocator()};
         BasicContiguousVector::insert_into<true, true>(*this->locator, new_max_element_count, new_memory.get(), *this);
         this->max_element_count = new_max_element_count;
         this->memory.reset(std::move(new_memory));
@@ -560,7 +532,7 @@ class BasicContiguousVector
 
     constexpr void destruct_if_owned() noexcept
     {
-        if (this->memory && this->memory.is_owned())
+        if (this->memory)
         {
             this->destruct();
         }
@@ -593,23 +565,17 @@ auto type_erase(cntgs::BasicContiguousVector<Allocator, Types...>&& vector) noex
         vector.memory.size(),
         vector.max_element_count,
         vector.memory.release(),
-        vector.memory.is_owned(),
         detail::type_erase_allocator(vector.get_allocator()),
         detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes()),
         detail::type_erase_element_locator(*vector.locator),
         []([[maybe_unused]] cntgs::TypeErasedVector& erased)
         {
-            detail::ContiguousVectorAccess<cntgs::BasicContiguousVector<Allocator, Types...>>::construct(
-                std::move(erased));
+            if (erased.is_memory_owned.value)
+            {
+                detail::ContiguousVectorAccess<cntgs::BasicContiguousVector<Allocator, Types...>>::construct(
+                    std::move(erased));
+            }
         }};
-}
-
-template <class Vector>
-auto restore(const cntgs::TypeErasedVector& vector) noexcept
-    -> detail::ConditionalT<detail::ContiguousVectorAccess<Vector>::ListTraits::IS_TRIVIALLY_DESTRUCTIBLE, Vector,
-                            std::add_const_t<Vector>>
-{
-    return detail::ContiguousVectorAccess<Vector>::construct(vector);
 }
 
 template <class Vector>
