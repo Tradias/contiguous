@@ -24,21 +24,27 @@ class TypeErasedVector
     detail::MoveDefaultingValue<bool> is_memory_owned;
     detail::Array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER> fixed_sizes;
     detail::TypeErasedElementLocator locator;
-    void (*destructor)(cntgs::TypeErasedVector&);
     detail::TypeErasedAllocator allocator;
+    void (*destructor)(cntgs::TypeErasedVector&);
 
-    TypeErasedVector(std::size_t memory_size, std::size_t max_element_count, std::byte* memory,
-                     const detail::TypeErasedAllocator& allocator,
-                     const detail::Array<std::size_t, detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>& fixed_sizes,
-                     detail::TypeErasedElementLocator locator, void (*destructor)(cntgs::TypeErasedVector&)) noexcept
-        : memory_size(memory_size),
-          max_element_count(max_element_count),
-          memory(memory),
+    template <class Allocator, class... Types>
+    TypeErasedVector(cntgs::BasicContiguousVector<Allocator, Types...>&& vector) noexcept
+        : memory_size(vector.memory.size()),
+          max_element_count(vector.max_element_count),
+          memory(vector.memory.release()),
           is_memory_owned(true),
-          fixed_sizes(fixed_sizes),
-          locator(locator),
-          destructor(destructor),
-          allocator(allocator)
+          fixed_sizes(
+              detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes())),
+          locator(detail::type_erase_element_locator(*vector.locator)),
+          allocator(detail::type_erase_allocator(vector.get_allocator())),
+          destructor(
+              []([[maybe_unused]] cntgs::TypeErasedVector& erased)
+              {
+                  if (erased.is_memory_owned.value)
+                  {
+                      cntgs::BasicContiguousVector<Allocator, Types...>(std::move(erased));
+                  }
+              })
     {
     }
 

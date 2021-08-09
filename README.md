@@ -90,9 +90,9 @@ using Vector = cntgs::ContiguousVector<cntgs::FixedSize<float>,  //
 Vector vector{1, 2 * sizeof(uint32_t), {1}};
 fill_vector(vector);
 
-cntgs::TypeErasedVector type_erased_vector = cntgs::type_erase(std::move(vector));
+cntgs::TypeErasedVector type_erased_vector{std::move(vector)};
 
-auto restored = cntgs::restore<Vector>(std::move(type_erased_vector));
+Vector restored{std::move(type_erased_vector)};
 ```
 <sup><a href='/example/type-erased-vector.cpp#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-type-erased-vector' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->

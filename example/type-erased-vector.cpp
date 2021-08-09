@@ -21,9 +21,9 @@ int main()
     Vector vector{1, 2 * sizeof(uint32_t), {1}};
     fill_vector(vector);
 
-    cntgs::TypeErasedVector type_erased_vector = cntgs::type_erase(std::move(vector));
+    cntgs::TypeErasedVector type_erased_vector{std::move(vector)};
 
-    auto restored = cntgs::restore<Vector>(std::move(type_erased_vector));
+    Vector restored{std::move(type_erased_vector)};
     // end-snippet
 
     assert(1u == cntgs::get<0>(restored[0]).front());

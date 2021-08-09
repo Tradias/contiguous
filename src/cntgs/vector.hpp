@@ -120,6 +120,16 @@ class BasicContiguousVector
     {
     }
 
+    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
+        : max_element_count(vector.max_element_count),
+          memory(vector.memory, vector.memory_size,
+                 *std::launder(reinterpret_cast<allocator_type*>(&vector.allocator))),
+          locator(*std::launder(reinterpret_cast<ElementLocator*>(&vector.locator)),
+                  detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
+    {
+        vector.is_memory_owned.value = false;
+    }
+
     BasicContiguousVector(const BasicContiguousVector& other)
         : max_element_count(other.max_element_count), memory(other.memory), locator(this->copy_construct_locator(other))
     {
@@ -331,16 +341,6 @@ class BasicContiguousVector
               allocator),
           locator(max_element_count, this->memory.get(), FixedSizesArray{fixed_sizes})
     {
-    }
-
-    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : max_element_count(vector.max_element_count),
-          memory(vector.memory, vector.memory_size,
-                 *std::launder(reinterpret_cast<allocator_type*>(&vector.allocator))),
-          locator(*std::launder(reinterpret_cast<ElementLocator*>(&vector.locator)),
-                  detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
-    {
-        vector.is_memory_owned.value = false;
     }
 
     [[nodiscard]] static constexpr auto calculate_needed_memory_size(size_type max_element_count,
@@ -556,32 +556,6 @@ constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
     std::swap(lhs.max_element_count, rhs.max_element_count);
     detail::swap(lhs.memory, rhs.memory);
     std::swap(lhs.locator, rhs.locator);
-}
-
-template <class Allocator, class... Types>
-auto type_erase(cntgs::BasicContiguousVector<Allocator, Types...>&& vector) noexcept
-{
-    return cntgs::TypeErasedVector{
-        vector.memory.size(),
-        vector.max_element_count,
-        vector.memory.release(),
-        detail::type_erase_allocator(vector.get_allocator()),
-        detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes()),
-        detail::type_erase_element_locator(*vector.locator),
-        []([[maybe_unused]] cntgs::TypeErasedVector& erased)
-        {
-            if (erased.is_memory_owned.value)
-            {
-                detail::ContiguousVectorAccess<cntgs::BasicContiguousVector<Allocator, Types...>>::construct(
-                    std::move(erased));
-            }
-        }};
-}
-
-template <class Vector>
-auto restore(cntgs::TypeErasedVector&& vector) noexcept
-{
-    return detail::ContiguousVectorAccess<Vector>::construct(std::move(vector));
 }
 }  // namespace cntgs
 

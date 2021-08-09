@@ -1239,13 +1239,13 @@ TEST_CASE("ContiguousTest: TwoVarying erase(Iterator, Iterator)")
     }
 }
 
-TEST_CASE("ContiguousTest: type_erase OneFixed and restore")
+TEST_CASE("ContiguousTest: type_erase OneFixed and restore and move assign")
 {
     OneFixed vector{2, {FLOATS2.size()}};
     vector.emplace_back(10u, FLOATS2);
-    auto erased = cntgs::type_erase(std::move(vector));
+    cntgs::TypeErasedVector erased{std::move(vector)};
     OneFixed restored;
-    SUBCASE("by move") { restored = cntgs::restore<OneFixed>(std::move(erased)); }
+    restored = OneFixed(std::move(erased));
     auto&& [i, e] = restored[0];
     CHECK_EQ(10u, i);
     CHECK(test::range_equal(FLOATS2, e));
@@ -1258,8 +1258,8 @@ TEST_CASE("ContiguousTest: type_erase OneFixed, restore and copy assign")
     vector.emplace_back(STRING1);
     auto vector_copy{vector};
     vector_copy.emplace_back(STRING2);
-    auto&& erased = cntgs::type_erase(std::move(vector));
-    auto&& restored = cntgs::restore<Vector>(std::move(erased));
+    cntgs::TypeErasedVector erased{std::move(vector)};
+    Vector restored{std::move(erased)};
     restored = vector_copy;
     auto&& [a] = restored.back();
     CHECK_EQ(STRING2, a);
@@ -1270,8 +1270,8 @@ TEST_CASE("ContiguousTest: type_erase empty OneFixed, restore and copy assign")
     using Vector = cntgs::ContiguousVector<std::string>;
     Vector vector{0};
     auto vector_copy{vector};
-    auto&& erased = cntgs::type_erase(std::move(vector));
-    auto&& restored = cntgs::restore<Vector>(std::move(erased));
+    cntgs::TypeErasedVector erased{std::move(vector)};
+    Vector restored{std::move(erased)};
     restored = vector_copy;
     restored.reserve(1);
     restored.emplace_back(STRING1);
@@ -1285,13 +1285,12 @@ TEST_CASE("ContiguousTest: std::string TypeErasedVector")
     Vector vector{2};
     vector.emplace_back(STRING1);
     vector.emplace_back(STRING2);
-    auto erased = cntgs::type_erase(std::move(vector));
+    cntgs::TypeErasedVector erased{std::move(vector)};
     auto move_constructed_erased{std::move(erased)};
-    std::optional<Vector> restored;
-    SUBCASE("by move") { restored.emplace(cntgs::restore<Vector>(std::move(move_constructed_erased))); }
-    auto&& [string_one] = (*restored)[0];
+    Vector restored{std::move(move_constructed_erased)};
+    auto&& [string_one] = restored[0];
     CHECK_EQ(STRING1, string_one);
-    auto&& [string_two] = (*restored)[1];
+    auto&& [string_two] = restored[1];
     CHECK_EQ(STRING2, string_two);
 }
 
