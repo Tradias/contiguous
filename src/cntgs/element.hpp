@@ -45,8 +45,6 @@ class BasicContiguousElement
     StorageType memory;
     Reference reference;
 
-    BasicContiguousElement() = default;
-
     template <bool IsConst>
     /*implicit*/ BasicContiguousElement(const cntgs::BasicContiguousReference<IsConst, Types...>& other,
                                         const allocator_type& allocator = {})
@@ -89,40 +87,26 @@ class BasicContiguousElement
     }
 
     template <class OtherAllocator>
-    constexpr BasicContiguousElement(BasicContiguousElement<OtherAllocator, Types...>&& other,
-                                     const allocator_type& allocator)
+    constexpr BasicContiguousElement(
+        BasicContiguousElement<OtherAllocator, Types...>&& other,
+        const allocator_type& allocator) noexcept(detail::AreEqualityComparable<allocator_type, OtherAllocator>::value&&
+                                                      AllocatorTraits::is_always_equal::value)
         : memory(this->acquire_memory(other, allocator)), reference(this->acquire_reference(other, allocator))
     {
     }
 
     ~BasicContiguousElement() noexcept { this->destruct(); }
 
-    BasicContiguousElement& operator=(const BasicContiguousElement& other) noexcept(
-        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    BasicContiguousElement& operator=(const BasicContiguousElement& other)
     {
-        this->reference = other.reference;
+        this->copy_assign(other);
         return *this;
     }
 
-    template <class OtherAllocator>
-    BasicContiguousElement& operator=(const BasicContiguousElement<OtherAllocator, Types...>& other) noexcept(
-        ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
+    BasicContiguousElement& operator=(BasicContiguousElement&& other) noexcept(
+        AllocatorTraits::is_always_equal::value || AllocatorTraits::propagate_on_container_move_assignment::value)
     {
-        this->reference = other.reference;
-        return *this;
-    }
-
-    BasicContiguousElement& operator=(BasicContiguousElement&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
-    {
-        this->reference = std::move(other.reference);
-        return *this;
-    }
-
-    template <class OtherAllocator>
-    BasicContiguousElement& operator=(BasicContiguousElement<OtherAllocator, Types...>&& other) noexcept(
-        ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
-    {
-        this->reference = std::move(other.reference);
+        this->move_assign(std::move(other));
         return *this;
     }
 
@@ -226,12 +210,17 @@ class BasicContiguousElement
     template <class SourceReference>
     auto store_and_load(SourceReference& source, std::size_t memory_size) const
     {
+        return this->store_and_load(source, memory_size, this->memory_begin());
+    }
+
+    template <class SourceReference>
+    auto store_and_load(SourceReference& source, std::size_t memory_size, std::byte* target_memory) const
+    {
         static constexpr auto USE_MOVE = !std::is_const_v<SourceReference> && !SourceReference::IS_CONST;
-        const auto begin = this->memory_begin();
-        std::memcpy(begin, source.data_begin(), memory_size);
+        std::memcpy(target_memory, source.data_begin(), memory_size);
         auto target =
             ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentNeeds,
-                                                    detail::ContiguousReferenceSizeGetter>(begin, source.tuple);
+                                                    detail::ContiguousReferenceSizeGetter>(target_memory, source.tuple);
         ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
         return Reference{target};
     }
@@ -241,12 +230,19 @@ class BasicContiguousElement
     {
         if constexpr (detail::AreEqualityComparable<allocator_type, OtherAllocator>::value)
         {
-            if (allocator == other.memory.get_allocator())
+            if constexpr (AllocatorTraits::is_always_equal::value)
             {
                 return std::move(other.memory);
             }
+            else
+            {
+                if (allocator == other.memory.get_allocator())
+                {
+                    return std::move(other.memory);
+                }
+            }
         }
-        return StorageType(other.reference.size_in_bytes(), allocator);
+        return StorageType(other.memory.size(), allocator);
     }
 
     template <class OtherAllocator>
@@ -255,18 +251,110 @@ class BasicContiguousElement
     {
         if constexpr (detail::AreEqualityComparable<allocator_type, OtherAllocator>::value)
         {
-            if (allocator == other.memory.get_allocator())
+            if constexpr (AllocatorTraits::is_always_equal::value)
             {
                 return std::move(other.reference);
             }
+            else
+            {
+                if (allocator == other.memory.get_allocator())
+                {
+                    return std::move(other.reference);
+                }
+            }
         }
-        return this->store_and_load(other.reference, other.reference.size_in_bytes());
+        return this->store_and_load(other.reference, other.memory.size());
     }
 
-    auto memory_begin() const noexcept
+    auto memory_begin() const noexcept { return BasicContiguousElement::memory_begin(this->memory); }
+
+    static auto memory_begin(const StorageType& memory) noexcept
     {
         return detail::assume_aligned<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(
-            reinterpret_cast<std::byte*>(this->memory.get()));
+            reinterpret_cast<std::byte*>(memory.get()));
+    }
+
+    template <class OtherAllocator>
+    void copy_assign(const BasicContiguousElement<OtherAllocator, Types...>& other)
+    {
+        if (this != std::addressof(other))
+        {
+            if constexpr (ListTraits::IS_FIXED_SIZE_OR_PLAIN &&
+                          (!AllocatorTraits::propagate_on_container_copy_assignment::value ||
+                           AllocatorTraits::is_always_equal::value))
+            {
+                this->reference = other.reference;
+                this->memory.propagate_on_container_copy_assignment(other.memory);
+            }
+            else
+            {
+                this->destruct();
+                this->memory = other.memory;
+                this->store_and_construct_reference_inplace(other.reference, other.memory.size());
+            }
+        }
+    }
+
+    template <class OtherAllocator>
+    constexpr void steal(BasicContiguousElement<OtherAllocator, Types...>&& other) noexcept
+    {
+        this->destruct();
+        this->memory = std::move(other.memory);
+        detail::construct_at(std::addressof(this->reference), std::move(other.reference));
+    }
+
+    template <class OtherAllocator>
+    constexpr void move_assign(BasicContiguousElement<OtherAllocator, Types...>&& other)
+    {
+        if (this == std::addressof(other))
+        {
+            return;
+        }
+        if constexpr (AllocatorTraits::is_always_equal::value ||
+                      AllocatorTraits::propagate_on_container_move_assignment::value)
+        {
+            this->steal(std::move(other));
+        }
+        else
+        {
+            if (this->get_allocator() == other.get_allocator())
+            {
+                this->steal(std::move(other));
+            }
+            else
+            {
+                if constexpr (ListTraits::IS_FIXED_SIZE_OR_PLAIN)
+                {
+                    this->reference = std::move(other.reference);
+                    this->memory.propagate_on_container_move_assignment(other.memory);
+                }
+                else
+                {
+                    const auto other_size_in_bytes = other.reference.size_in_bytes();
+                    if (other_size_in_bytes > this->memory.size())
+                    {
+                        // allocate memory first because it might throw
+                        StorageType new_memory{other.memory.size(), this->get_allocator()};
+                        this->destruct();
+                        detail::construct_at(std::addressof(this->reference),
+                                             this->store_and_load(other.reference, other_size_in_bytes,
+                                                                  BasicContiguousElement::memory_begin(new_memory)));
+                        this->memory = std::move(new_memory);
+                    }
+                    else
+                    {
+                        this->destruct();
+                        this->store_and_construct_reference_inplace(other.reference, other_size_in_bytes);
+                    }
+                }
+            }
+        }
+    }
+
+    template <class SourceReference>
+    void store_and_construct_reference_inplace(SourceReference& other, std::size_t memory_size)
+    {
+        detail::construct_at(std::addressof(this->reference), this->store_and_load(other, memory_size));
     }
 
     void destruct() noexcept

@@ -28,7 +28,7 @@ class TypeErasedVector
     void (*destructor)(cntgs::TypeErasedVector&);
 
     template <class Allocator, class... Types>
-    TypeErasedVector(cntgs::BasicContiguousVector<Allocator, Types...>&& vector) noexcept
+    explicit TypeErasedVector(cntgs::BasicContiguousVector<Allocator, Types...>&& vector) noexcept
         : memory_size(vector.memory.size()),
           max_element_count(vector.max_element_count),
           memory(vector.memory.release()),

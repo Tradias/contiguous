@@ -120,7 +120,7 @@ class BasicContiguousReference
         ElementTraits::swap(other, *this);
     }
 
-    [[nodiscard]] constexpr auto size_in_bytes() const noexcept { return this->data_end() - this->data_begin(); }
+    [[nodiscard]] constexpr std::size_t size_in_bytes() const noexcept { return this->data_end() - this->data_begin(); }
 
     [[nodiscard]] constexpr auto data_begin() const noexcept
     {

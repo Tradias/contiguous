@@ -27,8 +27,16 @@ cntgs_disassemble_code_gen(cntgs-code-gen-objects-cpp20)
 
 add_library(cntgs-test-utils OBJECT)
 
-target_sources(cntgs-test-utils PRIVATE "utils/codeGenParser.hpp" "utils/codeGenParser.cpp" "utils/string.hpp"
-                                        "utils/string.cpp" "utils/range.hpp" "utils/functional.hpp")
+target_sources(
+    cntgs-test-utils
+    PRIVATE "utils/codeGenParser.hpp"
+            "utils/codeGenParser.cpp"
+            "utils/check.hpp"
+            "utils/functional.hpp"
+            "utils/range.hpp"
+            "utils/string.hpp"
+            "utils/string.cpp"
+            "utils/typeTraits.hpp")
 
 target_compile_options(cntgs-test-utils PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
                                                 -Wextra -pedantic-errors>)

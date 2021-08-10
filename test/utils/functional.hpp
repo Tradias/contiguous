@@ -1,4 +1,10 @@
-#pragma once
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_UTILS_FUNCTIONAL_HPP
+#define CNTGS_UTILS_FUNCTIONAL_HPP
 
 namespace cntgs::test
 {
@@ -20,3 +26,5 @@ struct Identity
     }
 };
 }  // namespace cntgs::test
+
+#endif  // CNTGS_UTILS_FUNCTIONAL_HPP

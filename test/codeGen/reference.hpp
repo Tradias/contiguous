@@ -1,4 +1,10 @@
-#pragma once
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_CODEGEN_REFERENCE_HPP
+#define CNTGS_CODEGEN_REFERENCE_HPP
 
 #include <algorithm>
 #include <cstring>
@@ -64,3 +70,5 @@ struct ReferenceFixedSizeVector
         next_index -= 1;
     }
 };
+
+#endif  // CNTGS_CODEGEN_REFERENCE_HPP

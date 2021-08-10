@@ -1,4 +1,10 @@
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 #include "cntgs/contiguous.hpp"
+#include "utils/check.hpp"
 #include "utils/functional.hpp"
 #include "utils/range.hpp"
 
@@ -111,6 +117,35 @@ auto fixed_vector_of_unique_ptrs(Allocator allocator = {})
         2, {1}, allocator};
     vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
     vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
+    return vector;
+}
+
+template <class Allocator = std::allocator<int>>
+auto varying_vector_of_unique_ptrs(Allocator allocator = {})
+{
+    cntgs::BasicContiguousVector<Allocator, cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
+        2, 3 * sizeof(std::unique_ptr<int>), allocator};
+    vector.emplace_back(array_two_unique_ptr(10, 20), std::make_unique<int>(30));
+    vector.emplace_back(array_one_unique_ptr(40), std::make_unique<int>(50));
+    return vector;
+}
+
+template <class Allocator = std::allocator<int>>
+auto fixed_vector_of_strings(Allocator allocator = {})
+{
+    cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::string>, std::string> vector{2, {2}, allocator};
+    vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
+    vector.emplace_back(std::array{STRING1, STRING2}, STRING2);
+    return vector;
+}
+
+template <class Allocator = std::allocator<int>>
+auto varying_vector_of_strings(Allocator allocator = {})
+{
+    cntgs::BasicContiguousVector<Allocator, cntgs::VaryingSize<std::string>, std::string> vector{
+        2, 3 * sizeof(std::string), allocator};
+    vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
+    vector.emplace_back(std::array{STRING1}, STRING2);
     return vector;
 }
 
@@ -300,36 +335,196 @@ TEST_CASE("ContiguousTest: ContiguousElement construct from move-only type")
     }
 }
 
-TEST_CASE("ContiguousTest: value_type can be copy assigned")
+TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned. std::allocator")
 {
-    using Vector = cntgs::ContiguousVector<std::string, cntgs::FixedSize<std::string>>;
-    Vector vector{2, {1}};
-    vector.emplace_back(STRING1, std::array{STRING2});
-    vector.emplace_back(STRING2, std::array{STRING1});
-    Vector::value_type value1{vector[0]};
-    Vector::value_type value2{vector[1]};
-    value2 = value1;
-    value2 = value2;
-    CHECK_EQ(STRING1, cntgs::get<0>(value2));
-    CHECK(test::range_equal(std::array{STRING2}, cntgs::get<1>(value2)));
+    auto vector = fixed_vector_of_strings();
+    using ValueType = decltype(vector)::value_type;
+    using ReferenceType = decltype(vector)::reference;
+    ValueType value1{vector[0]};
+    ValueType value2{vector[1]};
+    SUBCASE("value_type to value_type")
+    {
+        value2 = value1;
+        value2 = value2;
+    }
+    SUBCASE("reference to value_type")
+    {
+        value2 = ReferenceType{value1};
+        value2 = ReferenceType{value2};
+    }
+    test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
 }
 
-TEST_CASE("ContiguousTest: value_type can be move assigned")
+TEST_CASE("ContiguousTest: VaryingSize value_type can be copy assigned. std::allocator")
+{
+    auto vector = varying_vector_of_strings();
+    using ValueType = decltype(vector)::value_type;
+    ValueType value1{vector[0]};
+    ValueType value2{vector[1]};
+    SUBCASE("larger into smaller")
+    {
+        value2 = value1;
+        test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+    }
+    SUBCASE("smaller into larger")
+    {
+        value1 = value2;
+        test::check_equal_using_get(value1, std::array{STRING1}, STRING2);
+    }
+}
+
+TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned. std::polymorphic_allocator")
+{
+    TestMemoryResource resource;
+    auto vector = fixed_vector_of_strings(resource.get_allocator());
+    using ValueType = decltype(vector)::value_type;
+    SUBCASE("equal allocator")
+    {
+        ValueType value1{vector[0], resource.get_allocator()};
+        ValueType value2{vector[1], resource.get_allocator()};
+        value2 = value1;
+        test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+    }
+    SUBCASE("non-equal allocator")
+    {
+        ValueType value1{vector[0], resource.get_allocator()};
+        ValueType value2{vector[1]};
+        value2 = value1;
+        test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+    }
+}
+
+TEST_CASE("ContiguousTest: VaryingSize value_type can be copy assigned. std::polymorphic_allocator")
+{
+    TestMemoryResource resource;
+    auto vector = varying_vector_of_strings(resource.get_allocator());
+    using ValueType = decltype(vector)::value_type;
+    SUBCASE("equal allocator")
+    {
+        ValueType value1{vector[0], resource.get_allocator()};
+        ValueType value2{vector[1], resource.get_allocator()};
+        SUBCASE("larger into smaller")
+        {
+            value2 = value1;
+            test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+        }
+        SUBCASE("smaller into larger")
+        {
+            value1 = value2;
+            test::check_equal_using_get(value1, std::array{STRING1}, STRING2);
+        }
+    }
+    SUBCASE("non-equal allocator")
+    {
+        ValueType value1{vector[0], resource.get_allocator()};
+        ValueType value2{vector[1]};
+        SUBCASE("larger into smaller")
+        {
+            value2 = value1;
+            test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+        }
+        SUBCASE("smaller into larger")
+        {
+            value1 = value2;
+            test::check_equal_using_get(value1, std::array{STRING1}, STRING2);
+        }
+    }
+}
+
+TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::allocator")
 {
     auto vector = fixed_vector_of_unique_ptrs();
-    OneFixedUniquePtr::value_type value1{vector[0]};
-    OneFixedUniquePtr::value_type value2{vector[1]};
+    using ValueType = decltype(vector)::value_type;
+    ValueType value1{vector[0]};
+    ValueType value2{vector[1]};
     value1 = std::move(value2);
-    auto&& [a, b] = value1;
-    CHECK(test::range_equal(array_one_unique_ptr(30), a, test::DereferenceEqual{}));
-    CHECK_EQ(40, *b);
+    test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
+}
+
+TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::allocator")
+{
+    auto vector = varying_vector_of_unique_ptrs();
+    using ValueType = decltype(vector)::value_type;
+    ValueType value1{vector[0]};
+    ValueType value2{vector[1]};
+    SUBCASE("larger into smaller")
+    {
+        value2 = std::move(value1);
+        test::check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+    }
+    SUBCASE("smaller into larger")
+    {
+        value1 = std::move(value2);
+        test::check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+    }
+}
+
+TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::polymorphic_allocator")
+{
+    TestMemoryResource resource;
+    auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
+    using ValueType = decltype(vector)::value_type;
+    SUBCASE("equal allocator")
+    {
+        ValueType value1{vector[0], resource.get_allocator()};
+        ValueType value2{vector[1], resource.get_allocator()};
+        SUBCASE("larger into smaller")
+        {
+            value2 = std::move(value1);
+            test::check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+        }
+        SUBCASE("smaller into larger")
+        {
+            value1 = std::move(value2);
+            test::check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+        }
+    }
+    SUBCASE("non-equal allocator")
+    {
+        ValueType value1{vector[0], resource.get_allocator()};
+        ValueType value2{vector[1]};
+        SUBCASE("larger into smaller")
+        {
+            value2 = std::move(value1);
+            test::check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+        }
+        SUBCASE("smaller into larger")
+        {
+            value1 = std::move(value2);
+            test::check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+        }
+    }
+}
+
+TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::polymorphic_allocator")
+{
+    TestMemoryResource resource;
+    auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
+    using ValueType = decltype(vector)::value_type;
+    SUBCASE("equal allocator")
+    {
+        ValueType value1{vector[0], resource.get_allocator()};
+        ValueType value2{vector[1], resource.get_allocator()};
+        const auto buffer = resource.buffer;
+        value1 = std::move(value2);
+        test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
+        CHECK(test::range_equal(buffer, resource.buffer));
+    }
+    SUBCASE("non-equal allocator")
+    {
+        ValueType value1{vector[0], resource.get_allocator()};
+        ValueType value2{vector[1]};
+        value1 = std::move(value2);
+        test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
+    }
 }
 
 TEST_CASE("ContiguousTest: value_type can be swapped")
 {
     auto vector = fixed_vector_of_unique_ptrs();
-    OneFixedUniquePtr::value_type value1{vector[0]};
-    OneFixedUniquePtr::value_type value2{vector[1]};
+    using ValueType = decltype(vector)::value_type;
+    ValueType value1{vector[0]};
+    ValueType value2{vector[1]};
     using std::swap;
     swap(value1, value2);
     swap(value1, value1);
@@ -759,8 +954,7 @@ TEST_CASE("ContiguousTest: ContiguousElement is conditionally nothrow")
 {
     check_conditionally_nothrow_comparison<NoThrowElement>();
     check_always_nothrow_move_construct<NoThrowElement>();
-    check_conditionally_nothrow_move_assign<NoThrowElement>();
-    check_conditionally_nothrow_copy_assign<NoThrowElement>();
+    CHECK(std::is_nothrow_move_assignable_v<NoThrowElement<true>>);
 }
 
 template <bool IsNoThrow>
@@ -1601,16 +1795,6 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator")
     resource.check_was_used(vector.get_allocator());
 }
 
-template <class Allocator = std::allocator<int>>
-auto varying_vector_of_unique_ptrs(Allocator allocator = {})
-{
-    cntgs::BasicContiguousVector<Allocator, cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
-        2, 2 * sizeof(std::unique_ptr<int>), allocator};
-    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
-    vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
-    return vector;
-}
-
 TEST_CASE("ContiguousTest: OneVaryingUniquePtr move assign empty vector")
 {
     auto expected = varying_vector_of_unique_ptrs();
@@ -1659,16 +1843,6 @@ TEST_CASE("ContiguousTest: OneFixedUniquePtr with polymorphic_allocator move ass
         resource2.check_was_used(vector2.get_allocator());
         CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
     }
-}
-
-template <class Allocator = std::allocator<int>>
-auto varying_vector_of_strings(Allocator allocator = {})
-{
-    cntgs::BasicContiguousVector<Allocator, cntgs::VaryingSize<std::string>, std::string> vector{
-        2, 3 * sizeof(std::string), allocator};
-    vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
-    vector.emplace_back(std::array{STRING1}, STRING2);
-    return vector;
 }
 
 TEST_CASE("ContiguousTest: OneVaryingString copy construct")
@@ -1722,15 +1896,6 @@ TEST_CASE("ContiguousTest: OneVaryingString with polymorphic_allocator copy assi
         CHECK_EQ(&resource2.resource, vector2.get_allocator().resource());
         CHECK_EQ(vector, vector2);
     }
-}
-
-template <class Allocator = std::allocator<int>>
-auto fixed_vector_of_strings(Allocator allocator = {})
-{
-    cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::string>, std::string> vector{2, {2}, allocator};
-    vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
-    vector.emplace_back(std::array{STRING1, STRING2}, STRING2);
-    return vector;
 }
 
 TEST_CASE("ContiguousTest: OneFixedString copy construct")

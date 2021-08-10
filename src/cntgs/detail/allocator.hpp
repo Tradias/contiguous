@@ -57,7 +57,7 @@ class AllocatorAwarePointer
         }
     }
 
-    constexpr auto allocate_if_not_zero(std::size_t size, Allocator allocator)
+    static constexpr auto allocate_if_not_zero(std::size_t size, Allocator allocator)
     {
 #ifdef __cpp_lib_is_constant_evaluated
         if (std::is_constant_evaluated() && size == 0)
@@ -72,7 +72,7 @@ class AllocatorAwarePointer
     AllocatorAwarePointer() = default;
 
     constexpr AllocatorAwarePointer(std::size_t size, const Allocator& allocator)
-        : impl(this->allocate_if_not_zero(size, allocator), size, allocator)
+        : impl(AllocatorAwarePointer::allocate_if_not_zero(size, allocator), size, allocator)
     {
     }
 
@@ -98,14 +98,6 @@ class AllocatorAwarePointer
         ~AllocatorAwarePointer() noexcept
     {
         this->deallocate();
-    }
-
-    constexpr void propagate_on_container_copy_assignment(const AllocatorAwarePointer& other) noexcept
-    {
-        if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value)
-        {
-            this->get_allocator() = other.get_allocator();
-        }
     }
 
     constexpr AllocatorAwarePointer& operator=(const AllocatorAwarePointer& other)
@@ -139,10 +131,7 @@ class AllocatorAwarePointer
     {
         if (this != std::addressof(other))
         {
-            if constexpr (AllocatorTraits::propagate_on_container_move_assignment::value)
-            {
-                this->get_allocator() = std::move(other.get_allocator());
-            }
+            this->propagate_on_container_move_assignment(other);
             this->deallocate();
             this->get() = other.release();
             this->size() = other.size();
@@ -171,6 +160,22 @@ class AllocatorAwarePointer
         this->deallocate();
         this->get() = other.release();
         this->size() = other.size();
+    }
+
+    constexpr void propagate_on_container_copy_assignment(const AllocatorAwarePointer& other) noexcept
+    {
+        if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value)
+        {
+            this->get_allocator() = other.get_allocator();
+        }
+    }
+
+    constexpr void propagate_on_container_move_assignment(AllocatorAwarePointer& other) noexcept
+    {
+        if constexpr (AllocatorTraits::propagate_on_container_move_assignment::value)
+        {
+            this->get_allocator() = std::move(other.get_allocator());
+        }
     }
 };
 

@@ -120,16 +120,6 @@ struct BaseContiguousParameterTraits
 {
     using Self = BaseContiguousParameterTraits<T, Alignment>;
 
-    static auto data_begin(const cntgs::Span<std::add_const_t<T>>& value) noexcept
-    {
-        return reinterpret_cast<const std::byte*>(Self::begin(value));
-    }
-
-    static auto data_begin(const cntgs::Span<T>& value) noexcept
-    {
-        return reinterpret_cast<std::byte*>(Self::begin(value));
-    }
-
     static auto data_end(const cntgs::Span<std::add_const_t<T>>& value) noexcept
     {
         return reinterpret_cast<const std::byte*>(std::end(value));
@@ -264,6 +254,16 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     }
 
     static constexpr auto aligned_size_in_memory(std::size_t) noexcept { return ALIGNED_SIZE_IN_MEMORY; }
+
+    static auto data_begin(const cntgs::Span<std::add_const_t<T>>& value) noexcept
+    {
+        return reinterpret_cast<const std::byte*>(ParameterTraits::begin(value)) - MEMORY_OVERHEAD;
+    }
+
+    static auto data_begin(const cntgs::Span<T>& value) noexcept
+    {
+        return reinterpret_cast<std::byte*>(ParameterTraits::begin(value)) - MEMORY_OVERHEAD;
+    }
 };
 
 template <class T>
@@ -318,6 +318,16 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     static constexpr auto guaranteed_size_in_memory(std::size_t fixed_size) noexcept
     {
         return fixed_size * VALUE_BYTES;
+    }
+
+    static auto data_begin(const cntgs::Span<std::add_const_t<T>>& value) noexcept
+    {
+        return reinterpret_cast<const std::byte*>(ParameterTraits::begin(value));
+    }
+
+    static auto data_begin(const cntgs::Span<T>& value) noexcept
+    {
+        return reinterpret_cast<std::byte*>(ParameterTraits::begin(value));
     }
 
     static void copy(const cntgs::Span<std::add_const_t<T>>& source,

@@ -1,4 +1,10 @@
-#pragma once
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_UTILS_STRING_HPP
+#define CNTGS_UTILS_STRING_HPP
 
 #include <sstream>
 #include <string>
@@ -41,3 +47,5 @@ auto format(std::string_view format, Args&&... args)
     return std::move(stream).str();
 }
 }  // namespace cntgs::test
+
+#endif  // CNTGS_UTILS_STRING_HPP

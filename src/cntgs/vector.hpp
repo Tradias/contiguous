@@ -15,7 +15,6 @@
 #include "cntgs/detail/parameterListTraits.hpp"
 #include "cntgs/detail/parameterTraits.hpp"
 #include "cntgs/detail/utility.hpp"
-#include "cntgs/detail/vector.hpp"
 #include "cntgs/detail/vectorTraits.hpp"
 #include "cntgs/element.hpp"
 #include "cntgs/iterator.hpp"
@@ -322,8 +321,6 @@ class BasicContiguousVector
 
     // private API
   private:
-    friend detail::ContiguousVectorAccess<BasicContiguousVector>;
-
     constexpr BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned,
                                     size_type max_element_count, const FixedSizes& fixed_sizes,
                                     const allocator_type& allocator)
