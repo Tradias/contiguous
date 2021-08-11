@@ -350,7 +350,6 @@ TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned. std::alloc
     SUBCASE("reference to value_type")
     {
         value2 = ReferenceType{value1};
-        value2 = ReferenceType{value2};
     }
     test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
 }
