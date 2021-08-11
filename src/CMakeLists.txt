@@ -27,6 +27,7 @@ list(
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/parameterTraits.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/parameterType.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/range.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/reference.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/sizeGetter.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/tuple.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/typeUtils.hpp"

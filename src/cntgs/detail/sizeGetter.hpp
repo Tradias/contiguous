@@ -7,8 +7,10 @@
 #define CNTGS_DETAIL_SIZEGETTER_HPP
 
 #include "cntgs/detail/array.hpp"
+#include "cntgs/detail/forward.hpp"
 #include "cntgs/detail/parameterTraits.hpp"
 #include "cntgs/detail/parameterType.hpp"
+#include "cntgs/detail/reference.hpp"
 #include "cntgs/detail/typeUtils.hpp"
 
 #include <array>
@@ -59,12 +61,12 @@ class ContiguousReferenceSizeGetter
     template <class Type>
     static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
 
-    template <class Type, std::size_t I, class... U>
-    static constexpr auto get([[maybe_unused]] const std::tuple<U...>& tuple) noexcept
+    template <class Type, std::size_t I, bool IsConst, class... Types>
+    static constexpr auto get([[maybe_unused]] const cntgs::BasicContiguousReference<IsConst, Types...>& tuple) noexcept
     {
         if constexpr (detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE)
         {
-            return std::get<I>(tuple).size();
+            return cntgs::get<I>(tuple).size();
         }
         else
         {

@@ -394,7 +394,7 @@ class BasicContiguousVector
                 auto&& source = self[i];
                 auto&& target = ElementTraits::template load_element_at<detail::DefaultAlignmentNeeds,
                                                                         detail::ContiguousReferenceSizeGetter>(
-                    new_locator.element_address(i, new_memory), source.tuple);
+                    new_locator.element_address(i, new_memory), source);
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }

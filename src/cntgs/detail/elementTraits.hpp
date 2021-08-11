@@ -12,6 +12,7 @@
 #include "cntgs/detail/memory.hpp"
 #include "cntgs/detail/parameterListTraits.hpp"
 #include "cntgs/detail/parameterTraits.hpp"
+#include "cntgs/detail/reference.hpp"
 #include "cntgs/detail/sizeGetter.hpp"
 #include "cntgs/detail/typeUtils.hpp"
 #include "cntgs/detail/vectorTraits.hpp"
@@ -114,9 +115,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         const cntgs::BasicContiguousReference<IsLhsConst, Types...>& lhs,
         const cntgs::BasicContiguousReference<IsRhsConst, Types...>& rhs) noexcept
     {
-        return std::tuple{ParameterTraitsAt<K>::data_begin(std::get<K>(lhs.tuple)),
-                          ParameterTraitsAt<L>::data_end(std::get<L>(lhs.tuple)),
-                          ParameterTraitsAt<K>::data_begin(std::get<K>(rhs.tuple))};
+        return std::tuple{ParameterTraitsAt<K>::data_begin(cntgs::get<K>(lhs)),
+                          ParameterTraitsAt<L>::data_end(cntgs::get<L>(lhs)),
+                          ParameterTraitsAt<K>::data_begin(cntgs::get<K>(rhs))};
     }
 
     template <bool IgnoreAliasing, class... Args>
@@ -183,7 +184,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr void construct_if_non_trivial(const cntgs::BasicContiguousReference<IsConst, Types...>& source,
                                                    const ContiguousPointer& target)
     {
-        (detail::construct_one_if_non_trivial<UseMove, Types>(std::get<I>(source.tuple), std::get<I>(target)), ...);
+        (detail::construct_one_if_non_trivial<UseMove, Types>(cntgs::get<I>(source), std::get<I>(target)), ...);
     }
 
     template <bool UseMove, std::size_t K, bool IsLhsConst>
@@ -195,11 +196,11 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         {
             if constexpr (UseMove)
             {
-                ParameterTraitsAt<K>::move(std::get<K>(source.tuple), std::get<K>(target.tuple));
+                ParameterTraitsAt<K>::move(cntgs::get<K>(source), cntgs::get<K>(target));
             }
             else
             {
-                ParameterTraitsAt<K>::copy(std::get<K>(source.tuple), std::get<K>(target.tuple));
+                ParameterTraitsAt<K>::copy(cntgs::get<K>(source), cntgs::get<K>(target));
             }
         }
         else if constexpr (INDEX != SKIP)
@@ -223,7 +224,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         static constexpr auto INDEX = std::get<K>(CONSECUTIVE_TRIVIALLY_SWAPPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
         {
-            ParameterTraitsAt<K>::swap(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+            ParameterTraitsAt<K>::swap(cntgs::get<K>(lhs), cntgs::get<K>(rhs));
         }
         else if constexpr (INDEX != SKIP)
         {
@@ -244,12 +245,12 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         constexpr auto INDEX = std::get<K>(CONSECUTIVE_EQUALITY_MEMCMPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
         {
-            return ParameterTraitsAt<K>::equal(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+            return ParameterTraitsAt<K>::equal(cntgs::get<K>(lhs), cntgs::get<K>(rhs));
         }
         else if constexpr (INDEX != SKIP)
         {
             const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
-            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(rhs.tuple));
+            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(cntgs::get<INDEX>(rhs));
             return detail::trivial_equal(lhs_start, lhs_end, rhs_start, rhs_end);
         }
         else
@@ -272,12 +273,12 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         constexpr auto INDEX = std::get<K>(CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
         {
-            return ParameterTraitsAt<K>::lexicographical_compare(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+            return ParameterTraitsAt<K>::lexicographical_compare(cntgs::get<K>(lhs), cntgs::get<K>(rhs));
         }
         else if constexpr (INDEX != SKIP)
         {
             const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
-            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(rhs.tuple));
+            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(cntgs::get<INDEX>(rhs));
             return detail::trivial_lexicographical_compare(lhs_start, lhs_end, rhs_start, rhs_end);
         }
         else
@@ -295,7 +296,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
     static void destruct(const ContiguousReference& reference) noexcept
     {
-        (detail::ParameterTraits<Types>::destroy(std::get<I>(reference.tuple)), ...);
+        (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(reference)), ...);
     }
 };
 

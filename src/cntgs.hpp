@@ -1617,99 +1617,14 @@ struct ParameterListTraits
 
 // #include "cntgs/detail/parameterTraits.hpp"
 
-// #include "cntgs/detail/sizeGetter.hpp"
+// #include "cntgs/detail/reference.hpp"
 // Copyright (c) 2021 Dennis Hezel
 //
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#ifndef CNTGS_DETAIL_SIZEGETTER_HPP
-#define CNTGS_DETAIL_SIZEGETTER_HPP
-
-// #include "cntgs/detail/array.hpp"
-
-// #include "cntgs/detail/parameterTraits.hpp"
-
-// #include "cntgs/detail/parameterType.hpp"
-
-// #include "cntgs/detail/typeUtils.hpp"
-
-
-#include <array>
-#include <cstddef>
-#include <tuple>
-
-namespace cntgs::detail
-{
-template <class... Types>
-class FixedSizeGetter
-{
-  private:
-    template <std::size_t... I>
-    static constexpr auto calculate_fixed_size_indices(std::index_sequence<I...>) noexcept
-    {
-        std::array<std::size_t, sizeof...(Types)> fixed_size_indices{};
-        [[maybe_unused]] std::size_t index{};
-        (
-            [&]
-            {
-                if constexpr (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE)
-                {
-                    std::get<I>(fixed_size_indices) = index;
-                    ++index;
-                }
-            }(),
-            ...);
-        return fixed_size_indices;
-    }
-
-    static constexpr auto FIXED_SIZE_INDICES =
-        calculate_fixed_size_indices(std::make_index_sequence<sizeof...(Types)>{});
-
-  public:
-    template <class Type>
-    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
-
-    template <class, std::size_t I, std::size_t N>
-    static constexpr auto get(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
-    {
-        return detail::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
-    }
-};
-
-class ContiguousReferenceSizeGetter
-{
-  public:
-    template <class Type>
-    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
-
-    template <class Type, std::size_t I, class... U>
-    static constexpr auto get([[maybe_unused]] const std::tuple<U...>& tuple) noexcept
-    {
-        if constexpr (detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE)
-        {
-            return std::get<I>(tuple).size();
-        }
-        else
-        {
-            return std::size_t{};
-        }
-    }
-};
-}  // namespace cntgs::detail
-
-#endif  // CNTGS_DETAIL_SIZEGETTER_HPP
-
-// #include "cntgs/detail/typeUtils.hpp"
-
-// #include "cntgs/detail/vectorTraits.hpp"
-// Copyright (c) 2021 Dennis Hezel
-//
-// This software is released under the MIT License.
-// https://opensource.org/licenses/MIT
-
-#ifndef CNTGS_DETAIL_VECTORTRAITS_HPP
-#define CNTGS_DETAIL_VECTORTRAITS_HPP
+#ifndef CNTGS_DETAIL_REFERENCE_HPP
+#define CNTGS_DETAIL_REFERENCE_HPP
 
 // #include "cntgs/detail/forward.hpp"
 
@@ -1777,6 +1692,147 @@ constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexce
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_TUPLE_HPP
+
+
+namespace std
+{
+template <std::size_t I, bool IsConst, class... Types>
+struct tuple_element<I, ::cntgs::BasicContiguousReference<IsConst, Types...>>
+    : std::tuple_element<I, ::cntgs::detail::ConditionalT<
+                                IsConst, ::cntgs::detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
+                                ::cntgs::detail::ToTupleOfContiguousReference<std::tuple<Types...>>>>
+{
+};
+
+template <bool IsConst, class... Types>
+struct tuple_size<::cntgs::BasicContiguousReference<IsConst, Types...>>
+    : std::integral_constant<std::size_t, sizeof...(Types)>
+{
+};
+}  // namespace std
+
+namespace cntgs
+{
+template <std::size_t I, bool IsConst, class... Types>
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+    cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept;
+
+template <std::size_t I, bool IsConst, class... Types>
+[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+    const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept;
+
+template <std::size_t I, bool IsConst, class... Types>
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
+    cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept;
+
+template <std::size_t I, bool IsConst, class... Types>
+[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
+    const cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept;
+}  // namespace cntgs
+
+#endif  // CNTGS_DETAIL_REFERENCE_HPP
+
+// #include "cntgs/detail/sizeGetter.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_DETAIL_SIZEGETTER_HPP
+#define CNTGS_DETAIL_SIZEGETTER_HPP
+
+// #include "cntgs/detail/array.hpp"
+
+// #include "cntgs/detail/forward.hpp"
+
+// #include "cntgs/detail/parameterTraits.hpp"
+
+// #include "cntgs/detail/parameterType.hpp"
+
+// #include "cntgs/detail/reference.hpp"
+
+// #include "cntgs/detail/typeUtils.hpp"
+
+
+#include <array>
+#include <cstddef>
+#include <tuple>
+
+namespace cntgs::detail
+{
+template <class... Types>
+class FixedSizeGetter
+{
+  private:
+    template <std::size_t... I>
+    static constexpr auto calculate_fixed_size_indices(std::index_sequence<I...>) noexcept
+    {
+        std::array<std::size_t, sizeof...(Types)> fixed_size_indices{};
+        [[maybe_unused]] std::size_t index{};
+        (
+            [&]
+            {
+                if constexpr (detail::ParameterTraits<Types>::TYPE == detail::ParameterType::FIXED_SIZE)
+                {
+                    std::get<I>(fixed_size_indices) = index;
+                    ++index;
+                }
+            }(),
+            ...);
+        return fixed_size_indices;
+    }
+
+    static constexpr auto FIXED_SIZE_INDICES =
+        calculate_fixed_size_indices(std::make_index_sequence<sizeof...(Types)>{});
+
+  public:
+    template <class Type>
+    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
+
+    template <class, std::size_t I, std::size_t N>
+    static constexpr auto get(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
+    {
+        return detail::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
+    }
+};
+
+class ContiguousReferenceSizeGetter
+{
+  public:
+    template <class Type>
+    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
+
+    template <class Type, std::size_t I, bool IsConst, class... Types>
+    static constexpr auto get([[maybe_unused]] const cntgs::BasicContiguousReference<IsConst, Types...>& tuple) noexcept
+    {
+        if constexpr (detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE)
+        {
+            return cntgs::get<I>(tuple).size();
+        }
+        else
+        {
+            return std::size_t{};
+        }
+    }
+};
+}  // namespace cntgs::detail
+
+#endif  // CNTGS_DETAIL_SIZEGETTER_HPP
+
+// #include "cntgs/detail/typeUtils.hpp"
+
+// #include "cntgs/detail/vectorTraits.hpp"
+// Copyright (c) 2021 Dennis Hezel
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#ifndef CNTGS_DETAIL_VECTORTRAITS_HPP
+#define CNTGS_DETAIL_VECTORTRAITS_HPP
+
+// #include "cntgs/detail/forward.hpp"
+
+// #include "cntgs/detail/tuple.hpp"
 
 
 #include <tuple>
@@ -1893,9 +1949,9 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         const cntgs::BasicContiguousReference<IsLhsConst, Types...>& lhs,
         const cntgs::BasicContiguousReference<IsRhsConst, Types...>& rhs) noexcept
     {
-        return std::tuple{ParameterTraitsAt<K>::data_begin(std::get<K>(lhs.tuple)),
-                          ParameterTraitsAt<L>::data_end(std::get<L>(lhs.tuple)),
-                          ParameterTraitsAt<K>::data_begin(std::get<K>(rhs.tuple))};
+        return std::tuple{ParameterTraitsAt<K>::data_begin(cntgs::get<K>(lhs)),
+                          ParameterTraitsAt<L>::data_end(cntgs::get<L>(lhs)),
+                          ParameterTraitsAt<K>::data_begin(cntgs::get<K>(rhs))};
     }
 
     template <bool IgnoreAliasing, class... Args>
@@ -1962,7 +2018,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
     static constexpr void construct_if_non_trivial(const cntgs::BasicContiguousReference<IsConst, Types...>& source,
                                                    const ContiguousPointer& target)
     {
-        (detail::construct_one_if_non_trivial<UseMove, Types>(std::get<I>(source.tuple), std::get<I>(target)), ...);
+        (detail::construct_one_if_non_trivial<UseMove, Types>(cntgs::get<I>(source), std::get<I>(target)), ...);
     }
 
     template <bool UseMove, std::size_t K, bool IsLhsConst>
@@ -1974,11 +2030,11 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         {
             if constexpr (UseMove)
             {
-                ParameterTraitsAt<K>::move(std::get<K>(source.tuple), std::get<K>(target.tuple));
+                ParameterTraitsAt<K>::move(cntgs::get<K>(source), cntgs::get<K>(target));
             }
             else
             {
-                ParameterTraitsAt<K>::copy(std::get<K>(source.tuple), std::get<K>(target.tuple));
+                ParameterTraitsAt<K>::copy(cntgs::get<K>(source), cntgs::get<K>(target));
             }
         }
         else if constexpr (INDEX != SKIP)
@@ -2002,7 +2058,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         static constexpr auto INDEX = std::get<K>(CONSECUTIVE_TRIVIALLY_SWAPPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
         {
-            ParameterTraitsAt<K>::swap(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+            ParameterTraitsAt<K>::swap(cntgs::get<K>(lhs), cntgs::get<K>(rhs));
         }
         else if constexpr (INDEX != SKIP)
         {
@@ -2023,12 +2079,12 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         constexpr auto INDEX = std::get<K>(CONSECUTIVE_EQUALITY_MEMCMPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
         {
-            return ParameterTraitsAt<K>::equal(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+            return ParameterTraitsAt<K>::equal(cntgs::get<K>(lhs), cntgs::get<K>(rhs));
         }
         else if constexpr (INDEX != SKIP)
         {
             const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
-            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(rhs.tuple));
+            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(cntgs::get<INDEX>(rhs));
             return detail::trivial_equal(lhs_start, lhs_end, rhs_start, rhs_end);
         }
         else
@@ -2051,12 +2107,12 @@ class ElementTraits<std::index_sequence<I...>, Types...>
         constexpr auto INDEX = std::get<K>(CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES);
         if constexpr (INDEX == MANUAL)
         {
-            return ParameterTraitsAt<K>::lexicographical_compare(std::get<K>(lhs.tuple), std::get<K>(rhs.tuple));
+            return ParameterTraitsAt<K>::lexicographical_compare(cntgs::get<K>(lhs), cntgs::get<K>(rhs));
         }
         else if constexpr (INDEX != SKIP)
         {
             const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
-            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(std::get<INDEX>(rhs.tuple));
+            const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(cntgs::get<INDEX>(rhs));
             return detail::trivial_lexicographical_compare(lhs_start, lhs_end, rhs_start, rhs_end);
         }
         else
@@ -2074,7 +2130,7 @@ class ElementTraits<std::index_sequence<I...>, Types...>
 
     static void destruct(const ContiguousReference& reference) noexcept
     {
-        (detail::ParameterTraits<Types>::destroy(std::get<I>(reference.tuple)), ...);
+        (detail::ParameterTraits<Types>::destroy(cntgs::get<I>(reference)), ...);
     }
 };
 
@@ -2220,11 +2276,6 @@ class BasicContiguousReference
         return *this;
     }
 
-    constexpr void swap(const BasicContiguousReference& other) const noexcept(ListTraits::IS_NOTHROW_SWAPPABLE)
-    {
-        ElementTraits::swap(other, *this);
-    }
-
     [[nodiscard]] constexpr std::size_t size_in_bytes() const noexcept { return this->data_end() - this->data_begin(); }
 
     [[nodiscard]] constexpr auto data_begin() const noexcept
@@ -2353,56 +2404,42 @@ class BasicContiguousReference
     }
 };
 
-template <bool IsConst, class... T>
-constexpr void swap(const cntgs::BasicContiguousReference<IsConst, T...>& lhs,
-                    const cntgs::BasicContiguousReference<IsConst, T...>&
-                        rhs) noexcept(detail::ParameterListTraits<T...>::IS_NOTHROW_SWAPPABLE)
+template <bool IsConst, class... Types>
+constexpr void swap(const cntgs::BasicContiguousReference<IsConst, Types...>& lhs,
+                    const cntgs::BasicContiguousReference<IsConst, Types...>&
+                        rhs) noexcept(detail::ParameterListTraits<Types...>::IS_NOTHROW_SWAPPABLE)
 {
-    lhs.swap(rhs);
+    detail::ElementTraitsT<Types...>::swap(rhs, lhs);
 }
 
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
-{
-    return std::get<I>(reference.tuple);
-}
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+    cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
 {
     return std::get<I>(reference.tuple);
 }
 
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept
+[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+    const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
+{
+    return std::get<I>(reference.tuple);
+}
+
+template <std::size_t I, bool IsConst, class... Types>
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
+    cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept
 {
     return std::get<I>(std::move(reference.tuple));
 }
 
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(
+[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
     const cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept
 {
     return std::get<I>(std::move(reference.tuple));
 }
 }  // namespace cntgs
-
-namespace std
-{
-template <std::size_t I, bool IsConst, class... Types>
-struct tuple_element<I, ::cntgs::BasicContiguousReference<IsConst, Types...>>
-    : std::tuple_element<I, ::cntgs::detail::ConditionalT<
-                                IsConst, ::cntgs::detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
-                                ::cntgs::detail::ToTupleOfContiguousReference<std::tuple<Types...>>>>
-{
-};
-
-template <bool IsConst, class... Types>
-struct tuple_size<::cntgs::BasicContiguousReference<IsConst, Types...>>
-    : std::integral_constant<std::size_t, sizeof...(Types)>
-{
-};
-}  // namespace std
 
 #endif  // CNTGS_CNTGS_REFERENCE_HPP
 
@@ -2611,13 +2648,14 @@ class BasicContiguousElement
         std::memcpy(target_memory, source.data_begin(), memory_size);
         auto target =
             ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentNeeds,
-                                                    detail::ContiguousReferenceSizeGetter>(target_memory, source.tuple);
+                                                    detail::ContiguousReferenceSizeGetter>(target_memory, source);
         ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
         return Reference{target};
     }
 
     template <class OtherAllocator>
-    auto acquire_memory(BasicContiguousElement<OtherAllocator, Types...>& other, const allocator_type& allocator) const
+    auto acquire_memory(BasicContiguousElement<OtherAllocator, Types...>& other,
+                        [[maybe_unused]] const allocator_type& allocator) const
     {
         if constexpr (detail::AreEqualityComparable<allocator_type, OtherAllocator>::value)
         {
@@ -2631,9 +2669,13 @@ class BasicContiguousElement
                 {
                     return std::move(other.memory);
                 }
+                return StorageType(other.memory.size(), allocator);
             }
         }
-        return StorageType(other.memory.size(), allocator);
+        else
+        {
+            return StorageType(other.memory.size(), allocator);
+        }
     }
 
     template <class OtherAllocator>
@@ -2652,9 +2694,13 @@ class BasicContiguousElement
                 {
                     return std::move(other.reference);
                 }
+                return this->store_and_load(other.reference, other.memory.size());
             }
         }
-        return this->store_and_load(other.reference, other.memory.size());
+        else
+        {
+            return this->store_and_load(other.reference, other.memory.size());
+        }
     }
 
     auto memory_begin() const noexcept { return BasicContiguousElement::memory_begin(this->memory); }
@@ -3833,7 +3879,7 @@ class BasicContiguousVector
                 auto&& source = self[i];
                 auto&& target = ElementTraits::template load_element_at<detail::DefaultAlignmentNeeds,
                                                                         detail::ContiguousReferenceSizeGetter>(
-                    new_locator.element_address(i, new_memory), source.tuple);
+                    new_locator.element_address(i, new_memory), source);
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }

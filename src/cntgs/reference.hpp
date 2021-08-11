@@ -115,11 +115,6 @@ class BasicContiguousReference
         return *this;
     }
 
-    constexpr void swap(const BasicContiguousReference& other) const noexcept(ListTraits::IS_NOTHROW_SWAPPABLE)
-    {
-        ElementTraits::swap(other, *this);
-    }
-
     [[nodiscard]] constexpr std::size_t size_in_bytes() const noexcept { return this->data_end() - this->data_begin(); }
 
     [[nodiscard]] constexpr auto data_begin() const noexcept
@@ -248,55 +243,41 @@ class BasicContiguousReference
     }
 };
 
-template <bool IsConst, class... T>
-constexpr void swap(const cntgs::BasicContiguousReference<IsConst, T...>& lhs,
-                    const cntgs::BasicContiguousReference<IsConst, T...>&
-                        rhs) noexcept(detail::ParameterListTraits<T...>::IS_NOTHROW_SWAPPABLE)
+template <bool IsConst, class... Types>
+constexpr void swap(const cntgs::BasicContiguousReference<IsConst, Types...>& lhs,
+                    const cntgs::BasicContiguousReference<IsConst, Types...>&
+                        rhs) noexcept(detail::ParameterListTraits<Types...>::IS_NOTHROW_SWAPPABLE)
 {
-    lhs.swap(rhs);
+    detail::ElementTraitsT<Types...>::swap(rhs, lhs);
 }
 
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
-{
-    return std::get<I>(reference.tuple);
-}
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+    cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
 {
     return std::get<I>(reference.tuple);
 }
 
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept
+[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+    const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
+{
+    return std::get<I>(reference.tuple);
+}
+
+template <std::size_t I, bool IsConst, class... Types>
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
+    cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept
 {
     return std::get<I>(std::move(reference.tuple));
 }
 
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr decltype(auto) get(
+[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
     const cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept
 {
     return std::get<I>(std::move(reference.tuple));
 }
 }  // namespace cntgs
-
-namespace std
-{
-template <std::size_t I, bool IsConst, class... Types>
-struct tuple_element<I, ::cntgs::BasicContiguousReference<IsConst, Types...>>
-    : std::tuple_element<I, ::cntgs::detail::ConditionalT<
-                                IsConst, ::cntgs::detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
-                                ::cntgs::detail::ToTupleOfContiguousReference<std::tuple<Types...>>>>
-{
-};
-
-template <bool IsConst, class... Types>
-struct tuple_size<::cntgs::BasicContiguousReference<IsConst, Types...>>
-    : std::integral_constant<std::size_t, sizeof...(Types)>
-{
-};
-}  // namespace std
 
 #endif  // CNTGS_CNTGS_REFERENCE_HPP

@@ -220,13 +220,14 @@ class BasicContiguousElement
         std::memcpy(target_memory, source.data_begin(), memory_size);
         auto target =
             ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentNeeds,
-                                                    detail::ContiguousReferenceSizeGetter>(target_memory, source.tuple);
+                                                    detail::ContiguousReferenceSizeGetter>(target_memory, source);
         ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
         return Reference{target};
     }
 
     template <class OtherAllocator>
-    auto acquire_memory(BasicContiguousElement<OtherAllocator, Types...>& other, const allocator_type& allocator) const
+    auto acquire_memory(BasicContiguousElement<OtherAllocator, Types...>& other,
+                        [[maybe_unused]] const allocator_type& allocator) const
     {
         if constexpr (detail::AreEqualityComparable<allocator_type, OtherAllocator>::value)
         {
@@ -240,9 +241,13 @@ class BasicContiguousElement
                 {
                     return std::move(other.memory);
                 }
+                return StorageType(other.memory.size(), allocator);
             }
         }
-        return StorageType(other.memory.size(), allocator);
+        else
+        {
+            return StorageType(other.memory.size(), allocator);
+        }
     }
 
     template <class OtherAllocator>
@@ -261,9 +266,13 @@ class BasicContiguousElement
                 {
                     return std::move(other.reference);
                 }
+                return this->store_and_load(other.reference, other.memory.size());
             }
         }
-        return this->store_and_load(other.reference, other.memory.size());
+        else
+        {
+            return this->store_and_load(other.reference, other.memory.size());
+        }
     }
 
     auto memory_begin() const noexcept { return BasicContiguousElement::memory_begin(this->memory); }
