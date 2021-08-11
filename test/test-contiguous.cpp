@@ -504,10 +504,8 @@ TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::polym
     {
         ValueType value1{vector[0], resource.get_allocator()};
         ValueType value2{vector[1], resource.get_allocator()};
-        const auto buffer = resource.buffer;
         value1 = std::move(value2);
         test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
-        CHECK(test::range_equal(buffer, resource.buffer));
     }
     SUBCASE("non-equal allocator")
     {
@@ -1568,6 +1566,7 @@ TEST_CASE("ContiguousTest: OneFixed constinit")
     SUBCASE("empty vector")
     {
         static constinit OneFixed v{0, {2}};
+        // TODO this causes a call to trivially_copy_into which calls memcpy with nullptr as second argument
         v.reserve(2);
         v.emplace_back(10u, FLOATS1);
         check_size1_and_capacity2(v);
