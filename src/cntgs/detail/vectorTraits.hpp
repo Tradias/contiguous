@@ -18,7 +18,7 @@ struct ContiguousVectorTraits
 {
     using ReferenceType = cntgs::BasicContiguousReference<false, Types...>;
     using ConstReferenceType = cntgs::BasicContiguousReference<true, Types...>;
-    using PointerType = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
+    using PointerType = detail::ToTupleOfContiguousPointer<Types...>;
 };
 }  // namespace cntgs::detail
 

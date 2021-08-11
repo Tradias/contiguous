@@ -309,7 +309,7 @@ class BasicContiguousElement
     {
         this->destruct();
         this->memory = std::move(other.memory);
-        detail::construct_at(std::addressof(this->reference), std::move(other.reference));
+        this->reference.tuple = std::move(other.reference.tuple);
     }
 
     template <class OtherAllocator>
@@ -345,9 +345,9 @@ class BasicContiguousElement
                         // allocate memory first because it might throw
                         StorageType new_memory{other.memory.size(), this->get_allocator()};
                         this->destruct();
-                        detail::construct_at(std::addressof(this->reference),
-                                             this->store_and_load(other.reference, other_size_in_bytes,
-                                                                  BasicContiguousElement::memory_begin(new_memory)));
+                        this->reference.tuple = this->store_and_load(other.reference, other_size_in_bytes,
+                                                                     BasicContiguousElement::memory_begin(new_memory))
+                                                    .tuple;
                         this->memory = std::move(new_memory);
                     }
                     else
@@ -363,7 +363,7 @@ class BasicContiguousElement
     template <class SourceReference>
     void store_and_construct_reference_inplace(SourceReference& other, std::size_t memory_size)
     {
-        detail::construct_at(std::addressof(this->reference), this->store_and_load(other, memory_size));
+        this->reference.tuple = this->store_and_load(other, memory_size).tuple;
     }
 
     void destruct() noexcept
@@ -383,9 +383,7 @@ constexpr void swap(cntgs::BasicContiguousElement<Allocator, T...>& lhs,
                     cntgs::BasicContiguousElement<Allocator, T...>& rhs) noexcept
 {
     detail::swap(lhs.memory, rhs.memory);
-    auto temp{lhs.reference};
-    detail::construct_at(&lhs.reference, rhs.reference);
-    detail::construct_at(&rhs.reference, temp);
+    std::swap(lhs.reference.tuple, rhs.reference.tuple);
 }
 
 template <std::size_t I, class Allocator, class... Types>

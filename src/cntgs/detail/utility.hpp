@@ -35,7 +35,7 @@ struct MoveDefaultingValue
     }
 };
 
-template <class T, bool Inherit>
+template <class T, bool = (std::is_empty_v<T> && !std::is_final_v<T>)>
 class EmptyBaseOptimization
 {
   private:
@@ -79,9 +79,6 @@ class EmptyBaseOptimization<T, true> : private T
 
     constexpr const T& get() const noexcept { return *this; }
 };
-
-template <class T>
-using EmptyBaseOptimizationT = detail::EmptyBaseOptimization<T, (std::is_empty_v<T> && !std::is_final_v<T>)>;
 
 template <class T>
 constexpr auto as_const(cntgs::Span<T> value) noexcept

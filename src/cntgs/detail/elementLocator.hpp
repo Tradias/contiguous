@@ -283,14 +283,14 @@ using ElementLocatorT = detail::ElementLocator<detail::ParameterListTraits<Types
 
 template <class... Types>
 class ElementLocatorAndFixedSizes
-    : private detail::EmptyBaseOptimizationT<typename detail::ParameterListTraits<Types...>::FixedSizesArray>
+    : private detail::EmptyBaseOptimization<typename detail::ParameterListTraits<Types...>::FixedSizesArray>
 {
   private:
     static constexpr auto HAS_FIXED_SIZES = detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT > 0;
 
     using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
     using Locator = detail::ElementLocatorT<Types...>;
-    using Base = detail::EmptyBaseOptimizationT<FixedSizesArray>;
+    using Base = detail::EmptyBaseOptimization<FixedSizesArray>;
 
   public:
     Locator locator;

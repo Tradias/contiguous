@@ -10,6 +10,7 @@
 #include "cntgs/detail/elementTraits.hpp"
 #include "cntgs/detail/forward.hpp"
 #include "cntgs/detail/parameterListTraits.hpp"
+#include "cntgs/detail/reference.hpp"
 #include "cntgs/detail/tuple.hpp"
 #include "cntgs/detail/typeUtils.hpp"
 
@@ -32,9 +33,8 @@ class BasicContiguousReference
   private:
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using PointerTuple = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
-    using Tuple = detail::ConditionalT<IsConst, detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
-                                       detail::ToTupleOfContiguousReference<std::tuple<Types...>>>;
+    using PointerTuple = detail::ToTupleOfContiguousPointer<Types...>;
+    using Tuple = detail::ToTupleOfContiguousReferences<IsConst, Types...>;
 
     static constexpr auto IS_CONST = IsConst;
 

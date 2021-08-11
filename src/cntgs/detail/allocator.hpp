@@ -30,9 +30,9 @@ class AllocatorAwarePointer
     using value_type = typename AllocatorTraits::value_type;
 
   private:
-    struct Impl : detail::EmptyBaseOptimizationT<Allocator>
+    struct Impl : detail::EmptyBaseOptimization<Allocator>
     {
-        using Base = detail::EmptyBaseOptimizationT<Allocator>;
+        using Base = detail::EmptyBaseOptimization<Allocator>;
 
         Pointer ptr{};
         std::size_t size{};

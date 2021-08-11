@@ -14,10 +14,7 @@ namespace std
 {
 template <std::size_t I, bool IsConst, class... Types>
 struct tuple_element<I, ::cntgs::BasicContiguousReference<IsConst, Types...>>
-    : std::tuple_element<I, ::cntgs::detail::ConditionalT<
-                                IsConst,  //
-                                std::tuple<typename ::cntgs::detail::ParameterTraits<Types>::ConstReferenceType...>,
-                                std::tuple<typename ::cntgs::detail::ParameterTraits<Types>::ReferenceType...>>>
+    : std::tuple_element<I, ::cntgs::detail::ToTupleOfContiguousReferences<IsConst, Types...>>
 {
 };
 

@@ -474,7 +474,7 @@ struct MoveDefaultingValue
     }
 };
 
-template <class T, bool Inherit>
+template <class T, bool = (std::is_empty_v<T> && !std::is_final_v<T>)>
 class EmptyBaseOptimization
 {
   private:
@@ -518,9 +518,6 @@ class EmptyBaseOptimization<T, true> : private T
 
     constexpr const T& get() const noexcept { return *this; }
 };
-
-template <class T>
-using EmptyBaseOptimizationT = detail::EmptyBaseOptimization<T, (std::is_empty_v<T> && !std::is_final_v<T>)>;
 
 template <class T>
 constexpr auto as_const(cntgs::Span<T> value) noexcept
@@ -762,9 +759,9 @@ class AllocatorAwarePointer
     using value_type = typename AllocatorTraits::value_type;
 
   private:
-    struct Impl : detail::EmptyBaseOptimizationT<Allocator>
+    struct Impl : detail::EmptyBaseOptimization<Allocator>
     {
-        using Base = detail::EmptyBaseOptimizationT<Allocator>;
+        using Base = detail::EmptyBaseOptimization<Allocator>;
 
         Pointer ptr{};
         std::size_t size{};
@@ -1633,46 +1630,22 @@ struct ParameterListTraits
 #ifndef CNTGS_DETAIL_TUPLE_HPP
 #define CNTGS_DETAIL_TUPLE_HPP
 
-// #include "cntgs/detail/forward.hpp"
-
 // #include "cntgs/detail/parameterTraits.hpp"
 
-// #include "cntgs/detail/utility.hpp"
+// #include "cntgs/detail/typeUtils.hpp"
 
 
 #include <tuple>
-#include <utility>
 
 namespace cntgs::detail
 {
-template <template <class> class U, class T>
-struct TransformTuple
-{
-};
+template <class... Types>
+using ToTupleOfContiguousPointer = std::tuple<typename detail::ParameterTraits<Types>::PointerType...>;
 
-template <template <class> class Transformer, class... T>
-struct TransformTuple<Transformer, std::tuple<T...>>
-{
-    using Type = std::tuple<Transformer<T>...>;
-};
-
-template <class T>
-using ToContiguousReference = typename detail::ParameterTraits<T>::ReferenceType;
-
-template <class T>
-using ToTupleOfContiguousReference = typename detail::TransformTuple<ToContiguousReference, T>::Type;
-
-template <class T>
-using ToContiguousConstReference = typename detail::ParameterTraits<T>::ConstReferenceType;
-
-template <class T>
-using ToTupleOfContiguousConstReference = typename detail::TransformTuple<ToContiguousConstReference, T>::Type;
-
-template <class T>
-using ToContiguousPointer = typename detail::ParameterTraits<T>::PointerType;
-
-template <class T>
-using ToTupleOfContiguousPointer = typename detail::TransformTuple<ToContiguousPointer, T>::Type;
+template <bool IsConst, class... Types>
+using ToTupleOfContiguousReferences =
+    detail::ConditionalT<IsConst, std::tuple<typename detail::ParameterTraits<Types>::ConstReferenceType...>,
+                         std::tuple<typename detail::ParameterTraits<Types>::ReferenceType...>>;
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_TUPLE_HPP
@@ -1682,10 +1655,7 @@ namespace std
 {
 template <std::size_t I, bool IsConst, class... Types>
 struct tuple_element<I, ::cntgs::BasicContiguousReference<IsConst, Types...>>
-    : std::tuple_element<I, ::cntgs::detail::ConditionalT<
-                                IsConst,  //
-                                std::tuple<typename ::cntgs::detail::ParameterTraits<Types>::ConstReferenceType...>,
-                                std::tuple<typename ::cntgs::detail::ParameterTraits<Types>::ReferenceType...>>>
+    : std::tuple_element<I, ::cntgs::detail::ToTupleOfContiguousReferences<IsConst, Types...>>
 {
 };
 
@@ -1817,7 +1787,7 @@ struct ContiguousVectorTraits
 {
     using ReferenceType = cntgs::BasicContiguousReference<false, Types...>;
     using ConstReferenceType = cntgs::BasicContiguousReference<true, Types...>;
-    using PointerType = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
+    using PointerType = detail::ToTupleOfContiguousPointer<Types...>;
 };
 }  // namespace cntgs::detail
 
@@ -2142,6 +2112,8 @@ using ElementTraitsT = detail::ElementTraits<std::make_index_sequence<sizeof...(
 
 // #include "cntgs/detail/parameterListTraits.hpp"
 
+// #include "cntgs/detail/reference.hpp"
+
 // #include "cntgs/detail/tuple.hpp"
 
 // #include "cntgs/detail/typeUtils.hpp"
@@ -2166,9 +2138,8 @@ class BasicContiguousReference
   private:
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
-    using PointerTuple = detail::ToTupleOfContiguousPointer<std::tuple<Types...>>;
-    using Tuple = detail::ConditionalT<IsConst, detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
-                                       detail::ToTupleOfContiguousReference<std::tuple<Types...>>>;
+    using PointerTuple = detail::ToTupleOfContiguousPointer<Types...>;
+    using Tuple = detail::ToTupleOfContiguousReferences<IsConst, Types...>;
 
     static constexpr auto IS_CONST = IsConst;
 
@@ -2693,7 +2664,7 @@ class BasicContiguousElement
     {
         this->destruct();
         this->memory = std::move(other.memory);
-        detail::construct_at(std::addressof(this->reference), std::move(other.reference));
+        this->reference.tuple = std::move(other.reference.tuple);
     }
 
     template <class OtherAllocator>
@@ -2729,9 +2700,9 @@ class BasicContiguousElement
                         // allocate memory first because it might throw
                         StorageType new_memory{other.memory.size(), this->get_allocator()};
                         this->destruct();
-                        detail::construct_at(std::addressof(this->reference),
-                                             this->store_and_load(other.reference, other_size_in_bytes,
-                                                                  BasicContiguousElement::memory_begin(new_memory)));
+                        this->reference.tuple = this->store_and_load(other.reference, other_size_in_bytes,
+                                                                     BasicContiguousElement::memory_begin(new_memory))
+                                                    .tuple;
                         this->memory = std::move(new_memory);
                     }
                     else
@@ -2747,7 +2718,7 @@ class BasicContiguousElement
     template <class SourceReference>
     void store_and_construct_reference_inplace(SourceReference& other, std::size_t memory_size)
     {
-        detail::construct_at(std::addressof(this->reference), this->store_and_load(other, memory_size));
+        this->reference.tuple = this->store_and_load(other, memory_size).tuple;
     }
 
     void destruct() noexcept
@@ -2767,9 +2738,7 @@ constexpr void swap(cntgs::BasicContiguousElement<Allocator, T...>& lhs,
                     cntgs::BasicContiguousElement<Allocator, T...>& rhs) noexcept
 {
     detail::swap(lhs.memory, rhs.memory);
-    auto temp{lhs.reference};
-    detail::construct_at(&lhs.reference, rhs.reference);
-    detail::construct_at(&rhs.reference, temp);
+    std::swap(lhs.reference.tuple, rhs.reference.tuple);
 }
 
 template <std::size_t I, class Allocator, class... Types>
@@ -3115,14 +3084,14 @@ using ElementLocatorT = detail::ElementLocator<detail::ParameterListTraits<Types
 
 template <class... Types>
 class ElementLocatorAndFixedSizes
-    : private detail::EmptyBaseOptimizationT<typename detail::ParameterListTraits<Types...>::FixedSizesArray>
+    : private detail::EmptyBaseOptimization<typename detail::ParameterListTraits<Types...>::FixedSizesArray>
 {
   private:
     static constexpr auto HAS_FIXED_SIZES = detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT > 0;
 
     using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
     using Locator = detail::ElementLocatorT<Types...>;
-    using Base = detail::EmptyBaseOptimizationT<FixedSizesArray>;
+    using Base = detail::EmptyBaseOptimization<FixedSizesArray>;
 
   public:
     Locator locator;
