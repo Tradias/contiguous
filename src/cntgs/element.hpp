@@ -403,13 +403,13 @@ template <std::size_t I, class Allocator, class... Types>
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousElement<Allocator, Types...>&& element) noexcept
 {
-    return cntgs::get<I>(std::move(element.reference));
+    return std::move(cntgs::get<I>(element.reference));
 }
 
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(const cntgs::BasicContiguousElement<Allocator, Types...>&& element) noexcept
 {
-    return detail::as_const(cntgs::get<I>(std::move(element.reference)));
+    return detail::as_const(std::move(cntgs::get<I>(element.reference)));
 }
 }  // namespace cntgs
 

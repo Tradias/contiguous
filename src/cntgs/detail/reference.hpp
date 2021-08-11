@@ -7,6 +7,7 @@
 #define CNTGS_DETAIL_REFERENCE_HPP
 
 #include "cntgs/detail/forward.hpp"
+#include "cntgs/detail/parameterTraits.hpp"
 #include "cntgs/detail/tuple.hpp"
 
 namespace std
@@ -14,8 +15,9 @@ namespace std
 template <std::size_t I, bool IsConst, class... Types>
 struct tuple_element<I, ::cntgs::BasicContiguousReference<IsConst, Types...>>
     : std::tuple_element<I, ::cntgs::detail::ConditionalT<
-                                IsConst, ::cntgs::detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
-                                ::cntgs::detail::ToTupleOfContiguousReference<std::tuple<Types...>>>>
+                                IsConst,  //
+                                std::tuple<typename ::cntgs::detail::ParameterTraits<Types>::ConstReferenceType...>,
+                                std::tuple<typename ::cntgs::detail::ParameterTraits<Types>::ReferenceType...>>>
 {
 };
 
@@ -29,20 +31,8 @@ struct tuple_size<::cntgs::BasicContiguousReference<IsConst, Types...>>
 namespace cntgs
 {
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
-    cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept;
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>> get(
     const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept;
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
-    cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept;
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
-    const cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept;
 }  // namespace cntgs
 
 #endif  // CNTGS_DETAIL_REFERENCE_HPP

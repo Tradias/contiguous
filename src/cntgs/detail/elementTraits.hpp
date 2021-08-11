@@ -43,7 +43,7 @@ constexpr auto alignment_offset(std::size_t position) noexcept
 }
 
 template <bool UseMove, class Type, class Source, class Target>
-constexpr void construct_one_if_non_trivial([[maybe_unused]] Source& source, [[maybe_unused]] const Target& target)
+constexpr void construct_one_if_non_trivial([[maybe_unused]] Source&& source, [[maybe_unused]] const Target& target)
 {
     using ValueType = typename detail::ParameterTraits<Type>::ValueType;
     if constexpr (UseMove && !std::is_trivially_move_constructible_v<ValueType>)

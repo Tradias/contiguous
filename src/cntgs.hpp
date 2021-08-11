@@ -523,31 +523,7 @@ template <class T>
 using EmptyBaseOptimizationT = detail::EmptyBaseOptimization<T, (std::is_empty_v<T> && !std::is_final_v<T>)>;
 
 template <class T>
-constexpr const cntgs::Span<T>& dereference(const cntgs::Span<T>& value) noexcept
-{
-    return value;
-}
-
-template <class T>
-constexpr cntgs::Span<T>& dereference(cntgs::Span<T>& value) noexcept
-{
-    return value;
-}
-
-template <class T>
-constexpr decltype(auto) dereference(T& value) noexcept
-{
-    return *value;
-}
-
-template <class T>
-constexpr auto as_const(const cntgs::Span<T>& value) noexcept
-{
-    return cntgs::Span<std::add_const_t<T>>{value};
-}
-
-template <class T>
-constexpr auto as_const(cntgs::Span<T>& value) noexcept
+constexpr auto as_const(cntgs::Span<T> value) noexcept
 {
     return cntgs::Span<std::add_const_t<T>>{value};
 }
@@ -556,6 +532,24 @@ template <class T>
 constexpr decltype(auto) as_const(T& value) noexcept
 {
     return std::as_const(value);
+}
+
+template <class T>
+constexpr decltype(auto) as_ref(T* value) noexcept
+{
+    return (*value);
+}
+
+template <class T>
+constexpr decltype(auto) as_ref(T& value) noexcept
+{
+    return (value);
+}
+
+template <class T>
+constexpr decltype(auto) as_const_ref(T&& value) noexcept
+{
+    return detail::as_const(detail::as_ref(std::forward<T>(value)));
 }
 }  // namespace cntgs::detail
 
@@ -1628,6 +1622,8 @@ struct ParameterListTraits
 
 // #include "cntgs/detail/forward.hpp"
 
+// #include "cntgs/detail/parameterTraits.hpp"
+
 // #include "cntgs/detail/tuple.hpp"
 // Copyright (c) 2021 Dennis Hezel
 //
@@ -1677,18 +1673,6 @@ using ToContiguousPointer = typename detail::ParameterTraits<T>::PointerType;
 
 template <class T>
 using ToTupleOfContiguousPointer = typename detail::TransformTuple<ToContiguousPointer, T>::Type;
-
-template <class Result, class... T, std::size_t... I>
-constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer, std::index_sequence<I...>) noexcept
-{
-    return Result{detail::dereference(std::get<I>(tuple_of_pointer))...};
-}
-
-template <class Result, class... T>
-constexpr auto convert_tuple_to(const std::tuple<T...>& tuple_of_pointer) noexcept
-{
-    return detail::convert_tuple_to<Result>(tuple_of_pointer, std::make_index_sequence<sizeof...(T)>{});
-}
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_TUPLE_HPP
@@ -1699,8 +1683,9 @@ namespace std
 template <std::size_t I, bool IsConst, class... Types>
 struct tuple_element<I, ::cntgs::BasicContiguousReference<IsConst, Types...>>
     : std::tuple_element<I, ::cntgs::detail::ConditionalT<
-                                IsConst, ::cntgs::detail::ToTupleOfContiguousConstReference<std::tuple<Types...>>,
-                                ::cntgs::detail::ToTupleOfContiguousReference<std::tuple<Types...>>>>
+                                IsConst,  //
+                                std::tuple<typename ::cntgs::detail::ParameterTraits<Types>::ConstReferenceType...>,
+                                std::tuple<typename ::cntgs::detail::ParameterTraits<Types>::ReferenceType...>>>
 {
 };
 
@@ -1714,20 +1699,8 @@ struct tuple_size<::cntgs::BasicContiguousReference<IsConst, Types...>>
 namespace cntgs
 {
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
-    cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept;
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>> get(
     const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept;
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
-    cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept;
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
-    const cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept;
 }  // namespace cntgs
 
 #endif  // CNTGS_DETAIL_REFERENCE_HPP
@@ -1877,7 +1850,7 @@ constexpr auto alignment_offset(std::size_t position) noexcept
 }
 
 template <bool UseMove, class Type, class Source, class Target>
-constexpr void construct_one_if_non_trivial([[maybe_unused]] Source& source, [[maybe_unused]] const Target& target)
+constexpr void construct_one_if_non_trivial([[maybe_unused]] Source&& source, [[maybe_unused]] const Target& target)
 {
     using ValueType = typename detail::ParameterTraits<Type>::ValueType;
     if constexpr (UseMove && !std::is_trivially_move_constructible_v<ValueType>)
@@ -2200,7 +2173,7 @@ class BasicContiguousReference
     static constexpr auto IS_CONST = IsConst;
 
   public:
-    Tuple tuple;
+    PointerTuple tuple;
 
     BasicContiguousReference() = default;
     ~BasicContiguousReference() = default;
@@ -2280,13 +2253,13 @@ class BasicContiguousReference
 
     [[nodiscard]] constexpr auto data_begin() const noexcept
     {
-        return ElementTraits::template ParameterTraitsAt<0>::data_begin(std::get<0>(this->tuple));
+        return ElementTraits::template ParameterTraitsAt<0>::data_begin(cntgs::get<0>(*this));
     }
 
     [[nodiscard]] constexpr auto data_end() const noexcept
     {
         return ElementTraits::template ParameterTraitsAt<sizeof...(Types) - 1>::data_end(
-            std::get<sizeof...(Types) - 1>(this->tuple));
+            cntgs::get<sizeof...(Types) - 1>(*this));
     }
 
     template <bool OtherIsConst>
@@ -2391,10 +2364,7 @@ class BasicContiguousReference
     {
     }
 
-    explicit constexpr BasicContiguousReference(const PointerTuple& tuple) noexcept
-        : tuple(detail::convert_tuple_to<Tuple>(tuple))
-    {
-    }
+    explicit constexpr BasicContiguousReference(const PointerTuple& tuple) noexcept : tuple(tuple) {}
 
     template <class Reference>
     void assign(Reference& other) const
@@ -2413,31 +2383,17 @@ constexpr void swap(const cntgs::BasicContiguousReference<IsConst, Types...>& lh
 }
 
 template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
-    cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
-{
-    return std::get<I>(reference.tuple);
-}
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>& get(
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>> get(
     const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
 {
-    return std::get<I>(reference.tuple);
-}
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
-    cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept
-{
-    return std::get<I>(std::move(reference.tuple));
-}
-
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr const std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>>&& get(
-    const cntgs::BasicContiguousReference<IsConst, Types...>&& reference) noexcept
-{
-    return std::get<I>(std::move(reference.tuple));
+    if constexpr (IsConst)
+    {
+        return detail::as_const_ref(std::get<I>(reference.tuple));
+    }
+    else
+    {
+        return detail::as_ref(std::get<I>(reference.tuple));
+    }
 }
 }  // namespace cntgs
 
@@ -2831,13 +2787,13 @@ template <std::size_t I, class Allocator, class... Types>
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousElement<Allocator, Types...>&& element) noexcept
 {
-    return cntgs::get<I>(std::move(element.reference));
+    return std::move(cntgs::get<I>(element.reference));
 }
 
 template <std::size_t I, class Allocator, class... Types>
 [[nodiscard]] constexpr decltype(auto) get(const cntgs::BasicContiguousElement<Allocator, Types...>&& element) noexcept
 {
-    return detail::as_const(cntgs::get<I>(std::move(element.reference)));
+    return detail::as_const(std::move(cntgs::get<I>(element.reference)));
 }
 }  // namespace cntgs
 

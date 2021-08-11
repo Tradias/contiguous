@@ -84,31 +84,7 @@ template <class T>
 using EmptyBaseOptimizationT = detail::EmptyBaseOptimization<T, (std::is_empty_v<T> && !std::is_final_v<T>)>;
 
 template <class T>
-constexpr const cntgs::Span<T>& dereference(const cntgs::Span<T>& value) noexcept
-{
-    return value;
-}
-
-template <class T>
-constexpr cntgs::Span<T>& dereference(cntgs::Span<T>& value) noexcept
-{
-    return value;
-}
-
-template <class T>
-constexpr decltype(auto) dereference(T& value) noexcept
-{
-    return *value;
-}
-
-template <class T>
-constexpr auto as_const(const cntgs::Span<T>& value) noexcept
-{
-    return cntgs::Span<std::add_const_t<T>>{value};
-}
-
-template <class T>
-constexpr auto as_const(cntgs::Span<T>& value) noexcept
+constexpr auto as_const(cntgs::Span<T> value) noexcept
 {
     return cntgs::Span<std::add_const_t<T>>{value};
 }
@@ -117,6 +93,24 @@ template <class T>
 constexpr decltype(auto) as_const(T& value) noexcept
 {
     return std::as_const(value);
+}
+
+template <class T>
+constexpr decltype(auto) as_ref(T* value) noexcept
+{
+    return (*value);
+}
+
+template <class T>
+constexpr decltype(auto) as_ref(T& value) noexcept
+{
+    return (value);
+}
+
+template <class T>
+constexpr decltype(auto) as_const_ref(T&& value) noexcept
+{
+    return detail::as_const(detail::as_ref(std::forward<T>(value)));
 }
 }  // namespace cntgs::detail
 

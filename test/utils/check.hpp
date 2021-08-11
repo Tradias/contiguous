@@ -13,15 +13,41 @@
 
 #include <cstddef>
 #include <functional>
+#include <string_view>
 #include <utility>
 
 namespace cntgs::test
 {
 namespace detail
 {
+template <class>
+inline constexpr bool IS_UNIQUE_PTR = false;
+
+template <class T>
+inline constexpr bool IS_UNIQUE_PTR<std::unique_ptr<T>> = true;
+
+template <class Lhs, class Rhs>
+bool check_equal(const Lhs& lhs, const Rhs& rhs);
+
+template <class T>
+bool check_unique_ptr_equal_to(const std::unique_ptr<T>& lhs, const T& rhs)
+{
+    if (!lhs)
+    {
+        CHECK(lhs);
+        return false;
+    }
+    return detail::check_equal(rhs, *lhs);
+}
+
 template <class Lhs, class Rhs>
 bool check_equal(const Lhs& lhs, const Rhs& rhs)
 {
+    if constexpr (std::is_constructible_v<std::string_view, const Lhs&>)
+    {
+        CHECK_EQ(lhs, rhs);
+        return lhs == rhs;
+    }
     if constexpr (test::IsRange<test::RemoveCvrefT<Lhs>>::value)
     {
         auto result = test::range_equal(lhs, rhs,
@@ -32,52 +58,35 @@ bool check_equal(const Lhs& lhs, const Rhs& rhs)
         CHECK(result);
         return result;
     }
+    else if constexpr (IS_UNIQUE_PTR<Lhs> && !IS_UNIQUE_PTR<Rhs>)
+    {
+        return detail::check_unique_ptr_equal_to(lhs, rhs);
+    }
+    else if constexpr (!IS_UNIQUE_PTR<Lhs> && IS_UNIQUE_PTR<Rhs>)
+    {
+        return detail::check_unique_ptr_equal_to(rhs, lhs);
+    }
+    else if constexpr (IS_UNIQUE_PTR<Lhs> && IS_UNIQUE_PTR<Rhs>)
+    {
+        if (bool{lhs} == bool{rhs})
+        {
+            if (bool{lhs} && bool{rhs})
+            {
+                return check_equal(*lhs, *rhs);
+            }
+            return true;
+        }
+        else
+        {
+            FAIL("unique_ptrs are not both null or non-null");
+        }
+        return false;
+    }
     else
     {
         CHECK_EQ(lhs, rhs);
         return lhs == rhs;
     }
-}
-
-inline bool check_equal(const std::string& lhs, const std::string& rhs)
-{
-    CHECK_EQ(lhs, rhs);
-    return lhs == rhs;
-}
-
-template <class T>
-bool check_equal(const std::unique_ptr<T>& lhs, const std::unique_ptr<T>& rhs)
-{
-    if (bool{lhs} == bool{rhs})
-    {
-        if (bool{lhs} && bool{rhs})
-        {
-            return check_equal(*lhs, *rhs);
-        }
-        return true;
-    }
-    else
-    {
-        FAIL("unique_ptrs are not both null or non-null");
-    }
-    return false;
-}
-
-template <class T>
-bool check_equal(const T& lhs, const std::unique_ptr<T>& rhs)
-{
-    if (!rhs)
-    {
-        CHECK(rhs);
-        return false;
-    }
-    return check_equal(lhs, *rhs);
-}
-
-template <class T>
-bool check_equal(const std::unique_ptr<T>& lhs, const T& rhs)
-{
-    return check_equal(rhs, lhs);
 }
 
 template <class T, std::size_t... I, class... Args>
