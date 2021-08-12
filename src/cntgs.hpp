@@ -3448,37 +3448,9 @@ class TypeErasedVector
 
 #include <memory>
 #include <type_traits>
-#include <utility>
 
 namespace cntgs::detail
 {
-template <class T>
-struct EmptyParse
-{
-    using Type = T;
-};
-
-template <class T>
-struct ValidParse
-{
-    using Type = T;
-};
-
-template <class T, class U>
-constexpr auto operator/(EmptyParse<T>, ValidParse<U>) -> ValidParse<U>;
-
-template <class T, class U>
-constexpr auto operator/(ValidParse<T>, EmptyParse<U>) -> ValidParse<T>;
-
-template <class T, class U>
-constexpr auto operator/(EmptyParse<T>, EmptyParse<U>) -> EmptyParse<U>;
-
-template <class Parser>
-using Evaluate = detail::ConditionalT<Parser::value, ValidParse<Parser>, EmptyParse<Parser>>;
-
-template <template <class> class Parser, class... Option>
-using Parse = typename decltype((detail::EmptyParse<Parser<>>{} / ... / detail::Evaluate<Parser<Option>>{}))::Type;
-
 template <class = void>
 struct AllocatorOptionParser : std::false_type
 {
@@ -3494,7 +3466,11 @@ struct AllocatorOptionParser<cntgs::Allocator<T>> : std::true_type
 template <class... Option>
 struct OptionsParser
 {
-    using Allocator = typename detail::Parse<detail::AllocatorOptionParser, Option...>::Allocator;
+    template <template <class = void> class Parser>
+    using Parse =
+        detail::ConditionalT<std::disjunction<Parser<Option>...>::value, std::disjunction<Parser<Option>...>, Parser<>>;
+
+    using Allocator = typename Parse<detail::AllocatorOptionParser>::Allocator;
 };
 }  // namespace cntgs::detail
 
@@ -3777,49 +3753,49 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
 
     [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
 
-    template <class... Option>
+    template <class... TOption>
     [[nodiscard]] constexpr auto operator==(
-        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return this->equal(other);
     }
 
-    template <class... Option>
+    template <class... TOption>
     [[nodiscard]] constexpr auto operator!=(
-        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(*this == other);
     }
 
-    template <class... Option>
+    template <class... TOption>
     [[nodiscard]] constexpr auto operator<(
-        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return this->lexicographical_compare(other);
     }
 
-    template <class... Option>
+    template <class... TOption>
     [[nodiscard]] constexpr auto operator<=(
-        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other < *this);
     }
 
-    template <class... Option>
+    template <class... TOption>
     [[nodiscard]] constexpr auto operator>(
-        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other < *this;
     }
 
-    template <class... Option>
+    template <class... TOption>
     [[nodiscard]] constexpr auto operator>=(
-        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(*this < other);
@@ -3991,8 +3967,8 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
         this->locator = other_locator;
     }
 
-    template <class... Option>
-    constexpr auto equal(const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
+    template <class... TOption>
+    constexpr auto equal(const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
     {
         if constexpr (ListTraits::IS_EQUALITY_MEMCMPABLE)
         {
@@ -4011,9 +3987,9 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
             return std::equal(this->begin(), this->end(), other.begin());
         }
     }
-    template <class... Option>
+    template <class... TOption>
     constexpr auto lexicographical_compare(
-        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
     {
         if constexpr (ListTraits::IS_LEXICOGRAPHICAL_MEMCMPABLE && ListTraits::IS_FIXED_SIZE_OR_PLAIN)
         {
