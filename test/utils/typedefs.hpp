@@ -9,10 +9,21 @@
 #include <cntgs/contiguous.hpp>
 
 #include <memory>
+#include <memory_resource>
 
 namespace cntgs::test
 {
 using UInt8 = unsigned char;
+
+template <class Allocator, class... Parameter>
+using ContiguousVectorWithAllocator =
+    cntgs::BasicContiguousVector<cntgs::Options<cntgs::Allocator<Allocator>>, Parameter...>;
+
+namespace pmr
+{
+template <class... Parameter>
+using ContiguousVector = test::ContiguousVectorWithAllocator<std::pmr::polymorphic_allocator<std::byte>, Parameter...>;
+}
 
 using Plain = cntgs::ContiguousVector<uint32_t, float>;
 using OneVarying = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<float>>;

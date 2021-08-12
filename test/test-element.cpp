@@ -51,7 +51,7 @@ TEST_CASE("ContiguousElement: converting constructors")
         OneFixed::value_type value{OneFixed::value_type{vector[0]}};
         CHECK_EQ(vector[0], value);
     }
-    using Vector2 = cntgs::BasicContiguousVector<std::allocator<int>, uint32_t, cntgs::FixedSize<float>>;
+    using Vector2 = test::ContiguousVectorWithAllocator<std::allocator<int>, uint32_t, cntgs::FixedSize<float>>;
     Vector2 vector2{1, {FLOATS1.size()}};
     vector2.emplace_back(10u, FLOATS1);
     SUBCASE("copy from value_type")
@@ -77,8 +77,7 @@ TEST_CASE("ContiguousElement: converting constructors")
         CHECK_EQ(vector[0], value);
     }
     TestMemoryResource resource;
-    using ValueType =
-        cntgs::BasicContiguousVector<TestMemoryResource::allocator_type, uint32_t, cntgs::FixedSize<float>>::value_type;
+    using ValueType = test::pmr::ContiguousVector<uint32_t, cntgs::FixedSize<float>>::value_type;
     SUBCASE("copy from reference and allocator")
     {
         const auto ref{vector[0]};

@@ -15,11 +15,11 @@
 
 namespace cntgs
 {
-template <bool IsConst, class Allocator, class... Types>
+template <bool IsConst, class Options, class... Types>
 class ContiguousVectorIterator
 {
   private:
-    using Vector = cntgs::BasicContiguousVector<Allocator, Types...>;
+    using Vector = cntgs::BasicContiguousVector<Options, Types...>;
     using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
 
   public:
@@ -40,7 +40,7 @@ class ContiguousVectorIterator
 
     template <bool OtherIsConst>
     /*implicit*/ constexpr ContiguousVectorIterator(
-        const ContiguousVectorIterator<OtherIsConst, Allocator, Types...>& other) noexcept
+        const ContiguousVectorIterator<OtherIsConst, Options, Types...>& other) noexcept
         : i(other.i), memory(other.memory), locator(other.locator)
     {
     }
@@ -50,7 +50,7 @@ class ContiguousVectorIterator
 
     template <bool OtherIsConst>
     constexpr ContiguousVectorIterator& operator=(
-        const ContiguousVectorIterator<OtherIsConst, Allocator, Types...>& other) noexcept
+        const ContiguousVectorIterator<OtherIsConst, Options, Types...>& other) noexcept
     {
         this->i = other.i;
         this->memory = other.memory;
@@ -175,7 +175,7 @@ class ContiguousVectorIterator
     }
 
   private:
-    friend cntgs::ContiguousVectorIterator<!IsConst, Allocator, Types...>;
+    friend cntgs::ContiguousVectorIterator<!IsConst, Options, Types...>;
 
     typename Vector::size_type i{};
     std::byte* memory;

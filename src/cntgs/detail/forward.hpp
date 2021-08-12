@@ -19,10 +19,16 @@ struct FixedSize;
 template <class T, std::size_t Alignment = 1>
 struct AlignAs;
 
-template <class Allocator, class... T>
+template <class... Option>
+struct Options;
+
+template <class T>
+struct Allocator;
+
+template <class Options, class... T>
 class BasicContiguousVector;
 
-template <bool IsConst, class Allocator, class... Types>
+template <bool IsConst, class Options, class... Types>
 class ContiguousVectorIterator;
 
 class TypeErasedVector;

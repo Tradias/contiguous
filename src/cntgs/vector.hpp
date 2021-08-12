@@ -12,6 +12,7 @@
 #include "cntgs/detail/elementLocator.hpp"
 #include "cntgs/detail/forward.hpp"
 #include "cntgs/detail/memory.hpp"
+#include "cntgs/detail/optionsParser.hpp"
 #include "cntgs/detail/parameterListTraits.hpp"
 #include "cntgs/detail/parameterTraits.hpp"
 #include "cntgs/detail/utility.hpp"
@@ -32,7 +33,7 @@ namespace cntgs
 {
 /// Alias template for [cntgs::BasicContiguousVector]() that uses [std::allocator]()
 template <class... Types>
-using ContiguousVector = cntgs::BasicContiguousVector<std::allocator<std::byte>, Types...>;
+using ContiguousVector = cntgs::BasicContiguousVector<cntgs::Options<>, Types...>;
 
 /// Container that stores the value of each specified parameter contiguously.
 ///
@@ -41,11 +42,13 @@ using ContiguousVector = cntgs::BasicContiguousVector<std::allocator<std::byte>,
 /// \param Types Any of [cntgs::VaryingSize](), [cntgs::FixedSize](), [cntgs::AlignAs]() or a plain user-defined or
 /// built-in type. The underlying type of each parameter must meet the requirements of
 /// [Erasable](https://en.cppreference.com/w/cpp/named_req/Erasable)
-template <class Allocator, class... Types>
-class BasicContiguousVector
+template <class... Option, class... Types>
+class BasicContiguousVector<cntgs::Options<Option...>, Types...>
 {
   private:
-    using Self = cntgs::BasicContiguousVector<Allocator, Types...>;
+    using Self = cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>;
+    using ParsedOptions = detail::OptionsParser<Option...>;
+    using Allocator = typename ParsedOptions::Allocator;
     using ListTraits = detail::ParameterListTraits<Types...>;
     using VectorTraits = detail::ContiguousVectorTraits<Types...>;
     using ElementLocator = detail::ElementLocatorT<Types...>;
@@ -73,8 +76,8 @@ class BasicContiguousVector
     /// A [cntgs::ContiguousConstReference]()
     /// \exclude target
     using const_reference = typename VectorTraits::ConstReferenceType;
-    using iterator = cntgs::ContiguousVectorIterator<false, Allocator, Types...>;
-    using const_iterator = cntgs::ContiguousVectorIterator<true, Allocator, Types...>;
+    using iterator = cntgs::ContiguousVectorIterator<false, cntgs::Options<Option...>, Types...>;
+    using const_iterator = cntgs::ContiguousVectorIterator<true, cntgs::Options<Option...>, Types...>;
     using difference_type = std::ptrdiff_t;
     using size_type = std::size_t;
     using allocator_type = Allocator;
@@ -277,43 +280,49 @@ class BasicContiguousVector
 
     [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
 
-    template <class TAllocator>
-    [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    template <class... Option>
+    [[nodiscard]] constexpr auto operator==(
+        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return this->equal(other);
     }
 
-    template <class TAllocator>
-    [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    template <class... Option>
+    [[nodiscard]] constexpr auto operator!=(
+        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(*this == other);
     }
 
-    template <class TAllocator>
-    [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    template <class... Option>
+    [[nodiscard]] constexpr auto operator<(
+        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return this->lexicographical_compare(other);
     }
 
-    template <class TAllocator>
-    [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    template <class... Option>
+    [[nodiscard]] constexpr auto operator<=(
+        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other < *this);
     }
 
-    template <class TAllocator>
-    [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    template <class... Option>
+    [[nodiscard]] constexpr auto operator>(
+        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other < *this;
     }
 
-    template <class TAllocator>
-    [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    template <class... Option>
+    [[nodiscard]] constexpr auto operator>=(
+        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(*this < other);
@@ -485,8 +494,8 @@ class BasicContiguousVector
         this->locator = other_locator;
     }
 
-    template <class TAllocator>
-    constexpr auto equal(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    template <class... Option>
+    constexpr auto equal(const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
     {
         if constexpr (ListTraits::IS_EQUALITY_MEMCMPABLE)
         {
@@ -505,8 +514,9 @@ class BasicContiguousVector
             return std::equal(this->begin(), this->end(), other.begin());
         }
     }
-    template <class TAllocator>
-    constexpr auto lexicographical_compare(const cntgs::BasicContiguousVector<TAllocator, Types...>& other) const
+    template <class... Option>
+    constexpr auto lexicographical_compare(
+        const cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>& other) const
     {
         if constexpr (ListTraits::IS_LEXICOGRAPHICAL_MEMCMPABLE && ListTraits::IS_FIXED_SIZE_OR_PLAIN)
         {
@@ -546,9 +556,9 @@ class BasicContiguousVector
     }
 };
 
-template <class Allocator, class... T>
-constexpr void swap(cntgs::BasicContiguousVector<Allocator, T...>& lhs,
-                    cntgs::BasicContiguousVector<Allocator, T...>& rhs) noexcept
+template <class... Option, class... T>
+constexpr void swap(cntgs::BasicContiguousVector<cntgs::Options<Option...>, T...>& lhs,
+                    cntgs::BasicContiguousVector<cntgs::Options<Option...>, T...>& rhs) noexcept
 {
     std::swap(lhs.max_element_count, rhs.max_element_count);
     detail::swap(lhs.memory, rhs.memory);

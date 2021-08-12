@@ -41,7 +41,7 @@ inline auto array_two_unique_ptr(int v1 = 30, int v2 = 40)
 template <class Allocator = std::allocator<int>>
 auto fixed_vector_of_unique_ptrs(Allocator allocator = {})
 {
-    cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
+    test::ContiguousVectorWithAllocator<Allocator, cntgs::FixedSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
         2, {1}, allocator};
     vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
     vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
@@ -51,8 +51,8 @@ auto fixed_vector_of_unique_ptrs(Allocator allocator = {})
 template <class Allocator = std::allocator<int>>
 auto varying_vector_of_unique_ptrs(Allocator allocator = {})
 {
-    cntgs::BasicContiguousVector<Allocator, cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{
-        2, 3 * sizeof(std::unique_ptr<int>), allocator};
+    test::ContiguousVectorWithAllocator<Allocator, cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>>
+        vector{2, 3 * sizeof(std::unique_ptr<int>), allocator};
     vector.emplace_back(array_two_unique_ptr(10, 20), std::make_unique<int>(30));
     vector.emplace_back(array_one_unique_ptr(40), std::make_unique<int>(50));
     return vector;
@@ -61,7 +61,8 @@ auto varying_vector_of_unique_ptrs(Allocator allocator = {})
 template <class Allocator = std::allocator<int>>
 auto fixed_vector_of_strings(Allocator allocator = {})
 {
-    cntgs::BasicContiguousVector<Allocator, cntgs::FixedSize<std::string>, std::string> vector{2, {2}, allocator};
+    test::ContiguousVectorWithAllocator<Allocator, cntgs::FixedSize<std::string>, std::string> vector{
+        2, {2}, allocator};
     vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
     vector.emplace_back(std::array{STRING1, STRING2}, STRING2);
     return vector;
@@ -70,7 +71,7 @@ auto fixed_vector_of_strings(Allocator allocator = {})
 template <class Allocator = std::allocator<int>>
 auto varying_vector_of_strings(Allocator allocator = {})
 {
-    cntgs::BasicContiguousVector<Allocator, cntgs::VaryingSize<std::string>, std::string> vector{
+    test::ContiguousVectorWithAllocator<Allocator, cntgs::VaryingSize<std::string>, std::string> vector{
         2, 3 * sizeof(std::string), allocator};
     vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
     vector.emplace_back(std::array{STRING1}, STRING2);

@@ -37,6 +37,16 @@ template <class T, std::size_t Alignment>
 struct AlignAs
 {
 };
+
+template <class... Option>
+struct Options
+{
+};
+
+template <class T>
+struct Allocator
+{
+};
 }  // namespace cntgs
 
 #endif  // CNTGS_CNTGS_PARAMETER_HPP

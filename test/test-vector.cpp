@@ -401,8 +401,7 @@ TEST_CASE("ContiguousVector: ContiguousVector is conditionally nothrow")
     check_always_nothrow_move_construct<NoexceptVector>();
     CHECK(std::is_nothrow_move_assignable_v<NoexceptVector<true>>);
     CHECK(std::is_nothrow_move_assignable_v<NoexceptVector<false>>);
-    CHECK_FALSE(std::is_nothrow_move_assignable_v<
-                cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, float>>);
+    CHECK_FALSE(std::is_nothrow_move_assignable_v<test::pmr::ContiguousVector<float>>);
 }
 
 TEST_CASE("ContiguousVector: OneFixedUniquePtr erase(Iterator)")
@@ -588,8 +587,7 @@ TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
 TEST_CASE("ContiguousVector: trivial OneFixed reserve with polymorphic_allocator")
 {
     TestMemoryResource resource;
-    cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, cntgs::FixedSize<float>, int> vector{
-        0, {10}, resource.get_allocator()};
+    test::pmr::ContiguousVector<cntgs::FixedSize<float>, int> vector{0, {10}, resource.get_allocator()};
     vector.reserve(2);
     CHECK_EQ(2, vector.capacity());
     vector.emplace_back(std::array{1.f}, 10);
