@@ -286,6 +286,12 @@ TEST_CASE("ContiguousTest: ContiguousElement converting constructors")
         CHECK_EQ(vector[0], value);
         resource.check_was_used(value.get_allocator());
     }
+    SUBCASE("move from value_type and equal allocator")
+    {
+        ValueType value{ValueType{vector[0], resource.get_allocator()}, resource.get_allocator()};
+        CHECK_EQ(vector[0], value);
+        resource.check_was_used(value.get_allocator());
+    }
     SUBCASE("move from value_type and non-equal allocator")
     {
         ValueType value{ValueType{vector[0]}, resource.get_allocator()};
@@ -1433,6 +1439,14 @@ TEST_CASE("ContiguousTest: TwoVarying erase(Iterator, Iterator)")
     }
 }
 
+TEST_CASE("ContiguousTest: type_erase OneFixed string and destruct")
+{
+    using Vector = cntgs::ContiguousVector<std::string>;
+    Vector vector{2};
+    vector.emplace_back(STRING1);
+    cntgs::TypeErasedVector erased{std::move(vector)};
+}
+
 TEST_CASE("ContiguousTest: type_erase OneFixed and restore and move assign")
 {
     OneFixed vector{2, {FLOATS2.size()}};
@@ -1805,22 +1819,41 @@ TEST_CASE("ContiguousTest: OneVaryingUniquePtr move assign empty vector")
 
 TEST_CASE("ContiguousTest: OneVaryingUniquePtr with polymorphic_allocator move assignment")
 {
+    auto check_expected = [](auto&& vector)
+    {
+        test::check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
+        test::check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
+    };
     TestMemoryResource resource;
     auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
+    SUBCASE("move into smaller vector equal allocator")
+    {
+        decltype(vector) vector2{0, 0, resource.get_allocator()};
+        vector2 = std::move(vector);
+        resource.check_was_used(vector2.get_allocator());
+        check_expected(vector2);
+    }
+    SUBCASE("move into larger vector equal allocator")
+    {
+        decltype(vector) vector2{3, 10, resource.get_allocator()};
+        vector2 = std::move(vector);
+        resource.check_was_used(vector2.get_allocator());
+        check_expected(vector2);
+    }
     TestMemoryResource resource2;
     SUBCASE("move into smaller vector")
     {
         decltype(vector) vector2{0, 0, resource2.get_allocator()};
         vector2 = std::move(vector);
         resource2.check_was_used(vector2.get_allocator());
-        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+        check_expected(vector2);
     }
     SUBCASE("move into larger vector")
     {
         decltype(vector) vector2{3, 10, resource2.get_allocator()};
         vector2 = std::move(vector);
         resource2.check_was_used(vector2.get_allocator());
-        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+        check_expected(vector2);
     }
 }
 

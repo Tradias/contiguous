@@ -34,7 +34,6 @@ class BasicContiguousReference
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using PointerTuple = detail::ToTupleOfContiguousPointer<Types...>;
-    using Tuple = detail::ToTupleOfContiguousReferences<IsConst, Types...>;
 
     static constexpr auto IS_CONST = IsConst;
 

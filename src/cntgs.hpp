@@ -2139,7 +2139,6 @@ class BasicContiguousReference
     using ListTraits = detail::ParameterListTraits<Types...>;
     using ElementTraits = detail::ElementTraitsT<Types...>;
     using PointerTuple = detail::ToTupleOfContiguousPointer<Types...>;
-    using Tuple = detail::ToTupleOfContiguousReferences<IsConst, Types...>;
 
     static constexpr auto IS_CONST = IsConst;
 
@@ -3368,14 +3367,7 @@ class TypeErasedVector
               detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes())),
           locator(detail::type_erase_element_locator(*vector.locator)),
           allocator(detail::type_erase_allocator(vector.get_allocator())),
-          destructor(
-              []([[maybe_unused]] cntgs::TypeErasedVector& erased)
-              {
-                  if (erased.is_memory_owned.value)
-                  {
-                      cntgs::BasicContiguousVector<Allocator, Types...>(std::move(erased));
-                  }
-              })
+          destructor(&TypeErasedVector::destruct<Allocator, Types...>)
     {
     }
 
@@ -3386,6 +3378,16 @@ class TypeErasedVector
     TypeErasedVector& operator=(TypeErasedVector&&) = default;
 
     ~TypeErasedVector() noexcept { destructor(*this); }
+
+  private:
+    template <class Allocator, class... Types>
+    static void destruct(cntgs::TypeErasedVector& erased)
+    {
+        if (erased.is_memory_owned.value)
+        {
+            cntgs::BasicContiguousVector<Allocator, Types...>(std::move(erased));
+        }
+    }
 };
 }  // namespace cntgs
 
