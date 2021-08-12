@@ -99,14 +99,20 @@ class BasicContiguousElement
 
     BasicContiguousElement& operator=(const BasicContiguousElement& other)
     {
-        this->copy_assign(other);
+        if (this != std::addressof(other))
+        {
+            this->copy_assign(other);
+        }
         return *this;
     }
 
     BasicContiguousElement& operator=(BasicContiguousElement&& other) noexcept(
         AllocatorTraits::is_always_equal::value || AllocatorTraits::propagate_on_container_move_assignment::value)
     {
-        this->move_assign(std::move(other));
+        if (this != std::addressof(other))
+        {
+            this->move_assign(std::move(other));
+        }
         return *this;
     }
 
@@ -315,10 +321,6 @@ class BasicContiguousElement
     template <class OtherAllocator>
     constexpr void move_assign(BasicContiguousElement<OtherAllocator, Types...>&& other)
     {
-        if (this == std::addressof(other))
-        {
-            return;
-        }
         if constexpr (AllocatorTraits::is_always_equal::value ||
                       AllocatorTraits::propagate_on_container_move_assignment::value)
         {

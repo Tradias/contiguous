@@ -880,7 +880,7 @@ class AllocatorAwarePointer
 
     constexpr auto size() const noexcept { return this->impl.size; }
 
-    explicit constexpr operator bool() const noexcept { return bool(this->get()); }
+    explicit constexpr operator bool() const noexcept { return this->get() != nullptr; }
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
 
@@ -2453,14 +2453,20 @@ class BasicContiguousElement
 
     BasicContiguousElement& operator=(const BasicContiguousElement& other)
     {
-        this->copy_assign(other);
+        if (this != std::addressof(other))
+        {
+            this->copy_assign(other);
+        }
         return *this;
     }
 
     BasicContiguousElement& operator=(BasicContiguousElement&& other) noexcept(
         AllocatorTraits::is_always_equal::value || AllocatorTraits::propagate_on_container_move_assignment::value)
     {
-        this->move_assign(std::move(other));
+        if (this != std::addressof(other))
+        {
+            this->move_assign(std::move(other));
+        }
         return *this;
     }
 
@@ -2669,10 +2675,6 @@ class BasicContiguousElement
     template <class OtherAllocator>
     constexpr void move_assign(BasicContiguousElement<OtherAllocator, Types...>&& other)
     {
-        if (this == std::addressof(other))
-        {
-            return;
-        }
         if constexpr (AllocatorTraits::is_always_equal::value ||
                       AllocatorTraits::propagate_on_container_move_assignment::value)
         {
@@ -2926,8 +2928,8 @@ class ElementLocator : public BaseElementLocator
             ElementTraits::emplace_at_aliased(element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
     }
 
-    void trivially_copy_into(std::size_t old_max_element_count, std::byte* old_memory_begin,
-                             std::size_t new_max_element_count, std::byte* new_memory_begin) noexcept
+    void trivially_copy_into(std::size_t old_max_element_count, std::byte* CNTGS_RESTRICT old_memory_begin,
+                             std::size_t new_max_element_count, std::byte* CNTGS_RESTRICT new_memory_begin) noexcept
     {
         this->trivially_copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count,
                                   new_memory_begin);
@@ -2943,8 +2945,8 @@ class ElementLocator : public BaseElementLocator
 
   private:
     void trivially_copy_into(ElementLocator& old_locator, std::size_t old_max_element_count,
-                             std::byte* old_memory_begin, std::size_t new_max_element_count,
-                             std::byte* new_memory_begin) noexcept
+                             std::byte* CNTGS_RESTRICT old_memory_begin, std::size_t new_max_element_count,
+                             std::byte* CNTGS_RESTRICT new_memory_begin) noexcept
     {
         const auto new_start = ElementLocator::calculate_element_start(new_max_element_count, new_memory_begin);
         const auto old_start = ElementLocator::calculate_element_start(old_max_element_count, old_memory_begin);
