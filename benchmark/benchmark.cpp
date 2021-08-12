@@ -477,48 +477,91 @@ auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_s
 //     }
 // }
 
-template <std::size_t N>
-struct SingleElementInputVectors : benchmark::Fixture
+template <std::size_t I, std::size_t N>
+struct SingleElementInputVectors
 {
-    static constexpr auto SIZE = N;
+    using Input = std::remove_reference_t<decltype(std::get<I>(
+        make_single_element_input_vectors<N>(std::size_t{}, std::size_t{})))>;
 
-    decltype(make_single_element_input_vectors<N>(std::size_t{}, std::size_t{})) input;
+    std::size_t fixed_size;
+    Input input;
+
+    SingleElementInputVectors(benchmark::State& state)
+        : fixed_size(state.range(1)),
+          input(
+              [&]
+              {
+                  gen.seed();
+                  return std::get<I>(make_single_element_input_vectors<N>(state.range(0), fixed_size));
+              }())
+    {
+        state.counters["elements"] = static_cast<double>(state.range(0));
+        state.counters["fixed size"] = static_cast<double>(fixed_size);
+    }
 };
 
-static auto get_first_and_second_range(benchmark::State& state) { return std::pair{state.range(0), state.range(1)}; }
+static std::vector<int64_t> FULL_ITERATION_SIZES{100000, 250000, 500000};
 
 template <std::size_t N>
 static void BM_full_iteration_array(benchmark::State& state)
 {
-    const auto [elements, fixed_size] = get_first_and_second_range(state);
-    auto array_vector = std::get<0>(make_single_element_input_vectors<N>(elements, fixed_size));
+    auto [fixed_size, input] = SingleElementInputVectors<0, N>{state};
     for (auto _ : state)
     {
-        iterate(array_vector, fixed_size);
+        iterate(input, fixed_size);
     }
 }
 
 BENCHMARK_TEMPLATE(BM_full_iteration_array, 15)
     ->Name("full_iteration: std::array<float, 15>")
-    ->Ranges({{100000, 500000}, {15, 15}});
+    ->ArgsProduct({FULL_ITERATION_SIZES, {15}});
 
 BENCHMARK_TEMPLATE(BM_full_iteration_array, 30)
     ->Name("full_iteration: std::array<float, 30>")
-    ->Ranges({{100000, 500000}, {15, 30}});
+    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30}});
+
+BENCHMARK_TEMPLATE(BM_full_iteration_array, 45)
+    ->Name("full_iteration: std::array<float, 45>")
+    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30, 45}});
+
+static void BM_full_iteration_pmr_vector(benchmark::State& state)
+{
+    auto [fixed_size, input] = SingleElementInputVectors<1, 45>{state};
+    for (auto _ : state)
+    {
+        iterate(input.vector, fixed_size);
+    }
+}
+
+BENCHMARK(BM_full_iteration_pmr_vector)
+    ->Name("full_iteration: std::pmr::vector<std::pmr::vector<float>>")
+    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30, 45}});
 
 static void BM_full_iteration_fixed_size(benchmark::State& state)
 {
-    const auto [elements, fixed_size] = get_first_and_second_range(state);
-    auto fixed_size_vector = std::get<2>(make_single_element_input_vectors<30>(elements, fixed_size));
+    auto [fixed_size, input] = SingleElementInputVectors<2, 45>{state};
     for (auto _ : state)
     {
-        iterate(fixed_size_vector, fixed_size);
+        iterate(input, fixed_size);
     }
 }
 
 BENCHMARK(BM_full_iteration_fixed_size)
     ->Name("full_iteration: ContiguousVector<FixedSize<float>>")
-    ->Ranges({{100000, 500000}, {15, 30}});
+    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30, 45}});
+
+static void BM_full_iteration_varying_size(benchmark::State& state)
+{
+    auto [fixed_size, input] = SingleElementInputVectors<3, 45>{state};
+    for (auto _ : state)
+    {
+        iterate(input, fixed_size);
+    }
+}
+
+BENCHMARK(BM_full_iteration_varying_size)
+    ->Name("full_iteration: ContiguousVector<VaryingSize<float>>")
+    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30, 45}});
 
 // int main()
 // {

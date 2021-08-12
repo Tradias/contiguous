@@ -28,7 +28,7 @@ jobs:
         setupOnly: true
         vcpkgDirectory: ${{github.workspace}}/vcpkg
         vcpkgArguments: " " # workaround for: run-vcpkg action execution failed: Error: Input required and not supplied: vcpkgArguments
-        vcpkgGitCommitId: 5568f110b509a9fd90711978a7cb76bae75bb092 # 2021.05.12
+        vcpkgGitCommitId: 63aa65e65b9d2c08772ea15d25fb8fdb0d32e557 # 2021/08/12
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_C_COMPILER=/usr/bin/gcc-10 -DCMAKE_CXX_COMPILER=/usr/bin/g++-10 -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=on -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCNTGS_BUILD_TESTS=on -DCNTGS_DISCOVER_TESTS=on -DCNTGS_TEST_COVERAGE=on
