@@ -8,16 +8,16 @@
 
 namespace cntgs::test
 {
-template <bool IsNoThrow>
-struct Thrower
+template <bool IsNoexcept>
+struct Noexcept
 {
-    Thrower() noexcept(IsNoThrow);
-    Thrower(const Thrower&) noexcept(IsNoThrow);
-    Thrower(Thrower&&) noexcept(IsNoThrow);
-    Thrower& operator=(const Thrower&) noexcept(IsNoThrow);
-    Thrower& operator=(Thrower&&) noexcept(IsNoThrow);
-    bool operator==(const Thrower&) const noexcept(IsNoThrow);
-    bool operator<(const Thrower&) const noexcept(IsNoThrow);
+    Noexcept() noexcept(IsNoexcept);
+    Noexcept(const Noexcept&) noexcept(IsNoexcept);
+    Noexcept(Noexcept&&) noexcept(IsNoexcept);
+    Noexcept& operator=(const Noexcept&) noexcept(IsNoexcept);
+    Noexcept& operator=(Noexcept&&) noexcept(IsNoexcept);
+    bool operator==(const Noexcept&) const noexcept(IsNoexcept);
+    bool operator<(const Noexcept&) const noexcept(IsNoexcept);
 };
 }  // namespace cntgs::test
 

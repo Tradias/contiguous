@@ -11,7 +11,7 @@
 #include <cntgs/contiguous.hpp>
 #include <doctest/doctest.h>
 
-namespace test_contiguous
+namespace test_type_erase
 {
 TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
 
@@ -30,12 +30,11 @@ TEST_CASE("TypeErasedVector: type_erase OneFixed and restore and move assign")
 {
     OneFixed vector{2, {FLOATS2.size()}};
     vector.emplace_back(10u, FLOATS2);
+    auto expected{vector};
     cntgs::TypeErasedVector erased{std::move(vector)};
     OneFixed restored;
     restored = OneFixed(std::move(erased));
-    auto&& [i, e] = restored[0];
-    CHECK_EQ(10u, i);
-    CHECK(test::range_equal(FLOATS2, e));
+    CHECK_EQ(expected, restored);
 }
 
 TEST_CASE("TypeErasedVector: type_erase OneFixed, restore and copy assign")
@@ -48,8 +47,7 @@ TEST_CASE("TypeErasedVector: type_erase OneFixed, restore and copy assign")
     cntgs::TypeErasedVector erased{std::move(vector)};
     Vector restored{std::move(erased)};
     restored = vector_copy;
-    auto&& [a] = restored.back();
-    CHECK_EQ(STRING2, a);
+    CHECK_EQ(vector_copy, restored);
 }
 
 TEST_CASE("TypeErasedVector: type_erase empty OneFixed, restore and copy assign")
@@ -72,14 +70,12 @@ TEST_CASE("TypeErasedVector: std::string TypeErasedVector")
     Vector vector{2};
     vector.emplace_back(STRING1);
     vector.emplace_back(STRING2);
+    auto expected{vector};
     cntgs::TypeErasedVector erased{std::move(vector)};
     auto move_constructed_erased{std::move(erased)};
     Vector restored{std::move(move_constructed_erased)};
-    auto&& [string_one] = restored[0];
-    CHECK_EQ(STRING1, string_one);
-    auto&& [string_two] = restored[1];
-    CHECK_EQ(STRING2, string_two);
+    CHECK_EQ(expected, restored);
 }
 
 TEST_SUITE_END();
-}  // namespace test_contiguous
+}  // namespace test_type_erase

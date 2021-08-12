@@ -26,7 +26,6 @@ struct ToValueType
         return typename Vector::value_type{std::forward<T>(t)};
     }
 };
-
 }  // namespace cntgs::test
 
 #endif  // CNTGS_UTILS_FUNCTIONAL_HPP

@@ -8,6 +8,8 @@
 
 #include <cntgs/contiguous.hpp>
 
+#include <memory>
+
 namespace cntgs::test
 {
 using UInt8 = unsigned char;

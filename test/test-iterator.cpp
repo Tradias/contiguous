@@ -12,7 +12,7 @@
 #include <cntgs/contiguous.hpp>
 #include <doctest/doctest.h>
 
-namespace test_contiguous
+namespace test_iterator
 {
 TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
 
@@ -79,14 +79,11 @@ TEST_CASE("ContiguousIterator: OneFixed begin() end()")
 
 TEST_CASE("ContiguousIterator: std::rotate with ContiguousVectorIterator of FixedSize std::unique_ptr")
 {
-    cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>> vector{2, {1}};
-    vector.emplace_back(std::make_unique<int>(10), array_one_unique_ptr(20));
-    vector.emplace_back(std::make_unique<int>(30), array_one_unique_ptr(40));
+    auto vector = fixed_vector_of_unique_ptrs();
     std::rotate(vector.begin(), ++vector.begin(), vector.end());
-    auto&& [a, b] = vector[0];
-    CHECK_EQ(30, *a);
-    CHECK_EQ(40, *b.front());
+    test::check_equal_using_get(vector[0], array_one_unique_ptr(30), 40);
+    test::check_equal_using_get(vector[1], array_one_unique_ptr(10), 20);
 }
 
 TEST_SUITE_END();
-}  // namespace test_contiguous
+}  // namespace test_iterator

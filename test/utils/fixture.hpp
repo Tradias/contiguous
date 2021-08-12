@@ -30,6 +30,8 @@ inline auto floats1(float one = 1.f, float two = 2.f, float three = 3.f) { retur
 
 inline auto array_one_unique_ptr(int v1 = 10) { return std::array{std::make_unique<int>(v1)}; }
 
+inline auto array_one_unique_ptr(std::nullptr_t) { return std::array{std::unique_ptr<int>()}; }
+
 inline auto array_two_unique_ptr(int v1 = 30, int v2 = 40)
 {
     return std::array{std::make_unique<int>(v1), std::make_unique<int>(v2)};

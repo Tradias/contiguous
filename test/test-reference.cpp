@@ -15,24 +15,24 @@
 
 #include <memory>
 
-namespace test_contiguous
+namespace test_reference
 {
 TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
 
 using namespace cntgs;
 using namespace cntgs::test;
 
-template <bool IsNoThrow>
-using NoThrowReference = typename cntgs::ContiguousVector<cntgs::FixedSize<test::Thrower<IsNoThrow>>>::reference;
+template <bool IsNoexcept>
+using NoexceptReference = typename cntgs::ContiguousVector<cntgs::FixedSize<test::Noexcept<IsNoexcept>>>::reference;
 
 TEST_CASE("ContiguousReference: ContiguousReference is conditionally nothrow")
 {
-    test::check_conditionally_nothrow_comparison<NoThrowReference>();
-    test::check_always_nothrow_move_construct<NoThrowReference>();
-    CHECK(std::is_nothrow_copy_constructible_v<NoThrowReference<true>>);
-    CHECK(std::is_nothrow_copy_constructible_v<NoThrowReference<false>>);
-    test::check_conditionally_nothrow_move_assign<NoThrowReference>();
-    test::check_conditionally_nothrow_copy_assign<NoThrowReference>();
+    test::check_conditionally_nothrow_comparison<NoexceptReference>();
+    test::check_always_nothrow_move_construct<NoexceptReference>();
+    CHECK(std::is_nothrow_copy_constructible_v<NoexceptReference<true>>);
+    CHECK(std::is_nothrow_copy_constructible_v<NoexceptReference<false>>);
+    test::check_conditionally_nothrow_move_assign<NoexceptReference>();
+    test::check_conditionally_nothrow_copy_assign<NoexceptReference>();
 }
 
 TEST_CASE("ContiguousReference: Contiguous(Const)Reference converting constructors")
@@ -96,7 +96,7 @@ TEST_CASE("ContiguousReference: swap and iter_swap with ContiguousVectorIterator
     cntgs::ContiguousVector<std::unique_ptr<int>, cntgs::FixedSize<std::unique_ptr<int>>> vector{2, {1}};
     std::array v{std::make_unique<int>(20)};
     vector.emplace_back(std::make_unique<int>(10), std::make_move_iterator(v.begin()));
-    vector.emplace_back(std::make_unique<int>(30), std::array{std::make_unique<int>(40)});
+    vector.emplace_back(std::make_unique<int>(30), test::array_one_unique_ptr(40));
     SUBCASE("std::iter_swap") { std::iter_swap(vector.begin(), ++vector.begin()); }
     SUBCASE("cntgs::swap")
     {
@@ -104,16 +104,8 @@ TEST_CASE("ContiguousReference: swap and iter_swap with ContiguousVectorIterator
         swap(vector[0], vector[1]);
         swap(vector[1], vector[1]);
     }
-    {
-        auto&& [a, b] = vector[0];
-        CHECK_EQ(30, *a);
-        CHECK_EQ(40, *b.front());
-    }
-    {
-        auto&& [a, b] = vector[1];
-        CHECK_EQ(10, *a);
-        CHECK_EQ(20, *b.front());
-    }
+    test::check_equal_using_get(vector[0], 30, test::array_one_unique_ptr(40));
+    test::check_equal_using_get(vector[1], 10, test::array_one_unique_ptr(20));
 }
 
 TEST_CASE("ContiguousReference: FixedSize swap partially trivial")
@@ -141,4 +133,4 @@ TEST_CASE("ContiguousReference: OneVarying::(const_)reference comparison operato
 }
 
 TEST_SUITE_END();
-}  // namespace test_contiguous
+}  // namespace test_reference

@@ -29,7 +29,7 @@
 #include <span>
 #endif
 
-namespace test_contiguous
+namespace test_vector
 {
 TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
 
@@ -120,19 +120,14 @@ TEST_CASE("ContiguousVector: TwoVarying emplace_back with arrays")
 {
     TwoVarying vector{1, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float)};
     vector.emplace_back(10u, FLOATS1, FLOATS2);
-    auto&& [a, b, c] = vector[0];
-    CHECK_EQ(10u, a);
-    CHECK(test::range_equal(FLOATS1, b));
-    CHECK(test::range_equal(FLOATS2, c));
+    test::check_equal_using_get(vector[0], 10u, FLOATS1, FLOATS2);
 }
 
 TEST_CASE("ContiguousVector: OneVarying emplace_back with lists")
 {
     OneVarying vector{1, FLOATS_LIST.size() * sizeof(float)};
     vector.emplace_back(10u, FLOATS_LIST);
-    auto&& [a, b] = vector[0];
-    CHECK_EQ(10u, a);
-    CHECK(test::range_equal(FLOATS_LIST, b));
+    test::check_equal_using_get(vector[0], 10u, FLOATS_LIST);
 }
 
 TEST_CASE("ContiguousVector: TwoFixed emplace_back with lists")
@@ -142,10 +137,7 @@ TEST_CASE("ContiguousVector: TwoFixed emplace_back with lists")
     vector.emplace_back(FLOATS_LIST, 10u, FLOATS1);
     for (auto&& element : vector)
     {
-        auto&& [a, b, c] = element;
-        CHECK(test::range_equal(FLOATS_LIST, a));
-        CHECK_EQ(10u, b);
-        CHECK(test::range_equal(FLOATS1, c));
+        test::check_equal_using_get(element, FLOATS_LIST, 10u, FLOATS1);
     }
 }
 
@@ -192,9 +184,7 @@ TEST_CASE("ContiguousVector: OneVarying emplace_back c-style array")
     float carray[]{0.1f, 0.2f};
     OneVarying vector{1, std::size(carray) * sizeof(float)};
     vector.emplace_back(10, carray);
-    auto&& [i, array] = vector[0];
-    CHECK_EQ(10u, i);
-    CHECK(test::range_equal(carray, array));
+    test::check_equal_using_get(vector[0], 10u, carray);
 }
 
 #ifdef __cpp_lib_ranges
@@ -207,9 +197,7 @@ TEST_CASE("ContiguousVector: OneVarying emplace_back std::views::iota")
                                               });
     OneVarying vector{1, std::ranges::size(iota) * sizeof(float)};
     vector.emplace_back(10, iota);
-    auto&& [a, b] = vector[0];
-    CHECK_EQ(10u, a);
-    CHECK(test::range_equal(iota, b));
+    test::check_equal_using_get(vector[0], 10u, iota);
 }
 
 TEST_CASE("ContiguousVector: OneFixed emplace_back std::views::iota")
@@ -229,9 +217,7 @@ TEST_CASE("ContiguousVector: OneFixed emplace_back std::views::iota")
     vector.emplace_back(10, unbound_iota.begin());
     for (auto&& i : {0, 1})
     {
-        auto&& [a, b] = vector[i];
-        CHECK_EQ(10u, a);
-        CHECK(test::range_equal(bound_iota, b));
+        test::check_equal_using_get(vector[i], 10u, bound_iota);
     }
 }
 #endif
@@ -242,9 +228,7 @@ TEST_CASE("ContiguousVector: OneFixed emplace_back with iterator")
     OneFixed vector{1, {expected_elements.size()}};
     SUBCASE("begin() iterator") { vector.emplace_back(10u, expected_elements.begin()); }
     SUBCASE("data() iterator") { vector.emplace_back(10u, expected_elements.data()); }
-    auto&& [i, elements] = vector[0];
-    CHECK_EQ(10u, i);
-    CHECK(test::range_equal(expected_elements, elements));
+    test::check_equal_using_get(vector[0], 10u, expected_elements);
 }
 
 TEST_CASE("ContiguousVector: std::string emplace_back with iterator")
@@ -408,15 +392,15 @@ TEST_CASE("ContiguousVector: ContiguousVector of FixedSize unsigned char compari
     }
 }
 
-template <bool IsNoThrow>
-using NoThrowVector = cntgs::ContiguousVector<cntgs::FixedSize<Thrower<IsNoThrow>>>;
+template <bool IsNoexcept>
+using NoexceptVector = cntgs::ContiguousVector<cntgs::FixedSize<Noexcept<IsNoexcept>>>;
 
 TEST_CASE("ContiguousVector: ContiguousVector is conditionally nothrow")
 {
-    check_conditionally_nothrow_comparison<NoThrowVector>();
-    check_always_nothrow_move_construct<NoThrowVector>();
-    CHECK(std::is_nothrow_move_assignable_v<NoThrowVector<true>>);
-    CHECK(std::is_nothrow_move_assignable_v<NoThrowVector<false>>);
+    check_conditionally_nothrow_comparison<NoexceptVector>();
+    check_always_nothrow_move_construct<NoexceptVector>();
+    CHECK(std::is_nothrow_move_assignable_v<NoexceptVector<true>>);
+    CHECK(std::is_nothrow_move_assignable_v<NoexceptVector<false>>);
     CHECK_FALSE(std::is_nothrow_move_assignable_v<
                 cntgs::BasicContiguousVector<std::pmr::polymorphic_allocator<std::byte>, float>>);
 }
@@ -513,29 +497,20 @@ TEST_CASE("ContiguousVector: TwoFixed erase(Iterator, Iterator)")
         auto it = vector.erase(vector.begin(), std::next(vector.begin(), 2));
         CHECK_EQ(vector.begin(), it);
         CHECK_EQ(1, vector.size());
-        auto&& [a, b, c] = vector.front();
-        CHECK(test::range_equal(FLOATS2_ALT, a));
-        CHECK_EQ(30u, b);
-        CHECK(test::range_equal(FLOATS2, c));
+        test::check_equal_using_get(vector.front(), FLOATS2_ALT, 30u, FLOATS2);
     }
     SUBCASE("erase all")
     {
         vector.erase(vector.begin(), vector.end());
         CHECK_EQ(0, vector.size());
         vector.emplace_back(FLOATS2_ALT, 30u, FLOATS2);
-        auto&& [a, b, c] = vector.front();
-        CHECK(test::range_equal(FLOATS2_ALT, a));
-        CHECK_EQ(30u, b);
-        CHECK(test::range_equal(FLOATS2, c));
+        test::check_equal_using_get(vector.front(), FLOATS2_ALT, 30u, FLOATS2);
     }
     SUBCASE("erase none")
     {
         vector.erase(vector.begin(), vector.begin());
         CHECK_EQ(3, vector.size());
-        auto&& [a, b, c] = vector.front();
-        CHECK(test::range_equal(FLOATS2, a));
-        CHECK_EQ(10u, b);
-        CHECK(test::range_equal(FLOATS2, c));
+        test::check_equal_using_get(vector.front(), FLOATS2, 10u, FLOATS2);
     }
 }
 
@@ -550,29 +525,20 @@ TEST_CASE("ContiguousVector: TwoVarying erase(Iterator, Iterator)")
         auto it = vector.erase(vector.begin(), std::next(vector.begin(), 2));
         CHECK_EQ(vector.begin(), it);
         CHECK_EQ(1, vector.size());
-        auto&& [a, b, c] = vector.front();
-        CHECK_EQ(30u, a);
-        CHECK(test::range_equal(FLOATS1, b));
-        CHECK(test::range_equal(FLOATS2_ALT, c));
+        test::check_equal_using_get(vector.front(), 30u, FLOATS1, FLOATS2_ALT);
     }
     SUBCASE("erase all")
     {
         vector.erase(vector.begin(), vector.end());
         CHECK_EQ(0, vector.size());
         vector.emplace_back(30u, FLOATS2_ALT, FLOATS2);
-        auto&& [a, b, c] = vector.front();
-        CHECK_EQ(30u, a);
-        CHECK(test::range_equal(FLOATS2_ALT, b));
-        CHECK(test::range_equal(FLOATS2, c));
+        test::check_equal_using_get(vector.front(), 30u, FLOATS2_ALT, FLOATS2);
     }
     SUBCASE("erase none")
     {
         vector.erase(vector.begin(), vector.begin());
         CHECK_EQ(3, vector.size());
-        auto&& [a, b, c] = vector.front();
-        CHECK_EQ(10u, a);
-        CHECK(test::range_equal(FLOATS1, b));
-        CHECK(test::range_equal(FLOATS2, c));
+        test::check_equal_using_get(vector.front(), 10u, FLOATS1, FLOATS2);
     }
 }
 
@@ -582,14 +548,8 @@ TEST_CASE("ContiguousVector: std::string OneFixed emplace_back->reserve->emplace
     vector.emplace_back(std::array{STRING1}, STRING1, 42);
     vector.reserve(2);
     vector.emplace_back(std::array{STRING2}, STRING2, 84);
-    auto&& [a, b, c] = vector[0];
-    CHECK_EQ(STRING1, a.front());
-    CHECK_EQ(STRING1, b);
-    CHECK_EQ(42, c);
-    auto&& [d, e, f] = vector[1];
-    CHECK_EQ(STRING2, d.front());
-    CHECK_EQ(STRING2, e);
-    CHECK_EQ(84, f);
+    test::check_equal_using_get(vector[0], std::array{STRING1}, STRING1, 42);
+    test::check_equal_using_get(vector[1], std::array{STRING2}, STRING2, 84);
 }
 
 TEST_CASE("ContiguousVector: trivial OneFixed emplace_back->reserve->emplace_back")
@@ -598,12 +558,8 @@ TEST_CASE("ContiguousVector: trivial OneFixed emplace_back->reserve->emplace_bac
     vector.emplace_back(FLOATS1, 42);
     vector.reserve(2);
     vector.emplace_back(FLOATS1, 84);
-    auto&& [a, b] = vector[0];
-    CHECK(test::range_equal(FLOATS1, a));
-    CHECK_EQ(42, b);
-    auto&& [c, d] = vector[1];
-    CHECK(test::range_equal(FLOATS1, c));
-    CHECK_EQ(84, d);
+    test::check_equal_using_get(vector[0], FLOATS1, 42);
+    test::check_equal_using_get(vector[1], FLOATS1, 84);
 }
 
 TEST_CASE("ContiguousVector: trivial VaryingSize emplace_back->reserve->emplace_back")
@@ -612,12 +568,8 @@ TEST_CASE("ContiguousVector: trivial VaryingSize emplace_back->reserve->emplace_
     vector.emplace_back(FLOATS1, 42);
     vector.reserve(2, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float));
     vector.emplace_back(FLOATS2, 84);
-    auto&& [a, b] = vector[0];
-    CHECK(test::range_equal(FLOATS1, a));
-    CHECK_EQ(42, b);
-    auto&& [c, d] = vector[1];
-    CHECK(test::range_equal(FLOATS2, c));
-    CHECK_EQ(84, d);
+    test::check_equal_using_get(vector[0], FLOATS1, 42);
+    test::check_equal_using_get(vector[1], FLOATS2, 84);
 }
 
 TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
@@ -625,19 +577,12 @@ TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
     cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{0, 0};
     vector.reserve(1, 3 * sizeof(std::unique_ptr<int>));
     vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    auto&& [a, b] = vector[0];
-    CHECK_EQ(10, *a.front());
-    CHECK_EQ(20, *b);
+    test::check_equal_using_get(vector[0], array_one_unique_ptr(), 20);
     vector.reserve(3, 8 * sizeof(std::unique_ptr<int>));
     vector.emplace_back(array_two_unique_ptr(), std::make_unique<int>(50));
     vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    auto&& [c, d] = vector[1];
-    CHECK_EQ(30, *c.front());
-    CHECK_EQ(40, *c.back());
-    CHECK_EQ(50, *d);
-    auto&& [e, f] = vector[2];
-    CHECK_EQ(10, *e.front());
-    CHECK_EQ(20, *f);
+    test::check_equal_using_get(vector[1], array_two_unique_ptr(), 50);
+    test::check_equal_using_get(vector[2], array_one_unique_ptr(), 20);
 }
 
 TEST_CASE("ContiguousVector: trivial OneFixed reserve with polymorphic_allocator")
@@ -739,9 +684,8 @@ TEST_CASE("ContiguousVector: PlainAligned emplace_back() and subscript operator"
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
+        test::check_equal_using_get(vector[i], 'a', i);
         auto&& [a, b] = vector[i];
-        CHECK_EQ('a', a);
-        CHECK_EQ(i, b);
         check_alignment<8>(&b);
     }
 }
@@ -755,9 +699,8 @@ TEST_CASE("ContiguousVector: OneVaryingAligned emplace_back() and subscript oper
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
+        test::check_equal_using_get(vector[i], FLOATS1, i);
         auto&& [a, b] = vector[i];
-        CHECK(test::range_equal(FLOATS1, a));
-        CHECK_EQ(i, b);
         check_alignment<16>(a);
     }
 }
@@ -771,10 +714,8 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript oper
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
+        test::check_equal_using_get(vector[i], i, FLOATS1, FLOATS2);
         auto&& [a, b, c] = vector[i];
-        CHECK_EQ(i, a);
-        CHECK(test::range_equal(FLOATS1, b));
-        CHECK(test::range_equal(FLOATS2, c));
         check_alignment<8>(b);
         check_alignment<8>(c);
     }
@@ -789,9 +730,8 @@ TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operat
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
+        test::check_equal_using_get(vector[i], i, FLOATS1);
         auto&& [a, b] = vector[i];
-        CHECK_EQ(i, a);
-        CHECK(test::range_equal(FLOATS1, b));
         check_alignment<32>(b);
     }
 }
@@ -805,10 +745,8 @@ TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operat
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
+        test::check_equal_using_get(vector[i], FLOATS1, i, FLOATS2);
         auto&& [a, b, c] = vector[i];
-        CHECK(test::range_equal(FLOATS1, a));
-        CHECK_EQ(i, b);
-        CHECK(test::range_equal(FLOATS2, c));
         check_alignment<8>(a);
         check_alignment<16>(&b);
     }
@@ -824,10 +762,8 @@ TEST_CASE("ContiguousVector: TwoFixedAlignedAlt emplace_back() and subscript ope
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
+        test::check_equal_using_get(vector[i], FLOATS1, uint2, i);
         auto&& [a, b, c] = vector[i];
-        CHECK(test::range_equal(FLOATS1, a));
-        CHECK(test::range_equal(uint2, b));
-        CHECK_EQ(i, c);
         check_alignment<32>(a);
     }
 }
@@ -841,10 +777,8 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscr
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
+        test::check_equal_using_get(vector[i], FLOATS1, i, FLOATS2);
         auto&& [a, b, c] = vector[i];
-        CHECK(test::range_equal(FLOATS1, a));
-        CHECK_EQ(i, b);
-        CHECK(test::range_equal(FLOATS2, c));
         check_alignment<16>(a);
         check_alignment<8>(c);
     }
@@ -915,14 +849,14 @@ TEST_CASE("ContiguousVector: OneFixedUniquePtr with polymorphic_allocator move a
         decltype(vector) vector2{0, {}, resource2.get_allocator()};
         vector2 = std::move(vector);
         resource2.check_was_used(vector2.get_allocator());
-        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+        test::check_equal_using_get(vector2[0], array_one_unique_ptr(10), 20);
     }
     SUBCASE("move into larger vector")
     {
         decltype(vector) vector2{3, {1}, resource2.get_allocator()};
         vector2 = std::move(vector);
         resource2.check_was_used(vector2.get_allocator());
-        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+        test::check_equal_using_get(vector2[0], array_one_unique_ptr(10), 20);
     }
 }
 
@@ -1035,13 +969,21 @@ TEST_CASE("ContiguousVector: OneFixedString with polymorphic_allocator copy assi
     }
 }
 
+template <class Vector>
+void check_varying_vector_unique_ptrs(const Vector& vector)
+{
+    CHECK_EQ(2, vector.size());
+    test::check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
+    test::check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
+}
+
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap empty vector")
 {
     auto expected = varying_vector_of_unique_ptrs();
     decltype(expected) vector{};
     using std::swap;
     swap(expected, vector);
-    CHECK_EQ(10, *cntgs::get<0>(vector[0]).front());
+    check_varying_vector_unique_ptrs(vector);
 }
 
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap same vector")
@@ -1049,7 +991,7 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap same vector")
     auto vector = varying_vector_of_unique_ptrs();
     using std::swap;
     swap(vector, vector);
-    CHECK_EQ(10, *cntgs::get<0>(vector[0]).front());
+    check_varying_vector_unique_ptrs(vector);
 }
 
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap")
@@ -1063,14 +1005,14 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap")
         decltype(vector) vector2{0, 0, resource2.get_allocator()};
         swap(vector2, vector);
         resource2.check_was_not_used(vector2.get_allocator());
-        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+        check_varying_vector_unique_ptrs(vector2);
     }
     SUBCASE("swap into larger vector")
     {
         decltype(vector) vector2{3, 10, resource2.get_allocator()};
         swap(vector2, vector);
         resource2.check_was_not_used(vector2.get_allocator());
-        CHECK_EQ(10, *cntgs::get<0>(vector2[0]).front());
+        check_varying_vector_unique_ptrs(vector2);
     }
 }
 
@@ -1082,9 +1024,7 @@ void check_clear_followed_by_emplace_back(cntgs::BasicContiguousVector<T...>& ve
     CHECK_EQ(expected_capacity, vector.capacity());
     CHECK(vector.empty());
     vector.emplace_back(std::array{STRING2, STRING2}, STRING2);
-    auto&& [a, b] = vector[0];
-    CHECK(test::range_equal(std::array{STRING2, STRING2}, a));
-    CHECK_EQ(STRING2, b);
+    test::check_equal_using_get(vector[0], std::array{STRING2, STRING2}, STRING2);
 }
 
 TEST_CASE("ContiguousVector: OneFixedString clear")
@@ -1100,4 +1040,4 @@ TEST_CASE("ContiguousVector: OneVaryingString clear")
 }
 
 TEST_SUITE_END();
-}  // namespace test_contiguous
+}  // namespace test_vector

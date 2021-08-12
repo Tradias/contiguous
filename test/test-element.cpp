@@ -18,7 +18,7 @@
 #include <memory_resource>
 #include <string>
 
-namespace test_contiguous
+namespace test_element
 {
 TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
 
@@ -133,8 +133,8 @@ TEST_CASE("ContiguousElement: construct from move-only type")
     SUBCASE("move from reference")
     {
         ValueType value{vector[0]};
-        CHECK_EQ(nullptr, cntgs::get<1>(vector[0]));
-        CHECK_EQ(20, *cntgs::get<1>(value));
+        test::check_equal_using_get(vector[0], array_one_unique_ptr(nullptr), nullptr);
+        test::check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
     }
     TestMemoryResource resource;
     using AllocValueType = typename decltype(fixed_vector_of_unique_ptrs(resource.get_allocator()))::value_type;
@@ -142,15 +142,16 @@ TEST_CASE("ContiguousElement: construct from move-only type")
     {
         AllocValueType value{vector[0], resource.get_allocator()};
         resource.check_was_used(value.get_allocator());
-        CHECK_EQ(20, *cntgs::get<1>(value));
+        test::check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
     }
     SUBCASE("move from value_type and allocator")
     {
         AllocValueType value{ValueType{vector[0]}, resource.get_allocator()};
         resource.check_was_used(value.get_allocator());
+        test::check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
         AllocValueType value2{std::move(value)};
         CHECK_EQ(resource.get_allocator(), value2.get_allocator());
-        CHECK_EQ(20, *cntgs::get<1>(value2));
+        test::check_equal_using_get(value2, array_one_unique_ptr(10), std::make_unique<int>(20));
     }
 }
 
@@ -384,14 +385,14 @@ TEST_CASE("ContiguousElement: OneFixed mutation does not mutate underlying Conti
     CHECK_EQ(12.f, cntgs::get<1>(vector[0]).front());
 }
 
-template <bool IsNoThrow>
-using NoThrowElement = typename cntgs::ContiguousVector<cntgs::FixedSize<Thrower<IsNoThrow>>>::value_type;
+template <bool IsNoexcept>
+using NoexceptElement = typename cntgs::ContiguousVector<cntgs::FixedSize<Noexcept<IsNoexcept>>>::value_type;
 
 TEST_CASE("ContiguousElement: is conditionally nothrow")
 {
-    check_conditionally_nothrow_comparison<NoThrowElement>();
-    check_always_nothrow_move_construct<NoThrowElement>();
-    CHECK(std::is_nothrow_move_assignable_v<NoThrowElement<true>>);
+    check_conditionally_nothrow_comparison<NoexceptElement>();
+    check_always_nothrow_move_construct<NoexceptElement>();
+    CHECK(std::is_nothrow_move_assignable_v<NoexceptElement<true>>);
 }
 
 using ToValueTypeVarying = test::ToValueType<OneVarying>;
@@ -445,4 +446,4 @@ TEST_CASE("ContiguousElement: value_type to (const_)reference for memcmp-compati
 }
 
 TEST_SUITE_END();
-}  // namespace test_contiguous
+}  // namespace test_element
