@@ -9,6 +9,7 @@
 #include "utils/range.hpp"
 #include "utils/typeTraits.hpp"
 
+#include <cntgs/contiguous.hpp>
 #include <doctest/doctest.h>
 
 #include <cstddef>

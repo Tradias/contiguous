@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.15)
 project(
     contiguous
     VERSION 0.1
-    DESCRIPTION "Library for storing structs in contiguous memory"
-    HOMEPAGE_URL https://github.com/Tradias/contiguous
+    DESCRIPTION "C++ library for storing objects of different types contiguously"
+    HOMEPAGE_URL "https://github.com/Tradias/contiguous"
     LANGUAGES CXX)
 
 option(CNTGS_INSTALL on)

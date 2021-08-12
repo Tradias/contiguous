@@ -11,6 +11,7 @@
 #include <cntgs/contiguous.hpp>
 
 #include <array>
+#include <list>
 #include <memory>
 #include <string>
 
