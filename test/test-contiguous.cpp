@@ -335,7 +335,7 @@ TEST_CASE("ContiguousTest: ContiguousElement construct from move-only type")
     }
 }
 
-TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned. std::allocator")
+TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned - std::allocator")
 {
     auto vector = fixed_vector_of_strings();
     using ValueType = decltype(vector)::value_type;
@@ -355,7 +355,7 @@ TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned. std::alloc
     test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
 }
 
-TEST_CASE("ContiguousTest: VaryingSize value_type can be copy assigned. std::allocator")
+TEST_CASE("ContiguousTest: VaryingSize value_type can be copy assigned - std::allocator")
 {
     auto vector = varying_vector_of_strings();
     using ValueType = decltype(vector)::value_type;
@@ -373,7 +373,7 @@ TEST_CASE("ContiguousTest: VaryingSize value_type can be copy assigned. std::all
     }
 }
 
-TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned. std::polymorphic_allocator")
+TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned - std::polymorphic_allocator")
 {
     TestMemoryResource resource;
     auto vector = fixed_vector_of_strings(resource.get_allocator());
@@ -394,7 +394,7 @@ TEST_CASE("ContiguousTest: FixedSize value_type can be copy assigned. std::polym
     }
 }
 
-TEST_CASE("ContiguousTest: VaryingSize value_type can be copy assigned. std::polymorphic_allocator")
+TEST_CASE("ContiguousTest: VaryingSize value_type can be copy assigned - std::polymorphic_allocator")
 {
     TestMemoryResource resource;
     auto vector = varying_vector_of_strings(resource.get_allocator());
@@ -431,7 +431,7 @@ TEST_CASE("ContiguousTest: VaryingSize value_type can be copy assigned. std::pol
     }
 }
 
-TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::allocator")
+TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned - std::allocator")
 {
     auto vector = fixed_vector_of_unique_ptrs();
     using ValueType = decltype(vector)::value_type;
@@ -441,7 +441,7 @@ TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::alloc
     test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
 }
 
-TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::allocator")
+TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned - std::allocator")
 {
     auto vector = varying_vector_of_unique_ptrs();
     using ValueType = decltype(vector)::value_type;
@@ -459,7 +459,7 @@ TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::alloc
     }
 }
 
-TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::polymorphic_allocator")
+TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned - std::polymorphic_allocator")
 {
     TestMemoryResource resource;
     auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
@@ -496,7 +496,7 @@ TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::polym
     }
 }
 
-TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned. std::polymorphic_allocator")
+TEST_CASE("ContiguousTest: FixedSize value_type can be move assigned - std::polymorphic_allocator")
 {
     TestMemoryResource resource;
     auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
