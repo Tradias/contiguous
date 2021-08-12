@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <functional>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 namespace cntgs::test
@@ -38,6 +39,13 @@ bool check_unique_ptr_equal_to(const std::unique_ptr<T>& lhs, const T& rhs)
         return false;
     }
     return detail::check_equal(rhs, *lhs);
+}
+
+template <class T>
+bool check_unique_ptr_equal_to(const std::unique_ptr<T>& lhs, std::nullptr_t rhs)
+{
+    CHECK_EQ(lhs, rhs);
+    return lhs == rhs;
 }
 
 template <class Lhs, class Rhs>
@@ -100,6 +108,105 @@ template <class T, class... Args>
 bool check_equal_using_get(T&& t, Args&&... args)
 {
     return detail::check_equal_using_get(std::forward<T>(t), std::make_index_sequence<sizeof...(Args)>{}, args...);
+}
+
+template <template <bool> class T>
+void check_conditionally_nothrow_comparison()
+{
+    CHECK(noexcept(std::declval<const T<true>&>() == std::declval<const T<true>&>()));
+    CHECK(noexcept(std::declval<const T<true>&>() < std::declval<const T<true>&>()));
+    CHECK_FALSE(noexcept(std::declval<const T<false>&>() == std::declval<const T<false>&>()));
+    CHECK_FALSE(noexcept(std::declval<const T<false>&>() < std::declval<const T<false>&>()));
+}
+
+template <template <bool> class T>
+void check_always_nothrow_move_construct()
+{
+    CHECK(std::is_nothrow_move_constructible_v<T<true>>);
+    CHECK(std::is_nothrow_move_constructible_v<T<false>>);
+}
+
+template <template <bool> class T>
+void check_conditionally_nothrow_move_assign()
+{
+    CHECK(std::is_nothrow_move_assignable_v<T<true>>);
+    CHECK_FALSE(std::is_nothrow_move_assignable_v<T<false>>);
+}
+
+template <template <bool> class T>
+void check_conditionally_nothrow_copy_assign()
+{
+    CHECK(std::is_nothrow_copy_assignable_v<T<true>>);
+    CHECK_FALSE(std::is_nothrow_copy_assignable_v<T<false>>);
+}
+
+template <std::size_t Alignment, class T>
+void check_alignment(T* t)
+{
+    auto* ptr = static_cast<void*>(t);
+    auto size = std::numeric_limits<size_t>::max();
+    std::align(Alignment, sizeof(uint32_t), ptr, size);
+    CHECK_EQ(t, ptr);
+}
+
+template <std::size_t Alignment, class T>
+void check_alignment(T& t)
+{
+    check_alignment<Alignment>(std::data(t));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_equality(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_EQ(lhs_transformer(vector[0]), rhs_transformer(vector[2]));
+    CHECK_EQ(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[2]));
+    CHECK_EQ(lhs_transformer(vector[0]), rhs_transformer(std::as_const(vector)[2]));
+    CHECK_EQ(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(std::as_const(vector)[2]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_inequality(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_NE(lhs_transformer(vector[0]), rhs_transformer(vector[1]));
+    CHECK_NE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[1]));
+    CHECK_NE(lhs_transformer(vector[0]), rhs_transformer(std::as_const(vector)[1]));
+    CHECK_NE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(std::as_const(vector)[1]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_less(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_LT(lhs_transformer(vector[2]), rhs_transformer(vector[1]));
+    CHECK_LT(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[1]));
+    CHECK_LT(lhs_transformer(vector[2]), rhs_transformer(std::as_const(vector)[3]));
+    CHECK_FALSE(lhs_transformer(std::as_const(vector)[0]) < rhs_transformer(std::as_const(vector)[2]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_less_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_LE(lhs_transformer(vector[0]), rhs_transformer(vector[1]));
+    CHECK_LE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[1]));
+    CHECK_LE(lhs_transformer(vector[2]), rhs_transformer(std::as_const(vector)[3]));
+    CHECK_FALSE(lhs_transformer(std::as_const(vector)[1]) <= rhs_transformer(std::as_const(vector)[2]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_greater(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_GT(lhs_transformer(vector[1]), rhs_transformer(vector[0]));
+    CHECK_GT(lhs_transformer(std::as_const(vector)[1]), rhs_transformer(vector[0]));
+    CHECK_GT(lhs_transformer(vector[3]), rhs_transformer(std::as_const(vector)[2]));
+    CHECK_FALSE(lhs_transformer(std::as_const(vector)[2]) >= rhs_transformer(std::as_const(vector)[1]));
+}
+
+template <class Vector, class LhsTransformer, class RhsTransformer>
+void check_greater_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTransformer rhs_transformer)
+{
+    CHECK_GE(lhs_transformer(vector[1]), rhs_transformer(vector[0]));
+    CHECK_GE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[2]));
+    CHECK_FALSE(lhs_transformer(vector[0]) >= rhs_transformer(std::as_const(vector)[1]));
+    CHECK_GE(lhs_transformer(std::as_const(vector)[3]), rhs_transformer(std::as_const(vector)[2]));
 }
 }  // namespace cntgs::test
 

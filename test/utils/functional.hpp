@@ -8,15 +8,6 @@
 
 namespace cntgs::test
 {
-struct DereferenceEqual
-{
-    template <class Dereferencable1, class Dereferencable2>
-    bool operator()(const Dereferencable1& lhs, const Dereferencable2& rhs)
-    {
-        return *lhs == *rhs;
-    }
-};
-
 struct Identity
 {
     template <class T>
@@ -25,6 +16,17 @@ struct Identity
         return std::forward<T>(t);
     }
 };
+
+template <class Vector>
+struct ToValueType
+{
+    template <class T>
+    auto operator()(T&& t)
+    {
+        return typename Vector::value_type{std::forward<T>(t)};
+    }
+};
+
 }  // namespace cntgs::test
 
 #endif  // CNTGS_UTILS_FUNCTIONAL_HPP
