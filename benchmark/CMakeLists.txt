@@ -1,12 +1,14 @@
+find_package(benchmark)
+
 function(cntgs_add_benchmark _name)
     add_executable(${_name})
 
-    target_sources(${_name} PRIVATE benchmark.cpp)
+    target_sources(${_name} PRIVATE main.cpp benchmark.cpp)
 
     target_compile_options(${_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
                                             -Wextra -pedantic-errors>)
 
-    target_link_libraries(${_name} PRIVATE cntgs cntgs-test-utils)
+    target_link_libraries(${_name} PRIVATE cntgs cntgs-test-utils benchmark::benchmark)
 
     target_include_directories(${_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                                $<INSTALL_INTERFACE:include>)
