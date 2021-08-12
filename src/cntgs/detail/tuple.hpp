@@ -13,13 +13,13 @@
 
 namespace cntgs::detail
 {
-template <class... Types>
-using ToTupleOfContiguousPointer = std::tuple<typename detail::ParameterTraits<Types>::PointerType...>;
+template <class... Parameter>
+using ToTupleOfContiguousPointer = std::tuple<typename detail::ParameterTraits<Parameter>::PointerType...>;
 
-template <bool IsConst, class... Types>
+template <bool IsConst, class... Parameter>
 using ToTupleOfContiguousReferences =
-    detail::ConditionalT<IsConst, std::tuple<typename detail::ParameterTraits<Types>::ConstReferenceType...>,
-                         std::tuple<typename detail::ParameterTraits<Types>::ReferenceType...>>;
+    detail::ConditionalT<IsConst, std::tuple<typename detail::ParameterTraits<Parameter>::ConstReferenceType...>,
+                         std::tuple<typename detail::ParameterTraits<Parameter>::ReferenceType...>>;
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_TUPLE_HPP

@@ -13,12 +13,12 @@
 
 namespace cntgs::detail
 {
-template <class... Types>
+template <class... Parameter>
 struct ContiguousVectorTraits
 {
-    using ReferenceType = cntgs::BasicContiguousReference<false, Types...>;
-    using ConstReferenceType = cntgs::BasicContiguousReference<true, Types...>;
-    using PointerType = detail::ToTupleOfContiguousPointer<Types...>;
+    using ReferenceType = cntgs::BasicContiguousReference<false, Parameter...>;
+    using ConstReferenceType = cntgs::BasicContiguousReference<true, Parameter...>;
+    using PointerType = detail::ToTupleOfContiguousPointer<Parameter...>;
 };
 }  // namespace cntgs::detail
 

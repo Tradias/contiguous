@@ -86,12 +86,12 @@ class BaseElementLocator
     }
 };
 
-template <bool IsAllFixedSize, class... Types>
+template <bool IsAllFixedSize, class... Parameter>
 class ElementLocator : public BaseElementLocator
 {
   private:
-    using ElementTraits = detail::ElementTraitsT<Types...>;
-    using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
+    using ElementTraits = detail::ElementTraitsT<Parameter...>;
+    using FixedSizesArray = typename detail::ParameterListTraits<Parameter...>::FixedSizesArray;
 
   public:
     ElementLocator() = default;
@@ -214,12 +214,12 @@ class BaseAllFixedSizeElementLocator
     }
 };
 
-template <class... Types>
-class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
+template <class... Parameter>
+class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
 {
   private:
-    using ElementTraits = detail::ElementTraitsT<Types...>;
-    using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
+    using ElementTraits = detail::ElementTraitsT<Parameter...>;
+    using FixedSizesArray = typename detail::ParameterListTraits<Parameter...>::FixedSizesArray;
 
   public:
     ElementLocator() = default;
@@ -278,18 +278,19 @@ class ElementLocator<true, Types...> : public BaseAllFixedSizeElementLocator
     }
 };
 
-template <class... Types>
-using ElementLocatorT = detail::ElementLocator<detail::ParameterListTraits<Types...>::IS_FIXED_SIZE_OR_PLAIN, Types...>;
+template <class... Parameter>
+using ElementLocatorT =
+    detail::ElementLocator<detail::ParameterListTraits<Parameter...>::IS_FIXED_SIZE_OR_PLAIN, Parameter...>;
 
-template <class... Types>
+template <class... Parameter>
 class ElementLocatorAndFixedSizes
-    : private detail::EmptyBaseOptimization<typename detail::ParameterListTraits<Types...>::FixedSizesArray>
+    : private detail::EmptyBaseOptimization<typename detail::ParameterListTraits<Parameter...>::FixedSizesArray>
 {
   private:
-    static constexpr auto HAS_FIXED_SIZES = detail::ParameterListTraits<Types...>::CONTIGUOUS_FIXED_SIZE_COUNT > 0;
+    static constexpr auto HAS_FIXED_SIZES = detail::ParameterListTraits<Parameter...>::CONTIGUOUS_FIXED_SIZE_COUNT > 0;
 
-    using FixedSizesArray = typename detail::ParameterListTraits<Types...>::FixedSizesArray;
-    using Locator = detail::ElementLocatorT<Types...>;
+    using FixedSizesArray = typename detail::ParameterListTraits<Parameter...>::FixedSizesArray;
+    using Locator = detail::ElementLocatorT<Parameter...>;
     using Base = detail::EmptyBaseOptimization<FixedSizesArray>;
 
   public:

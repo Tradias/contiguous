@@ -43,6 +43,8 @@ struct Options
 {
 };
 
+/// An allocator that is used to acquire/release memory and to construct/destroy the elements in that
+/// memory. Must satisfy [Allocator](https://en.cppreference.com/w/cpp/named_req/Allocator).
 template <class T>
 struct Allocator
 {

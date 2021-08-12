@@ -32,28 +32,27 @@
 namespace cntgs
 {
 /// Alias template for [cntgs::BasicContiguousVector]() that uses [std::allocator]()
-template <class... Types>
-using ContiguousVector = cntgs::BasicContiguousVector<cntgs::Options<>, Types...>;
+template <class... Parameter>
+using ContiguousVector = cntgs::BasicContiguousVector<cntgs::Options<>, Parameter...>;
 
 /// Container that stores the value of each specified parameter contiguously.
 ///
-/// \param Allocator An allocator that is used to acquire/release memory and to construct/destroy the elements in that
-/// memory. The type must meet the requirements of [Allocator](https://en.cppreference.com/w/cpp/named_req/Allocator).
-/// \param Types Any of [cntgs::VaryingSize](), [cntgs::FixedSize](), [cntgs::AlignAs]() or a plain user-defined or
-/// built-in type. The underlying type of each parameter must meet the requirements of
-/// [Erasable](https://en.cppreference.com/w/cpp/named_req/Erasable)
-template <class... Option, class... Types>
-class BasicContiguousVector<cntgs::Options<Option...>, Types...>
+/// \param Option Any of [cntgs::Allocator]() wrapped into [cntgs::Options]().
+/// \param Parameter Any of [cntgs::VaryingSize](), [cntgs::FixedSize](), [cntgs::AlignAs]() or a plain user-defined or
+/// built-in type. The underlying type of each parameter must satisfy
+/// [Erasable](https://en.cppreference.com/w/cpp/named_req/Erasable).
+template <class... Option, class... Parameter>
+class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 {
   private:
-    using Self = cntgs::BasicContiguousVector<cntgs::Options<Option...>, Types...>;
+    using Self = cntgs::BasicContiguousVector<cntgs::Options<Option...>, Parameter...>;
     using ParsedOptions = detail::OptionsParser<Option...>;
     using Allocator = typename ParsedOptions::Allocator;
-    using ListTraits = detail::ParameterListTraits<Types...>;
-    using VectorTraits = detail::ContiguousVectorTraits<Types...>;
-    using ElementLocator = detail::ElementLocatorT<Types...>;
-    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Types...>;
-    using ElementTraits = detail::ElementTraitsT<Types...>;
+    using ListTraits = detail::ParameterListTraits<Parameter...>;
+    using VectorTraits = detail::ContiguousVectorTraits<Parameter...>;
+    using ElementLocator = detail::ElementLocatorT<Parameter...>;
+    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Parameter...>;
+    using ElementTraits = detail::ElementTraitsT<Parameter...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
     using StorageType = detail::AllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
     using FixedSizes = typename ListTraits::FixedSizes;
@@ -67,7 +66,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
   public:
     /// Type that can create copies of [cntgs::BasicContiguousVector::reference]() and
     /// [cntgs::BasicContiguousVector::const_reference]()
-    using value_type = cntgs::BasicContiguousElement<Allocator, Types...>;
+    using value_type = cntgs::BasicContiguousElement<Allocator, Parameter...>;
 
     /// A [cntgs::ContiguousReference]()
     /// \exclude target
@@ -76,8 +75,8 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
     /// A [cntgs::ContiguousConstReference]()
     /// \exclude target
     using const_reference = typename VectorTraits::ConstReferenceType;
-    using iterator = cntgs::ContiguousVectorIterator<false, cntgs::Options<Option...>, Types...>;
-    using const_iterator = cntgs::ContiguousVectorIterator<true, cntgs::Options<Option...>, Types...>;
+    using iterator = cntgs::ContiguousVectorIterator<false, cntgs::Options<Option...>, Parameter...>;
+    using const_iterator = cntgs::ContiguousVectorIterator<true, cntgs::Options<Option...>, Parameter...>;
     using difference_type = std::ptrdiff_t;
     using size_type = std::size_t;
     using allocator_type = Allocator;
@@ -282,7 +281,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
 
     template <class... TOption>
     [[nodiscard]] constexpr auto operator==(
-        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return this->equal(other);
@@ -290,7 +289,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
 
     template <class... TOption>
     [[nodiscard]] constexpr auto operator!=(
-        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(*this == other);
@@ -298,7 +297,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
 
     template <class... TOption>
     [[nodiscard]] constexpr auto operator<(
-        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return this->lexicographical_compare(other);
@@ -306,7 +305,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
 
     template <class... TOption>
     [[nodiscard]] constexpr auto operator<=(
-        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other < *this);
@@ -314,7 +313,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
 
     template <class... TOption>
     [[nodiscard]] constexpr auto operator>(
-        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other < *this;
@@ -322,7 +321,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
 
     template <class... TOption>
     [[nodiscard]] constexpr auto operator>=(
-        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(*this < other);
@@ -495,7 +494,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
     }
 
     template <class... TOption>
-    constexpr auto equal(const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
+    constexpr auto equal(const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
     {
         if constexpr (ListTraits::IS_EQUALITY_MEMCMPABLE)
         {
@@ -516,7 +515,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Types...>
     }
     template <class... TOption>
     constexpr auto lexicographical_compare(
-        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Types...>& other) const
+        const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
     {
         if constexpr (ListTraits::IS_LEXICOGRAPHICAL_MEMCMPABLE && ListTraits::IS_FIXED_SIZE_OR_PLAIN)
         {

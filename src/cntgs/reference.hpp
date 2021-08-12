@@ -20,20 +20,20 @@
 
 namespace cntgs
 {
-template <class... Types>
-using ContiguousReference = cntgs::BasicContiguousReference<false, Types...>;
+template <class... Parameter>
+using ContiguousReference = cntgs::BasicContiguousReference<false, Parameter...>;
 
-template <class... Types>
-using ContiguousConstReference = cntgs::BasicContiguousReference<true, Types...>;
+template <class... Parameter>
+using ContiguousConstReference = cntgs::BasicContiguousReference<true, Parameter...>;
 
 /// Reference type
-template <bool IsConst, class... Types>
+template <bool IsConst, class... Parameter>
 class BasicContiguousReference
 {
   private:
-    using ListTraits = detail::ParameterListTraits<Types...>;
-    using ElementTraits = detail::ElementTraitsT<Types...>;
-    using PointerTuple = detail::ToTupleOfContiguousPointer<Types...>;
+    using ListTraits = detail::ParameterListTraits<Parameter...>;
+    using ElementTraits = detail::ElementTraitsT<Parameter...>;
+    using PointerTuple = detail::ToTupleOfContiguousPointer<Parameter...>;
 
     static constexpr auto IS_CONST = IsConst;
 
@@ -48,20 +48,21 @@ class BasicContiguousReference
 
     template <bool OtherIsConst>
     /*implicit*/ constexpr BasicContiguousReference(
-        const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) noexcept
+        const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other) noexcept
         : tuple(other.tuple)
     {
     }
 
     template <class Allocator>
     /*implicit*/ constexpr BasicContiguousReference(
-        const cntgs::BasicContiguousElement<Allocator, Types...>& other) noexcept
+        const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) noexcept
         : BasicContiguousReference(other.reference)
     {
     }
 
     template <class Allocator>
-    /*implicit*/ constexpr BasicContiguousReference(cntgs::BasicContiguousElement<Allocator, Types...>& other) noexcept
+    /*implicit*/ constexpr BasicContiguousReference(
+        cntgs::BasicContiguousElement<Allocator, Parameter...>& other) noexcept
         : BasicContiguousReference(other.reference)
     {
     }
@@ -74,7 +75,7 @@ class BasicContiguousReference
     }
 
     template <bool OtherIsConst>
-    constexpr BasicContiguousReference& operator=(const cntgs::BasicContiguousReference<OtherIsConst, Types...>&
+    constexpr BasicContiguousReference& operator=(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>&
                                                       other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->assign(other);
@@ -82,7 +83,7 @@ class BasicContiguousReference
     }
 
     template <class Allocator>
-    constexpr BasicContiguousReference& operator=(const cntgs::BasicContiguousElement<Allocator, Types...>&
+    constexpr BasicContiguousReference& operator=(const cntgs::BasicContiguousElement<Allocator, Parameter...>&
                                                       other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
         this->assign(other.reference);
@@ -97,7 +98,7 @@ class BasicContiguousReference
     }
 
     template <bool OtherIsConst>
-    constexpr BasicContiguousReference& operator=(cntgs::BasicContiguousReference<OtherIsConst, Types...>&&
+    constexpr BasicContiguousReference& operator=(cntgs::BasicContiguousReference<OtherIsConst, Parameter...>&&
                                                       other) noexcept(OtherIsConst
                                                                           ? ListTraits::IS_NOTHROW_COPY_ASSIGNABLE
                                                                           : ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
@@ -107,8 +108,8 @@ class BasicContiguousReference
     }
 
     template <class Allocator>
-    constexpr BasicContiguousReference& operator=(cntgs::BasicContiguousElement<Allocator, Types...>&& other) noexcept(
-        ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
+    constexpr BasicContiguousReference& operator=(
+        cntgs::BasicContiguousElement<Allocator, Parameter...>&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
         this->assign(other.reference);
         return *this;
@@ -123,96 +124,96 @@ class BasicContiguousReference
 
     [[nodiscard]] constexpr auto data_end() const noexcept
     {
-        return ElementTraits::template ParameterTraitsAt<sizeof...(Types) - 1>::data_end(
-            cntgs::get<sizeof...(Types) - 1>(*this));
+        return ElementTraits::template ParameterTraitsAt<sizeof...(Parameter) - 1>::data_end(
+            cntgs::get<sizeof...(Parameter) - 1>(*this));
     }
 
     template <bool OtherIsConst>
-    [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
-        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
+    [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other)
+        const noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return ElementTraits::equal(*this, other);
     }
 
     template <class Allocator>
-    [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return *this == other.reference;
     }
 
     template <bool OtherIsConst>
-    [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
-        noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
+    [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other)
+        const noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(*this == other);
     }
 
     template <class Allocator>
-    [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
         return !(*this == other.reference);
     }
 
     template <bool OtherIsConst>
-    [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
-        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
+    [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other)
+        const noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return ElementTraits::lexicographical_compare(*this, other);
     }
 
     template <class Allocator>
-    [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return *this < other.reference;
     }
 
     template <bool OtherIsConst>
-    [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
-        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
+    [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other)
+        const noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other < *this);
     }
 
     template <class Allocator>
-    [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(other.reference < *this);
     }
 
     template <bool OtherIsConst>
-    [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
-        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
+    [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other)
+        const noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other < *this;
     }
 
     template <class Allocator>
-    [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return other.reference < *this;
     }
 
     template <bool OtherIsConst>
-    [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousReference<OtherIsConst, Types...>& other) const
-        noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
+    [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other)
+        const noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(*this < other);
     }
 
     template <class Allocator>
-    [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousElement<Allocator, Types...>& other) const
+    [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
         return !(*this < other.reference);
     }
 
   private:
-    friend cntgs::BasicContiguousReference<!IsConst, Types...>;
+    friend cntgs::BasicContiguousReference<!IsConst, Parameter...>;
 
     template <class, class...>
     friend class BasicContiguousVector;
@@ -239,17 +240,17 @@ class BasicContiguousReference
     }
 };
 
-template <bool IsConst, class... Types>
-constexpr void swap(const cntgs::BasicContiguousReference<IsConst, Types...>& lhs,
-                    const cntgs::BasicContiguousReference<IsConst, Types...>&
-                        rhs) noexcept(detail::ParameterListTraits<Types...>::IS_NOTHROW_SWAPPABLE)
+template <bool IsConst, class... Parameter>
+constexpr void swap(const cntgs::BasicContiguousReference<IsConst, Parameter...>& lhs,
+                    const cntgs::BasicContiguousReference<IsConst, Parameter...>&
+                        rhs) noexcept(detail::ParameterListTraits<Parameter...>::IS_NOTHROW_SWAPPABLE)
 {
-    detail::ElementTraitsT<Types...>::swap(rhs, lhs);
+    detail::ElementTraitsT<Parameter...>::swap(rhs, lhs);
 }
 
-template <std::size_t I, bool IsConst, class... Types>
-[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Types...>> get(
-    const cntgs::BasicContiguousReference<IsConst, Types...>& reference) noexcept
+template <std::size_t I, bool IsConst, class... Parameter>
+[[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Parameter...>> get(
+    const cntgs::BasicContiguousReference<IsConst, Parameter...>& reference) noexcept
 {
     if constexpr (IsConst)
     {

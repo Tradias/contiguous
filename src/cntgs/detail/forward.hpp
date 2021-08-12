@@ -28,15 +28,15 @@ struct Allocator;
 template <class Options, class... T>
 class BasicContiguousVector;
 
-template <bool IsConst, class Options, class... Types>
+template <bool IsConst, class Options, class... Parameter>
 class ContiguousVectorIterator;
 
 class TypeErasedVector;
 
-template <bool IsConst, class... Types>
+template <bool IsConst, class... Parameter>
 class BasicContiguousReference;
 
-template <class Allocator, class... Types>
+template <class Allocator, class... Parameter>
 class BasicContiguousElement;
 }  // namespace cntgs
 
