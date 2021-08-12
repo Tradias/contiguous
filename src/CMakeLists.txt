@@ -21,7 +21,7 @@ list(
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/elementLocator.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/elementTraits.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/forward.hpp"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/iteratorUtils.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/iterator.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/memory.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/parameterListTraits.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/parameterTraits.hpp"
@@ -30,7 +30,7 @@ list(
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/reference.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/sizeGetter.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/tuple.hpp"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/typeUtils.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/typeTraits.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/utility.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/vectorTraits.hpp")
 set_target_properties(cntgs PROPERTIES CNTGS_SOURCE_FILES "${CNTGS_SOURCE_FILES}")

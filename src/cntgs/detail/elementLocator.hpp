@@ -10,7 +10,7 @@
 #include "cntgs/detail/elementTraits.hpp"
 #include "cntgs/detail/memory.hpp"
 #include "cntgs/detail/parameterListTraits.hpp"
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 #include "cntgs/detail/utility.hpp"
 
 #include <algorithm>

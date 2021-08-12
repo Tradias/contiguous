@@ -7,9 +7,9 @@
 #define CNTGS_DETAIL_MEMORY_HPP
 
 #include "cntgs/detail/attributes.hpp"
-#include "cntgs/detail/iteratorUtils.hpp"
+#include "cntgs/detail/iterator.hpp"
 #include "cntgs/detail/range.hpp"
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 #include "cntgs/detail/utility.hpp"
 #include "cntgs/span.hpp"
 

@@ -6,7 +6,7 @@
 #ifndef CNTGS_DETAIL_OPTIONSPARSER_HPP
 #define CNTGS_DETAIL_OPTIONSPARSER_HPP
 
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 #include "cntgs/parameter.hpp"
 
 #include <memory>

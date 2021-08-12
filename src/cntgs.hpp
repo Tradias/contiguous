@@ -52,23 +52,23 @@
 
 #endif  // CNTGS_DETAIL_ATTRIBUTES_HPP
 
-// #include "cntgs/detail/iteratorUtils.hpp"
+// #include "cntgs/detail/iterator.hpp"
 // Copyright (c) 2021 Dennis Hezel
 //
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#ifndef CNTGS_DETAIL_ITERATORUTILS_HPP
-#define CNTGS_DETAIL_ITERATORUTILS_HPP
+#ifndef CNTGS_DETAIL_ITERATOR_HPP
+#define CNTGS_DETAIL_ITERATOR_HPP
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 // Copyright (c) 2021 Dennis Hezel
 //
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#ifndef CNTGS_DETAIL_TYPEUTILS_HPP
-#define CNTGS_DETAIL_TYPEUTILS_HPP
+#ifndef CNTGS_DETAIL_TYPETRAITS_HPP
+#define CNTGS_DETAIL_TYPETRAITS_HPP
 
 #include <cstddef>
 #include <type_traits>
@@ -265,7 +265,7 @@ template <class T>
 inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatibleT<T>::value;
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_TYPEUTILS_HPP
+#endif  // CNTGS_DETAIL_TYPETRAITS_HPP
 
 
 #include <iterator>
@@ -314,7 +314,7 @@ inline constexpr auto CONTIGUOUS_ITERATOR_V =
             detail::operator_arrow_produces_pointer_to_iterator_reference_type<I>();
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ITERATORUTILS_HPP
+#endif  // CNTGS_DETAIL_ITERATOR_HPP
 
 // #include "cntgs/detail/range.hpp"
 // Copyright (c) 2021 Dennis Hezel
@@ -356,7 +356,7 @@ struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype
 
 #endif  // CNTGS_DETAIL_RANGE_HPP
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 // #include "cntgs/detail/utility.hpp"
 // Copyright (c) 2021 Dennis Hezel
@@ -1137,7 +1137,7 @@ enum class ParameterType
 
 #endif  // CNTGS_DETAIL_PARAMETERTYPE_HPP
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 // #include "cntgs/parameter.hpp"
 // Copyright (c) 2021 Dennis Hezel
@@ -1544,7 +1544,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
 
 // #include "cntgs/detail/parameterType.hpp"
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 
 #include <array>
@@ -1650,7 +1650,7 @@ struct ParameterListTraits
 
 // #include "cntgs/detail/parameterTraits.hpp"
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 
 #include <tuple>
@@ -1712,7 +1712,7 @@ template <std::size_t I, bool IsConst, class... Parameter>
 
 // #include "cntgs/detail/reference.hpp"
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 
 #include <array>
@@ -1781,7 +1781,7 @@ class ContiguousReferenceSizeGetter
 
 #endif  // CNTGS_DETAIL_SIZEGETTER_HPP
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 // #include "cntgs/detail/vectorTraits.hpp"
 // Copyright (c) 2021 Dennis Hezel
@@ -2136,7 +2136,7 @@ using ElementTraitsT = detail::ElementTraits<std::make_index_sequence<sizeof...(
 
 // #include "cntgs/detail/tuple.hpp"
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 
 #include <cstddef>
@@ -2834,7 +2834,7 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Parameter...>>
 
 // #include "cntgs/detail/parameterListTraits.hpp"
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 // #include "cntgs/detail/utility.hpp"
 
@@ -3165,9 +3165,9 @@ auto type_erase_element_locator(T&& locator) noexcept
 
 // #include "cntgs/detail/forward.hpp"
 
-// #include "cntgs/detail/iteratorUtils.hpp"
+// #include "cntgs/detail/iterator.hpp"
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 
 #include <iterator>
@@ -3450,7 +3450,7 @@ class TypeErasedVector
 #ifndef CNTGS_DETAIL_OPTIONSPARSER_HPP
 #define CNTGS_DETAIL_OPTIONSPARSER_HPP
 
-// #include "cntgs/detail/typeUtils.hpp"
+// #include "cntgs/detail/typeTraits.hpp"
 
 // #include "cntgs/parameter.hpp"
 

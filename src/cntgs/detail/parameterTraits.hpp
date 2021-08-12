@@ -9,7 +9,7 @@
 #include "cntgs/detail/attributes.hpp"
 #include "cntgs/detail/memory.hpp"
 #include "cntgs/detail/parameterType.hpp"
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 #include "cntgs/parameter.hpp"
 #include "cntgs/span.hpp"
 

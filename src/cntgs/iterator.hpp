@@ -8,8 +8,8 @@
 
 #include "cntgs/detail/elementLocator.hpp"
 #include "cntgs/detail/forward.hpp"
-#include "cntgs/detail/iteratorUtils.hpp"
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/iterator.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 
 #include <iterator>
 

@@ -3,10 +3,10 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#ifndef CNTGS_DETAIL_ITERATORUTILS_HPP
-#define CNTGS_DETAIL_ITERATORUTILS_HPP
+#ifndef CNTGS_DETAIL_ITERATOR_HPP
+#define CNTGS_DETAIL_ITERATOR_HPP
 
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 
 #include <iterator>
 #include <version>
@@ -54,4 +54,4 @@ inline constexpr auto CONTIGUOUS_ITERATOR_V =
             detail::operator_arrow_produces_pointer_to_iterator_reference_type<I>();
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_ITERATORUTILS_HPP
+#endif  // CNTGS_DETAIL_ITERATOR_HPP

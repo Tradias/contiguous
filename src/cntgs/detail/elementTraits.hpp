@@ -14,7 +14,7 @@
 #include "cntgs/detail/parameterTraits.hpp"
 #include "cntgs/detail/reference.hpp"
 #include "cntgs/detail/sizeGetter.hpp"
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 #include "cntgs/detail/vectorTraits.hpp"
 
 #include <array>

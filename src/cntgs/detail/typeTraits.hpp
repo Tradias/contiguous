@@ -3,8 +3,8 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#ifndef CNTGS_DETAIL_TYPEUTILS_HPP
-#define CNTGS_DETAIL_TYPEUTILS_HPP
+#ifndef CNTGS_DETAIL_TYPETRAITS_HPP
+#define CNTGS_DETAIL_TYPETRAITS_HPP
 
 #include <cstddef>
 #include <type_traits>
@@ -201,4 +201,4 @@ template <class T>
 inline constexpr auto LEXICOGRAPHICAL_MEMCMP_COMPATIBLE = detail::LexicographicalMemcmpCompatibleT<T>::value;
 }  // namespace cntgs::detail
 
-#endif  // CNTGS_DETAIL_TYPEUTILS_HPP
+#endif  // CNTGS_DETAIL_TYPETRAITS_HPP

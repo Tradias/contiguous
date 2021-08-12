@@ -7,7 +7,7 @@
 #define CNTGS_DETAIL_TUPLE_HPP
 
 #include "cntgs/detail/parameterTraits.hpp"
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 
 #include <tuple>
 

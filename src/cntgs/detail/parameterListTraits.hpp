@@ -9,7 +9,7 @@
 #include "cntgs/detail/array.hpp"
 #include "cntgs/detail/parameterTraits.hpp"
 #include "cntgs/detail/parameterType.hpp"
-#include "cntgs/detail/typeUtils.hpp"
+#include "cntgs/detail/typeTraits.hpp"
 
 #include <array>
 #include <cstddef>
