@@ -17,7 +17,7 @@ struct MoveDefaultingValue
 {
     T value;
 
-    explicit constexpr MoveDefaultingValue(T value) noexcept : value(value) {}
+    constexpr explicit MoveDefaultingValue(T value) noexcept : value(value) {}
 
     ~MoveDefaultingValue() = default;
 
@@ -44,12 +44,12 @@ class EmptyBaseOptimization
   public:
     EmptyBaseOptimization() = default;
 
-    explicit constexpr EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    constexpr explicit EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
         : value{value}
     {
     }
 
-    explicit constexpr EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+    constexpr explicit EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
         : value{std::move(value)}
     {
     }
@@ -65,12 +65,12 @@ class EmptyBaseOptimization<T, true> : private T
   public:
     EmptyBaseOptimization() = default;
 
-    explicit constexpr EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    constexpr explicit EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
         : T{value}
     {
     }
 
-    explicit constexpr EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+    constexpr explicit EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
         : T{std::move(value)}
     {
     }

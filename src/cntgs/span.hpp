@@ -36,7 +36,7 @@ struct Span
     Span() = default;
 
     template <class U>
-    explicit constexpr Span(const Span<U>& other) noexcept : first(other.first), last(other.last)
+    constexpr explicit Span(const Span<U>& other) noexcept : first(other.first), last(other.last)
     {
     }
 

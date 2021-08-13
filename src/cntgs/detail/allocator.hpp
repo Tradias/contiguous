@@ -151,7 +151,7 @@ class AllocatorAwarePointer
 
     constexpr auto size() const noexcept { return this->impl.size; }
 
-    explicit constexpr operator bool() const noexcept { return this->get() != nullptr; }
+    constexpr explicit operator bool() const noexcept { return this->get() != nullptr; }
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
 

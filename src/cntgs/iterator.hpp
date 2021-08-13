@@ -38,7 +38,7 @@ class ContiguousVectorIterator
     {
     }
 
-    explicit constexpr ContiguousVectorIterator(const Vector& vector) noexcept
+    constexpr explicit ContiguousVectorIterator(const Vector& vector) noexcept
         : ContiguousVectorIterator(vector, SizeType{})
     {
     }

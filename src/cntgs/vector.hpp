@@ -109,7 +109,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    explicit constexpr BasicContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
+    constexpr explicit BasicContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator_type{})
     {
     }

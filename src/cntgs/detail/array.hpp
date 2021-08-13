@@ -23,7 +23,7 @@ struct Array<T, 0>
 {
     Array() = default;
 
-    explicit constexpr Array(const std::array<T, 0>&) noexcept {}
+    constexpr explicit Array(const std::array<T, 0>&) noexcept {}
 };
 
 template <std::size_t I, class T, std::size_t N>
