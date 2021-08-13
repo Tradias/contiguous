@@ -54,7 +54,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Parameter...>;
     using ElementTraits = detail::ElementTraitsT<Parameter...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
-    using StorageType = detail::AllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
+    using StorageType = detail::AllocatorAwarePointer<Allocator>;
     using FixedSizes = typename ListTraits::FixedSizes;
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
 

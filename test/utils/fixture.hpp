@@ -17,13 +17,13 @@
 
 namespace cntgs::test
 {
-static constexpr std::array FLOATS1{1.f, 2.f};
-static constexpr std::array FLOATS1_ALT{11.f, 22.f};
-static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
-static constexpr std::array FLOATS2_ALT{-33.f, -44.f, -55.f};
-inline static const std::list FLOATS_LIST{1.f, 2.f};
-inline static const std::string STRING1{"a very long test string"};
-inline static const std::string STRING2{"another very long test string"};
+[[maybe_unused]] static constexpr std::array FLOATS1{1.f, 2.f};
+[[maybe_unused]] static constexpr std::array FLOATS1_ALT{11.f, 22.f};
+[[maybe_unused]] static constexpr std::array FLOATS2{-3.f, -4.f, -5.f};
+[[maybe_unused]] static constexpr std::array FLOATS2_ALT{-33.f, -44.f, -55.f};
+[[maybe_unused]] inline static const std::list FLOATS_LIST{1.f, 2.f};
+[[maybe_unused]] inline static const std::string STRING1{"a very long test string"};
+[[maybe_unused]] inline static const std::string STRING2{"another very long test string"};
 
 inline auto floats1(float one = 1.f, float two = 2.f) { return std::array{one, two}; }
 

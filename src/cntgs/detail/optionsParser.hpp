@@ -23,7 +23,7 @@ struct AllocatorOptionParser : std::false_type
 template <class T>
 struct AllocatorOptionParser<cntgs::Allocator<T>> : std::true_type
 {
-    using Allocator = T;
+    using Allocator = typename std::allocator_traits<T>::template rebind_alloc<std::byte>;
 };
 
 template <class... Option>
