@@ -5,7 +5,6 @@
     "ReadOnly": false,
     "LinkFormat": "GitHub",
     "ExcludeDirectories": [
-        "src",
         "build"
     ],
     "MaxWidth": 150

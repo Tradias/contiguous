@@ -32,8 +32,10 @@
 namespace cntgs
 {
 /// Alias template for [cntgs::BasicContiguousVector]() that uses [std::allocator]()
+// begin-snippet: contiguous-vector-definition
 template <class... Parameter>
 using ContiguousVector = cntgs::BasicContiguousVector<cntgs::Options<>, Parameter...>;
+// end-snippet
 
 /// Container that stores the value of each specified parameter contiguously.
 ///

@@ -406,7 +406,7 @@ struct Span
     Span() = default;
 
     template <class U>
-    explicit constexpr Span(const Span<U>& other) noexcept : first(other.first), last(other.last)
+    constexpr explicit Span(const Span<U>& other) noexcept : first(other.first), last(other.last)
     {
     }
 
@@ -456,7 +456,7 @@ struct MoveDefaultingValue
 {
     T value;
 
-    explicit constexpr MoveDefaultingValue(T value) noexcept : value(value) {}
+    constexpr explicit MoveDefaultingValue(T value) noexcept : value(value) {}
 
     ~MoveDefaultingValue() = default;
 
@@ -483,12 +483,12 @@ class EmptyBaseOptimization
   public:
     EmptyBaseOptimization() = default;
 
-    explicit constexpr EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    constexpr explicit EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
         : value{value}
     {
     }
 
-    explicit constexpr EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+    constexpr explicit EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
         : value{std::move(value)}
     {
     }
@@ -504,12 +504,12 @@ class EmptyBaseOptimization<T, true> : private T
   public:
     EmptyBaseOptimization() = default;
 
-    explicit constexpr EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
+    constexpr explicit EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
         : T{value}
     {
     }
 
-    explicit constexpr EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+    constexpr explicit EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
         : T{std::move(value)}
     {
     }
@@ -880,7 +880,7 @@ class AllocatorAwarePointer
 
     constexpr auto size() const noexcept { return this->impl.size; }
 
-    explicit constexpr operator bool() const noexcept { return this->get() != nullptr; }
+    constexpr explicit operator bool() const noexcept { return this->get() != nullptr; }
 
     constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
 
@@ -1073,7 +1073,7 @@ struct Array<T, 0>
 {
     Array() = default;
 
-    explicit constexpr Array(const std::array<T, 0>&) noexcept {}
+    constexpr explicit Array(const std::array<T, 0>&) noexcept {}
 };
 
 template <std::size_t I, class T, std::size_t N>
@@ -2349,13 +2349,13 @@ class BasicContiguousReference
     template <bool, class, class...>
     friend class ContiguousVectorIterator;
 
-    explicit constexpr BasicContiguousReference(std::byte* CNTGS_RESTRICT address,
+    constexpr explicit BasicContiguousReference(std::byte* CNTGS_RESTRICT address,
                                                 const typename ListTraits::FixedSizesArray& fixed_sizes = {}) noexcept
         : BasicContiguousReference(ElementTraits::load_element_at(address, fixed_sizes))
     {
     }
 
-    explicit constexpr BasicContiguousReference(const PointerTuple& tuple) noexcept : tuple(tuple) {}
+    constexpr explicit BasicContiguousReference(const PointerTuple& tuple) noexcept : tuple(tuple) {}
 
     template <class Reference>
     void assign(Reference& other) const
@@ -2456,7 +2456,7 @@ class BasicContiguousElement
     BasicContiguousElement(BasicContiguousElement&&) = default;
 
     template <class OtherAllocator>
-    explicit constexpr BasicContiguousElement(BasicContiguousElement<OtherAllocator, Parameter...>&& other) noexcept
+    constexpr explicit BasicContiguousElement(BasicContiguousElement<OtherAllocator, Parameter...>&& other) noexcept
         : memory(std::move(other.memory)), reference(std::move(other.reference))
     {
     }
@@ -3180,6 +3180,8 @@ class ContiguousVectorIterator
   private:
     using Vector = cntgs::BasicContiguousVector<Options, Parameter...>;
     using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Parameter...>;
+    using SizeType = typename Vector::size_type;
+    using MemoryPointer = typename std::allocator_traits<typename Vector::allocator_type>::pointer;
 
   public:
     using value_type = typename Vector::value_type;
@@ -3190,12 +3192,15 @@ class ContiguousVectorIterator
 
     ContiguousVectorIterator() = default;
 
-    constexpr ContiguousVectorIterator(const Vector& vector, typename Vector::size_type index) noexcept
+    constexpr ContiguousVectorIterator(const Vector& vector, SizeType index) noexcept
         : i(index), memory(vector.memory.get()), locator(vector.locator)
     {
     }
 
-    explicit constexpr ContiguousVectorIterator(const Vector& vector) noexcept : ContiguousVectorIterator(vector, {}) {}
+    constexpr explicit ContiguousVectorIterator(const Vector& vector) noexcept
+        : ContiguousVectorIterator(vector, SizeType{})
+    {
+    }
 
     template <bool OtherIsConst>
     /*implicit*/ constexpr ContiguousVectorIterator(
@@ -3336,8 +3341,8 @@ class ContiguousVectorIterator
   private:
     friend cntgs::ContiguousVectorIterator<!IsConst, Options, Parameter...>;
 
-    typename Vector::size_type i{};
-    std::byte* memory;
+    SizeType i{};
+    MemoryPointer memory;
     ElementLocatorAndFixedSizes locator;
 };
 }  // namespace cntgs
@@ -3469,7 +3474,7 @@ struct AllocatorOptionParser : std::false_type
 template <class T>
 struct AllocatorOptionParser<cntgs::Allocator<T>> : std::true_type
 {
-    using Allocator = T;
+    using Allocator = typename std::allocator_traits<T>::template rebind_alloc<std::byte>;
 };
 
 template <class... Option>
@@ -3514,8 +3519,10 @@ struct OptionsParser
 namespace cntgs
 {
 /// Alias template for [cntgs::BasicContiguousVector]() that uses [std::allocator]()
+// begin-snippet: contiguous-vector-definition
 template <class... Parameter>
 using ContiguousVector = cntgs::BasicContiguousVector<cntgs::Options<>, Parameter...>;
+// end-snippet
 
 /// Container that stores the value of each specified parameter contiguously.
 ///
@@ -3536,7 +3543,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Parameter...>;
     using ElementTraits = detail::ElementTraitsT<Parameter...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
-    using StorageType = detail::AllocatorAwarePointer<typename AllocatorTraits::template rebind_alloc<std::byte>>;
+    using StorageType = detail::AllocatorAwarePointer<Allocator>;
     using FixedSizes = typename ListTraits::FixedSizes;
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
 
@@ -3591,7 +3598,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
-    explicit constexpr BasicContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
+    constexpr explicit BasicContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator_type{})
     {
     }
