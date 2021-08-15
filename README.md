@@ -62,12 +62,6 @@ template <class... Parameter>
 using ContiguousVector = cntgs::BasicContiguousVector<cntgs::Options<>, Parameter...>;
 ```
 <sup><a href='/src/cntgs.hpp#L3522-L3525' title='Snippet source file'>snippet source</a> | <a href='#snippet-contiguous-vector-definition' title='Start of snippet'>anchor</a></sup>
-<a id='snippet-contiguous-vector-definition-1'></a>
-```hpp
-template <class... Parameter>
-using ContiguousVector = cntgs::BasicContiguousVector<cntgs::Options<>, Parameter...>;
-```
-<sup><a href='/src/cntgs/vector.hpp#L35-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-contiguous-vector-definition-1' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Each parameter must be a built-in or user-deinfed type, optionally wrapped into a parameter decorator. The vector stores objects of those types within one element in the order they are specified.

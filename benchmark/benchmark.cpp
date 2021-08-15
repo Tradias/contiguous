@@ -71,10 +71,9 @@ auto iterate(const cntgs::ContiguousVector<T...>& vector, size_t)
     }
 }
 
-template <class... T>
-auto iterate(const std::vector<T...>& vector, size_t)
+static auto iterate(const VectorVector& vector, size_t)
 {
-    for (auto&& elem : vector)
+    for (auto&& elem : vector.vector)
     {
         for (auto&& e : elem)
         {
@@ -193,108 +192,41 @@ auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_s
                       std::move(varying_size_vector)};
 }
 
-// template <std::size_t N>
-// void full_iteration(std::size_t elements, std::size_t fixed_size)
-// {
-//     auto [array_vector, vector_vector, fixed_size_vector, varying_size_vector] =
-//         make_single_element_input_vectors<N>(elements, fixed_size);
-//     ankerl::nanobench::Bench().run(
-//         format("full_iteration: std::array<float, {}> elements: {} fixed_size: {}", N, elements, fixed_size),
-//         iterate(array_vector, fixed_size));
-//     ankerl::nanobench::Bench().run(
-//         format("full_iteration: std::pmr::vector<std::pmr::vector<float>> elements: {} fixed_size: {}", elements,
-//                fixed_size),
-//         iterate(vector_vector.vector, fixed_size));
-//     ankerl::nanobench::Bench().run(
-//         format("full_iteration: ContiguousVector<FixedSize<float>> elements: {} fixed_size: {}", elements,
-//         fixed_size), iterate(fixed_size_vector, fixed_size));
-//     ankerl::nanobench::Bench().run(
-//         format("full_iteration: ContiguousVector<VaryingSize<float>> elements: {} fixed_size: {}", elements,
-//                fixed_size),
-//         iterate(varying_size_vector, fixed_size));
-// }
+auto make_varying_size_input_vectors(std::size_t elements, std::size_t variance)
+{
+    std::uniform_int_distribution<std::size_t> size_t_dist(0, variance);
+    std::vector<std::vector<float>> input{elements};
+    size_t total_size = 0;
+    for (auto&& v : input)
+    {
+        auto size = size_t_dist(gen);
+        v.resize(size);
+        total_size += v.size();
+        std::generate(v.begin(), v.end(),
+                      [&]
+                      {
+                          return float_dist(gen);
+                      });
+    }
+    VectorVector vector_vector{elements, total_size};
+    fill_vector(vector_vector, input);
+    VaryingSizeVector varying_size_vector{input.size(), total_size * sizeof(float)};
+    fill_vector(varying_size_vector, input);
+    return std::tuple{std::move(vector_vector), std::move(varying_size_vector)};
+}
 
-// template <std::size_t N>
-// void random_lookup(std::size_t elements, std::size_t fixed_size)
-// {
-//     auto [array_vector, vector_vector, fixed_size_vector, varying_size_vector] =
-//         make_single_element_input_vectors<N>(elements, fixed_size);
-//     std::uniform_int_distribution<size_t> size_t_dist(0, elements - 1);
-//     std::vector<size_t> indices(1000000);
-//     std::generate(indices.begin(), indices.end(),
-//                   [&]
-//                   {
-//                       return size_t_dist(gen);
-//                   });
-//     ankerl::nanobench::Bench().run(
-//         format("random_lookup: std::vector<std::array<float, {}>> elements: {} fixed_size: {}", N, elements,
-//                fixed_size),
-//         random_lookup(array_vector, indices));
-//     ankerl::nanobench::Bench().run(
-//         format("random_lookup: std::pmr::vector<std::pmr::vector<float>> elements: {} fixed_size: {}", elements,
-//                fixed_size),
-//         random_lookup(vector_vector, indices));
-//     ankerl::nanobench::Bench().run(
-//         format("random_lookup: ContiguousVector<FixedSize<float>> elements: {} fixed_size: {}", elements,
-//         fixed_size), random_lookup(fixed_size_vector, indices));
-//     ankerl::nanobench::Bench().run(
-//         format("random_lookup: ContiguousVector<VaryingSize<float>> elements: {} fixed_size: {}", elements,
-//         fixed_size), random_lookup(fixed_size_vector, indices));
-// }
-
-// auto make_varying_size_input_vectors(std::size_t elements, uint32_t variance)
-// {
-//     std::uniform_int_distribution<uint32_t> int_dist(0, variance);
-//     std::vector<std::vector<float>> input{elements};
-//     size_t total_size = 0;
-//     for (auto&& v : input)
-//     {
-//         auto size = int_dist(gen);
-//         v.resize(size);
-//         total_size += v.size();
-//         std::generate(v.begin(), v.end(),
-//                       [&]
-//                       {
-//                           return float_dist(gen);
-//                       });
-//     }
-//     VectorVector vector_vector{elements, total_size};
-//     fill_vector(vector_vector, input);
-//     VaryingSizeVector varying_size_vector{input.size(), total_size * sizeof(float)};
-//     fill_vector(varying_size_vector, input);
-//     return std::tuple{std::move(vector_vector), std::move(varying_size_vector)};
-// }
-
-// void full_iteration_varying(std::size_t elements, std::uint32_t variance)
-// {
-//     auto [vector_vector, varying_size_vector] = make_varying_size_input_vectors(elements, variance);
-//     ankerl::nanobench::Bench().run(
-//         format("full_iteration: std::pmr::vector<std::pmr::vector<float>> elements: {} variance: 0-{}", elements,
-//                variance),
-//         iterate(vector_vector.vector, {}));
-//     ankerl::nanobench::Bench().run(
-//         format("full_iteration: ContiguousVector<VaryingSize<float>> elements: {} variance: 0-{}", elements,
-//         variance), iterate(varying_size_vector, {}));
-// }
-
-// void random_lookup_varying(std::size_t elements, std::uint32_t variance)
-// {
-//     auto [vector_vector, varying_size_vector] = make_varying_size_input_vectors(elements, variance);
-//     std::uniform_int_distribution<size_t> size_t_dist(0, elements - 1);
-//     std::vector<size_t> indices(1000000);
-//     std::generate(indices.begin(), indices.end(),
-//                   [&]
-//                   {
-//                       return size_t_dist(gen);
-//                   });
-//     ankerl::nanobench::Bench().run(
-//         format("random_lookup: std::pmr::vector<std::pmr::vector<float>> elements: {} variance: 0-{}", elements,
-//                variance),
-//         random_lookup(vector_vector, indices));
-//     ankerl::nanobench::Bench().run(
-//         format("random_lookup: ContiguousVector<VaryingSize<float>> elements: {} variance: 0-{}", elements,
-//         variance), random_lookup(varying_size_vector, indices));
-// }
+auto make_indices(std::size_t size)
+{
+    std::vector<size_t> indices;
+    indices.resize(1000000);
+    std::uniform_int_distribution<size_t> size_t_dist(0, size - 1);
+    std::generate(indices.begin(), indices.end(),
+                  [&]
+                  {
+                      return size_t_dist(gen);
+                  });
+    return indices;
+}
 
 // template <std::size_t N, std::size_t K>
 // void full_iteration_two(std::size_t elements, std::size_t fixed_size)
@@ -477,6 +409,8 @@ auto make_single_element_input_vectors(std::size_t elements, std::size_t fixed_s
 //     }
 // }
 
+static std::vector<int64_t> INPUT_SIZES{100000, 250000, 500000};
+
 template <std::size_t I, std::size_t N>
 struct SingleElementInputVectors
 {
@@ -500,68 +434,135 @@ struct SingleElementInputVectors
     }
 };
 
-static std::vector<int64_t> FULL_ITERATION_SIZES{100000, 250000, 500000};
-
-template <std::size_t N>
-static void BM_full_iteration_array(benchmark::State& state)
+template <std::size_t I, std::size_t N>
+static void BM_full_iteration(benchmark::State& state)
 {
-    auto [fixed_size, input] = SingleElementInputVectors<0, N>{state};
+    auto [fixed_size, input] = SingleElementInputVectors<I, N>{state};
     for (auto _ : state)
     {
         iterate(input, fixed_size);
     }
 }
 
-BENCHMARK_TEMPLATE(BM_full_iteration_array, 15)
+BENCHMARK_TEMPLATE(BM_full_iteration, 0, 15)
     ->Name("full_iteration: std::array<float, 15>")
-    ->ArgsProduct({FULL_ITERATION_SIZES, {15}});
+    ->ArgsProduct({INPUT_SIZES, {15}});
 
-BENCHMARK_TEMPLATE(BM_full_iteration_array, 30)
+BENCHMARK_TEMPLATE(BM_full_iteration, 0, 30)
     ->Name("full_iteration: std::array<float, 30>")
-    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30}});
+    ->ArgsProduct({INPUT_SIZES, {15, 30}});
 
-BENCHMARK_TEMPLATE(BM_full_iteration_array, 45)
+BENCHMARK_TEMPLATE(BM_full_iteration, 0, 45)
     ->Name("full_iteration: std::array<float, 45>")
-    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30, 45}});
+    ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
 
-static void BM_full_iteration_pmr_vector(benchmark::State& state)
-{
-    auto [fixed_size, input] = SingleElementInputVectors<1, 45>{state};
-    for (auto _ : state)
-    {
-        iterate(input.vector, fixed_size);
-    }
-}
-
-BENCHMARK(BM_full_iteration_pmr_vector)
+BENCHMARK_TEMPLATE(BM_full_iteration, 1, 45)
     ->Name("full_iteration: std::pmr::vector<std::pmr::vector<float>>")
-    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30, 45}});
+    ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
 
-static void BM_full_iteration_fixed_size(benchmark::State& state)
-{
-    auto [fixed_size, input] = SingleElementInputVectors<2, 45>{state};
-    for (auto _ : state)
-    {
-        iterate(input, fixed_size);
-    }
-}
-
-BENCHMARK(BM_full_iteration_fixed_size)
+BENCHMARK_TEMPLATE(BM_full_iteration, 2, 24)
     ->Name("full_iteration: ContiguousVector<FixedSize<float>>")
-    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30, 45}});
+    ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
 
-static void BM_full_iteration_varying_size(benchmark::State& state)
+BENCHMARK_TEMPLATE(BM_full_iteration, 3, 24)
+    ->Name("full_iteration: ContiguousVector<VaryingSize<float>>")
+    ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
+
+template <std::size_t I, std::size_t N>
+static void BM_random_lookup(benchmark::State& state)
 {
-    auto [fixed_size, input] = SingleElementInputVectors<3, 45>{state};
+    auto [fixed_size, input] = SingleElementInputVectors<I, N>{state};
+    auto indices = make_indices(state.range(0));
     for (auto _ : state)
     {
-        iterate(input, fixed_size);
+        random_lookup(input, indices);
     }
 }
 
-BENCHMARK(BM_full_iteration_varying_size)
-    ->Name("full_iteration: ContiguousVector<VaryingSize<float>>")
-    ->ArgsProduct({FULL_ITERATION_SIZES, {15, 30, 45}});
+BENCHMARK_TEMPLATE(BM_random_lookup, 0, 15)
+    ->Name("random_lookup: std::array<float, 15>")
+    ->ArgsProduct({INPUT_SIZES, {15}});
+
+BENCHMARK_TEMPLATE(BM_random_lookup, 0, 30)
+    ->Name("random_lookup: std::array<float, 30>")
+    ->ArgsProduct({INPUT_SIZES, {15, 30}});
+
+BENCHMARK_TEMPLATE(BM_random_lookup, 0, 45)
+    ->Name("random_lookup: std::array<float, 45>")
+    ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
+
+BENCHMARK_TEMPLATE(BM_random_lookup, 1, 45)
+    ->Name("random_lookup: std::pmr::vector<std::pmr::vector<float>>")
+    ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
+
+BENCHMARK_TEMPLATE(BM_random_lookup, 2, 45)
+    ->Name("random_lookup: ContiguousVector<FixedSize<float>>")
+    ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
+
+BENCHMARK_TEMPLATE(BM_random_lookup, 3, 45)
+    ->Name("random_lookup: ContiguousVector<VaryingSize<float>>")
+    ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
+
+template <std::size_t I>
+struct VaryingSizeInputVectors
+{
+    using Input =
+        std::remove_reference_t<decltype(std::get<I>(make_varying_size_input_vectors(std::size_t{}, std::size_t{})))>;
+
+    Input input;
+
+    VaryingSizeInputVectors(benchmark::State& state)
+        : input(
+              [&]
+              {
+                  gen.seed();
+                  return std::get<I>(make_varying_size_input_vectors(state.range(0), state.range(1)));
+              }())
+    {
+        state.counters["elements"] = static_cast<double>(state.range(0));
+        state.counters["variance"] = static_cast<double>(state.range(1));
+    }
+};
+
+static std::vector<int64_t> VARYING_ITERATION_INPUT_SIZES{50000, 100000, 250000};
+static std::vector<int64_t> VARYING_ITERATION_VARIANCES{10, 100, 1000};
+
+template <std::size_t I>
+static void BM_full_varying_iteration(benchmark::State& state)
+{
+    auto [input] = VaryingSizeInputVectors<0>{state};
+    for (auto _ : state)
+    {
+        iterate(input, {});
+    }
+}
+
+BENCHMARK_TEMPLATE(BM_full_varying_iteration, 0)
+    ->Name("full_varying_iteration: std::pmr::vector<std::pmr::vector<float>>")
+    ->ArgsProduct({VARYING_ITERATION_INPUT_SIZES, VARYING_ITERATION_VARIANCES});
+
+BENCHMARK_TEMPLATE(BM_full_varying_iteration, 1)
+    ->Name("full_varying_iteration: ContiguousVector<VaryingSize<float>>")
+    ->ArgsProduct({VARYING_ITERATION_INPUT_SIZES, VARYING_ITERATION_VARIANCES});
+
+template <std::size_t I>
+static void BM_random_varying_lookup(benchmark::State& state)
+{
+    auto [input] = VaryingSizeInputVectors<0>{state};
+    auto indices = make_indices(state.range(0));
+    for (auto _ : state)
+    {
+        random_lookup(input, indices);
+    }
+}
+
+BENCHMARK_TEMPLATE(BM_random_varying_lookup, 0)
+    ->Name("random_varying_lookup: std::pmr::vector<std::pmr::vector<float>>")
+    ->ArgsProduct({VARYING_ITERATION_INPUT_SIZES, VARYING_ITERATION_VARIANCES});
+
+BENCHMARK_TEMPLATE(BM_random_varying_lookup, 1)
+    ->Name("random_varying_lookup: ContiguousVector<VaryingSize<float>>")
+    ->ArgsProduct({VARYING_ITERATION_INPUT_SIZES, VARYING_ITERATION_VARIANCES});
 
 // int main()
 // {
