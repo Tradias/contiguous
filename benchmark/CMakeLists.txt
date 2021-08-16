@@ -3,10 +3,21 @@ find_package(benchmark)
 function(cntgs_add_benchmark _name)
     add_executable(${_name})
 
-    target_sources(${_name} PRIVATE main.cpp benchmark.cpp)
+    target_sources(
+        ${_name}
+        PRIVATE main.cpp
+                benchmark.cpp
+                nearestNeighbor/benchmark.cpp
+                nearestNeighbor/distance.hpp
+                nearestNeighbor/graph.hpp
+                nearestNeighbor/load.hpp
+                nearestNeighbor/repository.hpp
+                nearestNeighbor/search.hpp)
 
     target_compile_options(${_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
                                             -Wextra -pedantic-errors>)
+
+    target_compile_definitions(${_name} PRIVATE "CNTGS_BENCHMARK_GRAPH_DATA_DIR=\"${CNTGS_BENCHMARK_GRAPH_DATA_DIR}\"")
 
     target_link_libraries(${_name} PRIVATE cntgs cntgs-test-utils benchmark::benchmark)
 
