@@ -75,12 +75,12 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr reference operator*() noexcept
     {
-        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
+        return reference{this->locator->load_element_at(i, this->memory, this->locator.fixed_sizes())};
     }
 
     [[nodiscard]] constexpr reference operator*() const noexcept
     {
-        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
+        return reference{this->locator->load_element_at(i, this->memory, this->locator.fixed_sizes())};
     }
 
     [[nodiscard]] constexpr pointer operator->() const noexcept { return {*(*this)}; }

@@ -1088,14 +1088,14 @@ constexpr auto get(const detail::Array<T, 0>&) noexcept
     return T{};
 }
 
-template <std::size_t N, class T, std::size_t K, std::size_t... I>
-constexpr auto convert_array_to_size(const detail::Array<T, K>& array, std::index_sequence<I...>)
+template <std::size_t N, template <class, std::size_t> class ArrayLike, class T, std::size_t K, std::size_t... I>
+constexpr auto convert_array_to_size(const ArrayLike<T, K>& array, std::index_sequence<I...>)
 {
-    return detail::Array<T, N>{detail::get<I>(array)...};
+    return ArrayLike<T, N>{get<I>(array)...};
 }
 
-template <std::size_t N, class T, std::size_t K>
-constexpr auto convert_array_to_size(const detail::Array<T, K>& array)
+template <std::size_t N, template <class, std::size_t> class ArrayLike, class T, std::size_t K>
+constexpr auto convert_array_to_size(const ArrayLike<T, K>& array)
 {
     return detail::convert_array_to_size<N>(array, std::make_index_sequence<std::min(N, K)>{});
 }
@@ -1230,6 +1230,13 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         address = detail::align_if<NeedsAlignment, ALIGNMENT>(address);
         auto result = std::launder(reinterpret_cast<PointerType>(address));
         return std::pair{result, address + VALUE_BYTES};
+    }
+
+    static auto load_(std::byte* address, std::size_t) noexcept
+    {
+        address = detail::assume_aligned<ALIGNMENT>(address);
+        auto result = std::launder(reinterpret_cast<PointerType>(address));
+        return result;
     }
 
     template <bool NeedsAlignment, bool, class Arg>
@@ -1476,6 +1483,13 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
             std::launder(reinterpret_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
         const auto last = first + size;
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
+    }
+
+    static auto load_(std::byte* address, std::size_t size) noexcept
+    {
+        const auto first = std::launder(reinterpret_cast<IteratorType>(detail::assume_aligned<ALIGNMENT>(address)));
+        const auto last = first + size;
+        return PointerType{first, last};
     }
 
     template <bool NeedsAlignment, bool IgnoreAliasing, class RangeOrIterator>
@@ -1816,6 +1830,7 @@ struct ContiguousVectorTraits
 #include <array>
 #include <cstddef>
 #include <limits>
+#include <numeric>
 #include <type_traits>
 
 namespace cntgs::detail
@@ -1859,7 +1874,6 @@ template <std::size_t... I, class... Parameter>
 class ElementTraits<std::index_sequence<I...>, Parameter...>
 {
   private:
-    using Self = ElementTraits<std::index_sequence<I...>, Parameter...>;
     using ListTraits = detail::ParameterListTraits<Parameter...>;
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
     using ContiguousPointer = typename detail::ContiguousVectorTraits<Parameter...>::PointerType;
@@ -1934,18 +1948,18 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address,
                                                        const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        return Self::template emplace_at<true>(address, fixed_sizes, std::forward<Args>(args)...);
+        return ElementTraits::template emplace_at<true>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
     template <class... Args>
     static std::byte* emplace_at_aliased(std::byte* CNTGS_RESTRICT address, const FixedSizesArray& fixed_sizes,
                                          Args&&... args)
     {
-        return Self::template emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
+        return ElementTraits::template emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    template <class AlignmentNeedsType = AlignmentNeeds, class FixedSizeGetterType = FixedSizeGetter,
-              class FixedSizesType = FixedSizesArray>
+    template <class AlignmentNeedsType = ElementTraits::AlignmentNeeds,
+              class FixedSizeGetterType = ElementTraits::FixedSizeGetter, class FixedSizesType>
     static auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
         ContiguousPointer result;
@@ -1956,7 +1970,44 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         return result;
     }
 
-    static constexpr auto calculate_element_size(const FixedSizesArray& fixed_sizes) noexcept
+    template <std::size_t K>
+    static constexpr auto get([[maybe_unused]] const std::array<std::size_t, sizeof...(I)>& fixed_sizes) noexcept
+    {
+        if constexpr (0 == K)
+        {
+            return std::size_t{};
+        }
+        else
+        {
+            return std::get<K - 1>(fixed_sizes);
+        }
+    }
+
+    static constexpr auto calculate_offsets(const FixedSizesArray& fixed_sizes) noexcept
+    {
+        std::array<std::size_t, sizeof...(I)> result{};
+        if constexpr (ListTraits::IS_FIXED_SIZE_OR_PLAIN)
+        {
+            ((std::get<I>(result) = detail::ParameterTraits<Parameter>::guaranteed_size_in_memory(
+                                        FixedSizeGetter::template get<Parameter, I>(fixed_sizes)) +
+                                    ElementTraits::get<I>(result) +
+                                    detail::alignment_offset<detail::ParameterTraits<Parameter>::ALIGNMENT>(
+                                        ElementTraits::get<I>(result))),
+             ...);
+        }
+        else
+        {
+            ((std::get<I>(result) = detail::ParameterTraits<Parameter>::aligned_size_in_memory(
+                                        FixedSizeGetter::template get<Parameter, I>(fixed_sizes)) +
+                                    ElementTraits::get<I>(result) +
+                                    detail::alignment_offset<detail::ParameterTraits<Parameter>::ALIGNMENT>(
+                                        ElementTraits::get<I>(result))),
+             ...);
+        }
+        return result;
+    }
+
+    static constexpr auto calculate_element_size2(const FixedSizesArray& fixed_sizes) noexcept
     {
         std::size_t result{};
         if constexpr (ListTraits::IS_FIXED_SIZE_OR_PLAIN)
@@ -1974,6 +2025,14 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
              ...);
         }
         return result + detail::alignment_offset<ParameterTraitsAt<0>::ALIGNMENT>(result);
+    }
+
+    static constexpr auto calculate_element_size(const FixedSizesArray& fixed_sizes) noexcept
+    {
+        const auto last_offset = ElementTraits::calculate_offsets(fixed_sizes).back();
+        const auto result = last_offset + detail::alignment_offset<ParameterTraitsAt<0>::ALIGNMENT>(last_offset);
+        auto a = calculate_element_size2(fixed_sizes);
+        return result;
     }
 
     template <bool UseMove, bool IsConst>
@@ -2002,7 +2061,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         else if constexpr (INDEX != SKIP)
         {
             const auto [source_start, source_end, target_start] =
-                Self::template get_data_begin_and_end<K, INDEX>(source, target);
+                ElementTraits::template get_data_begin_and_end<K, INDEX>(source, target);
             std::memmove(target_start, source_start, source_end - source_start);
         }
     }
@@ -2011,7 +2070,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static void assign(const cntgs::BasicContiguousReference<IsLhsConst, Parameter...>& source,
                        const ContiguousReference& target)
     {
-        (Self::template assign_one<UseMove, I>(source, target), ...);
+        (ElementTraits::template assign_one<UseMove, I>(source, target), ...);
     }
 
     template <std::size_t K>
@@ -2024,14 +2083,15 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
+            const auto [lhs_start, lhs_end, rhs_start] =
+                ElementTraits::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
             detail::trivial_swap_ranges(lhs_start, lhs_end, rhs_start);
         }
     }
 
     static void swap(const ContiguousReference& lhs, const ContiguousReference& rhs)
     {
-        (Self::template swap_one<I>(lhs, rhs), ...);
+        (ElementTraits::template swap_one<I>(lhs, rhs), ...);
     }
 
     template <std::size_t K, bool IsLhsConst, bool IsRhsConst>
@@ -2045,7 +2105,8 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
+            const auto [lhs_start, lhs_end, rhs_start] =
+                ElementTraits::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
             const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(cntgs::get<INDEX>(rhs));
             return detail::trivial_equal(lhs_start, lhs_end, rhs_start, rhs_end);
         }
@@ -2059,7 +2120,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static constexpr auto equal(const cntgs::BasicContiguousReference<IsLhsConst, Parameter...>& lhs,
                                 const cntgs::BasicContiguousReference<IsRhsConst, Parameter...>& rhs)
     {
-        return (Self::template equal_one<I>(lhs, rhs) && ...);
+        return (ElementTraits::template equal_one<I>(lhs, rhs) && ...);
     }
 
     template <std::size_t K, bool IsLhsConst, bool IsRhsConst>
@@ -2074,7 +2135,8 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
+            const auto [lhs_start, lhs_end, rhs_start] =
+                ElementTraits::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
             const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(cntgs::get<INDEX>(rhs));
             return detail::trivial_lexicographical_compare(lhs_start, lhs_end, rhs_start, rhs_end);
         }
@@ -2088,7 +2150,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static constexpr auto lexicographical_compare(const cntgs::BasicContiguousReference<IsLhsConst, Parameter...>& lhs,
                                                   const cntgs::BasicContiguousReference<IsRhsConst, Parameter...>& rhs)
     {
-        return (Self::template lexicographical_compare_one<I>(lhs, rhs) && ...);
+        return (ElementTraits::template lexicographical_compare_one<I>(lhs, rhs) && ...);
     }
 
     static void destruct(const ContiguousReference& reference) noexcept
@@ -2348,12 +2410,6 @@ class BasicContiguousReference
 
     template <bool, class, class...>
     friend class ContiguousVectorIterator;
-
-    constexpr explicit BasicContiguousReference(std::byte* CNTGS_RESTRICT address,
-                                                const typename ListTraits::FixedSizesArray& fixed_sizes = {}) noexcept
-        : BasicContiguousReference(ElementTraits::load_element_at(address, fixed_sizes))
-    {
-    }
 
     constexpr explicit BasicContiguousReference(const PointerTuple& tuple) noexcept : tuple(tuple) {}
 
@@ -2834,9 +2890,15 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Parameter...>>
 
 // #include "cntgs/detail/parameterListTraits.hpp"
 
+// #include "cntgs/detail/parameterTraits.hpp"
+
+// #include "cntgs/detail/sizeGetter.hpp"
+
 // #include "cntgs/detail/typeTraits.hpp"
 
 // #include "cntgs/detail/utility.hpp"
+
+// #include "cntgs/detail/vectorTraits.hpp"
 
 
 #include <algorithm>
@@ -2952,6 +3014,14 @@ class ElementLocator : public BaseElementLocator
             ElementTraits::emplace_at_aliased(element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
     }
 
+    template <class AlignmentNeedsType = detail::DefaultAlignmentNeeds,
+              class FixedSizeGetterType = detail::FixedSizeGetter<Parameter...>, class FixedSizesType = FixedSizesArray>
+    static auto load_element_at(std::size_t index, std::byte* memory_begin, const FixedSizesType& fixed_sizes) noexcept
+    {
+        return ElementTraits::template load_element_at<AlignmentNeedsType, FixedSizeGetterType>(
+            ElementLocator::element_address(index, memory_begin), fixed_sizes);
+    }
+
     void trivially_copy_into(std::size_t old_max_element_count, std::byte* CNTGS_RESTRICT old_memory_begin,
                              std::size_t new_max_element_count, std::byte* CNTGS_RESTRICT new_memory_begin) noexcept
     {
@@ -3046,6 +3116,10 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
   private:
     using ElementTraits = detail::ElementTraitsT<Parameter...>;
     using FixedSizesArray = typename detail::ParameterListTraits<Parameter...>::FixedSizesArray;
+    using ContiguousPointer = typename detail::ContiguousVectorTraits<Parameter...>::PointerType;
+    using OffsetArray = std::array<std::size_t, sizeof...(Parameter) - 1>;
+
+    OffsetArray offsets{};
 
   public:
     ElementLocator() = default;
@@ -3054,12 +3128,15 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
         : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_size(fixed_sizes),
                                          ElementLocator::calculate_element_start(memory_begin))
     {
+        this->offsets =
+            detail::convert_array_to_size<sizeof...(Parameter) - 1>(ElementTraits::calculate_offsets(fixed_sizes));
     }
 
     ElementLocator(ElementLocator& old_locator, std::size_t, const std::byte*, std::size_t,
                    std::byte* new_memory_begin) noexcept
         : BaseAllFixedSizeElementLocator(old_locator.element_count, old_locator.stride, {})
     {
+        this->offsets = old_locator.offsets;
         this->trivially_copy_into(old_locator, new_memory_begin);
     }
 
@@ -3077,6 +3154,14 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
         ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
     }
 
+    template <class AlignmentNeedsType = detail::DefaultAlignmentNeeds,
+              class FixedSizeGetterType = detail::FixedSizeGetter<Parameter...>, class FixedSizesType = FixedSizesArray>
+    auto load_element_at(std::size_t index, const std::byte*, const FixedSizesType& fixed_sizes) const noexcept
+    {
+        return ElementLocator::template load_element_at<FixedSizeGetterType>(
+            this->element_address(index, {}), fixed_sizes, std::make_index_sequence<sizeof...(Parameter)>{});
+    }
+
     void trivially_copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
     {
         this->trivially_copy_into(*this, new_memory_begin);
@@ -3091,6 +3176,40 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
     }
 
   private:
+    template <class FixedSizeGetterType, class FixedSizesType, std::size_t... I>
+    auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes,
+                         std::index_sequence<I...>) const noexcept
+    {
+        ContiguousPointer result;
+        ((std::tie(std::get<I>(result), std::ignore) = detail::ParameterTraits<Parameter>::template load<
+              false, FixedSizeGetterType::template CAN_PROVIDE_SIZE<Parameter>>(
+              address + ElementLocator::get<I>(this->offsets),
+              FixedSizeGetterType::template get<Parameter, I>(fixed_sizes))),
+         ...);
+        return result;
+    }
+
+    template <std::size_t I>
+    static constexpr auto get([[maybe_unused]] const OffsetArray& array) noexcept
+    {
+        if constexpr (0 == I)
+        {
+            return std::size_t{};
+        }
+        else
+        {
+            return std::get<I - 1>(array);
+        }
+    }
+
+    //     template <class FixedSizeGetterType, class FixedSizesType, std::size_t... I>
+    // auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes,
+    //                      std::index_sequence<I...>) const noexcept
+    // {
+    //     return ContiguousPointer{detail::ParameterTraits<Parameter>::load_(
+    //         address + std::get<I>(this->offsets), FixedSizeGetterType::template get<Parameter, I>(fixed_sizes))...};
+    // }
+
     void trivially_copy_into(const ElementLocator& old_locator, std::byte* new_memory_begin) noexcept
     {
         const auto new_start = ElementLocator::calculate_element_start(new_memory_begin);
@@ -3148,9 +3267,9 @@ class ElementLocatorAndFixedSizes
     constexpr const auto& fixed_sizes() const noexcept { return Base::get(); }
 };
 
-using TypeErasedElementLocator =
-    std::aligned_storage_t<std::max(sizeof(detail::ElementLocator<false>), sizeof(detail::ElementLocator<true>)),
-                           std::max(alignof(detail::ElementLocator<false>), alignof(detail::ElementLocator<true>))>;
+using TypeErasedElementLocator = std::aligned_storage_t<
+    std::max(sizeof(detail::ElementLocator<false, bool>), sizeof(detail::ElementLocator<true, bool>)),
+    std::max(alignof(detail::ElementLocator<false, bool>), alignof(detail::ElementLocator<true, bool>))>;
 
 template <class T>
 auto type_erase_element_locator(T&& locator) noexcept
@@ -3234,12 +3353,12 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr reference operator*() noexcept
     {
-        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
+        return reference{this->locator->load_element_at(i, this->memory, this->locator.fixed_sizes())};
     }
 
     [[nodiscard]] constexpr reference operator*() const noexcept
     {
-        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
+        return reference{this->locator->load_element_at(i, this->memory, this->locator.fixed_sizes())};
     }
 
     [[nodiscard]] constexpr pointer operator->() const noexcept { return {*(*this)}; }
@@ -3706,12 +3825,12 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     [[nodiscard]] reference operator[](size_type i) noexcept
     {
-        return reference{this->locator->element_address(i, this->memory.get()), this->locator.fixed_sizes()};
+        return reference{this->locator->load_element_at(i, this->memory.get(), this->locator.fixed_sizes())};
     }
 
     [[nodiscard]] const_reference operator[](size_type i) const noexcept
     {
-        return const_reference{this->locator->element_address(i, this->memory.get()), this->locator.fixed_sizes()};
+        return const_reference{this->locator->load_element_at(i, this->memory.get(), this->locator.fixed_sizes())};
     }
 
     [[nodiscard]] reference front() noexcept { return (*this)[{}]; }
@@ -3889,9 +4008,9 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
             for (size_type i{}; i < self.size(); ++i)
             {
                 auto&& source = self[i];
-                auto&& target = ElementTraits::template load_element_at<detail::DefaultAlignmentNeeds,
-                                                                        detail::ContiguousReferenceSizeGetter>(
-                    new_locator.element_address(i, new_memory), source);
+                auto&& target =
+                    new_locator.load_element_at<detail::DefaultAlignmentNeeds, detail::ContiguousReferenceSizeGetter>(
+                        i, new_memory, source);
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }

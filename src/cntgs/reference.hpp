@@ -224,12 +224,6 @@ class BasicContiguousReference
     template <bool, class, class...>
     friend class ContiguousVectorIterator;
 
-    constexpr explicit BasicContiguousReference(std::byte* CNTGS_RESTRICT address,
-                                                const typename ListTraits::FixedSizesArray& fixed_sizes = {}) noexcept
-        : BasicContiguousReference(ElementTraits::load_element_at(address, fixed_sizes))
-    {
-    }
-
     constexpr explicit BasicContiguousReference(const PointerTuple& tuple) noexcept : tuple(tuple) {}
 
     template <class Reference>

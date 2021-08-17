@@ -40,13 +40,13 @@ void check_code_gen_sizes(const std::string& reference, const std::string& conti
 #ifndef __clang__
 TEST_CASE("CodeGenTest: two FixedSize lookup and accumulate")
 {
-    check_code_gen_sizes("reference_two_fixed_lookup_and_accumulate", "contiguous_two_fixed_lookup_and_accumulate");
+    check_code_gen_sizes("reference_two_fixed_lookup_and_accumulate", "contiguous_two_fixed_lookup_and_accumulate", 1);
 }
 
 TEST_CASE("CodeGenTest: two FixedSize aligned lookup and accumulate")
 {
     check_code_gen_sizes("reference_two_fixed_aligned_lookup_and_accumulate",
-                         "contiguous_two_fixed_aligned_lookup_and_accumulate");
+                         "contiguous_two_fixed_aligned_lookup_and_accumulate", 1);
 }
 #endif
 

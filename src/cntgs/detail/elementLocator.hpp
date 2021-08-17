@@ -10,8 +10,11 @@
 #include "cntgs/detail/elementTraits.hpp"
 #include "cntgs/detail/memory.hpp"
 #include "cntgs/detail/parameterListTraits.hpp"
+#include "cntgs/detail/parameterTraits.hpp"
+#include "cntgs/detail/sizeGetter.hpp"
 #include "cntgs/detail/typeTraits.hpp"
 #include "cntgs/detail/utility.hpp"
+#include "cntgs/detail/vectorTraits.hpp"
 
 #include <algorithm>
 #include <array>
@@ -126,6 +129,14 @@ class ElementLocator : public BaseElementLocator
             ElementTraits::emplace_at_aliased(element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
     }
 
+    template <class AlignmentNeedsType = detail::DefaultAlignmentNeeds,
+              class FixedSizeGetterType = detail::FixedSizeGetter<Parameter...>, class FixedSizesType = FixedSizesArray>
+    static auto load_element_at(std::size_t index, std::byte* memory_begin, const FixedSizesType& fixed_sizes) noexcept
+    {
+        return ElementTraits::template load_element_at<AlignmentNeedsType, FixedSizeGetterType>(
+            ElementLocator::element_address(index, memory_begin), fixed_sizes);
+    }
+
     void trivially_copy_into(std::size_t old_max_element_count, std::byte* CNTGS_RESTRICT old_memory_begin,
                              std::size_t new_max_element_count, std::byte* CNTGS_RESTRICT new_memory_begin) noexcept
     {
@@ -220,6 +231,10 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
   private:
     using ElementTraits = detail::ElementTraitsT<Parameter...>;
     using FixedSizesArray = typename detail::ParameterListTraits<Parameter...>::FixedSizesArray;
+    using ContiguousPointer = typename detail::ContiguousVectorTraits<Parameter...>::PointerType;
+    using OffsetArray = std::array<std::size_t, sizeof...(Parameter) - 1>;
+
+    OffsetArray offsets{};
 
   public:
     ElementLocator() = default;
@@ -228,12 +243,15 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
         : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_size(fixed_sizes),
                                          ElementLocator::calculate_element_start(memory_begin))
     {
+        this->offsets =
+            detail::convert_array_to_size<sizeof...(Parameter) - 1>(ElementTraits::calculate_offsets(fixed_sizes));
     }
 
     ElementLocator(ElementLocator& old_locator, std::size_t, const std::byte*, std::size_t,
                    std::byte* new_memory_begin) noexcept
         : BaseAllFixedSizeElementLocator(old_locator.element_count, old_locator.stride, {})
     {
+        this->offsets = old_locator.offsets;
         this->trivially_copy_into(old_locator, new_memory_begin);
     }
 
@@ -251,6 +269,14 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
         ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
     }
 
+    template <class AlignmentNeedsType = detail::DefaultAlignmentNeeds,
+              class FixedSizeGetterType = detail::FixedSizeGetter<Parameter...>, class FixedSizesType = FixedSizesArray>
+    auto load_element_at(std::size_t index, const std::byte*, const FixedSizesType& fixed_sizes) const noexcept
+    {
+        return ElementLocator::template load_element_at<FixedSizeGetterType>(
+            this->element_address(index, {}), fixed_sizes, std::make_index_sequence<sizeof...(Parameter)>{});
+    }
+
     void trivially_copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
     {
         this->trivially_copy_into(*this, new_memory_begin);
@@ -265,6 +291,40 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
     }
 
   private:
+    template <class FixedSizeGetterType, class FixedSizesType, std::size_t... I>
+    auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes,
+                         std::index_sequence<I...>) const noexcept
+    {
+        ContiguousPointer result;
+        ((std::tie(std::get<I>(result), std::ignore) = detail::ParameterTraits<Parameter>::template load<
+              false, FixedSizeGetterType::template CAN_PROVIDE_SIZE<Parameter>>(
+              address + ElementLocator::get<I>(this->offsets),
+              FixedSizeGetterType::template get<Parameter, I>(fixed_sizes))),
+         ...);
+        return result;
+    }
+
+    template <std::size_t I>
+    static constexpr auto get([[maybe_unused]] const OffsetArray& array) noexcept
+    {
+        if constexpr (0 == I)
+        {
+            return std::size_t{};
+        }
+        else
+        {
+            return std::get<I - 1>(array);
+        }
+    }
+
+    //     template <class FixedSizeGetterType, class FixedSizesType, std::size_t... I>
+    // auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes,
+    //                      std::index_sequence<I...>) const noexcept
+    // {
+    //     return ContiguousPointer{detail::ParameterTraits<Parameter>::load_(
+    //         address + std::get<I>(this->offsets), FixedSizeGetterType::template get<Parameter, I>(fixed_sizes))...};
+    // }
+
     void trivially_copy_into(const ElementLocator& old_locator, std::byte* new_memory_begin) noexcept
     {
         const auto new_start = ElementLocator::calculate_element_start(new_memory_begin);
@@ -322,9 +382,9 @@ class ElementLocatorAndFixedSizes
     constexpr const auto& fixed_sizes() const noexcept { return Base::get(); }
 };
 
-using TypeErasedElementLocator =
-    std::aligned_storage_t<std::max(sizeof(detail::ElementLocator<false>), sizeof(detail::ElementLocator<true>)),
-                           std::max(alignof(detail::ElementLocator<false>), alignof(detail::ElementLocator<true>))>;
+using TypeErasedElementLocator = std::aligned_storage_t<
+    std::max(sizeof(detail::ElementLocator<false, bool>), sizeof(detail::ElementLocator<true, bool>)),
+    std::max(alignof(detail::ElementLocator<false, bool>), alignof(detail::ElementLocator<true, bool>))>;
 
 template <class T>
 auto type_erase_element_locator(T&& locator) noexcept

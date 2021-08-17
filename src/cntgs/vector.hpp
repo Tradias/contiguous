@@ -219,12 +219,12 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     [[nodiscard]] reference operator[](size_type i) noexcept
     {
-        return reference{this->locator->element_address(i, this->memory.get()), this->locator.fixed_sizes()};
+        return reference{this->locator->load_element_at(i, this->memory.get(), this->locator.fixed_sizes())};
     }
 
     [[nodiscard]] const_reference operator[](size_type i) const noexcept
     {
-        return const_reference{this->locator->element_address(i, this->memory.get()), this->locator.fixed_sizes()};
+        return const_reference{this->locator->load_element_at(i, this->memory.get(), this->locator.fixed_sizes())};
     }
 
     [[nodiscard]] reference front() noexcept { return (*this)[{}]; }
@@ -402,9 +402,9 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
             for (size_type i{}; i < self.size(); ++i)
             {
                 auto&& source = self[i];
-                auto&& target = ElementTraits::template load_element_at<detail::DefaultAlignmentNeeds,
-                                                                        detail::ContiguousReferenceSizeGetter>(
-                    new_locator.element_address(i, new_memory), source);
+                auto&& target =
+                    new_locator.load_element_at<detail::DefaultAlignmentNeeds, detail::ContiguousReferenceSizeGetter>(
+                        i, new_memory, source);
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }

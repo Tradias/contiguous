@@ -38,14 +38,14 @@ constexpr auto get(const detail::Array<T, 0>&) noexcept
     return T{};
 }
 
-template <std::size_t N, class T, std::size_t K, std::size_t... I>
-constexpr auto convert_array_to_size(const detail::Array<T, K>& array, std::index_sequence<I...>)
+template <std::size_t N, template <class, std::size_t> class ArrayLike, class T, std::size_t K, std::size_t... I>
+constexpr auto convert_array_to_size(const ArrayLike<T, K>& array, std::index_sequence<I...>)
 {
-    return detail::Array<T, N>{detail::get<I>(array)...};
+    return ArrayLike<T, N>{get<I>(array)...};
 }
 
-template <std::size_t N, class T, std::size_t K>
-constexpr auto convert_array_to_size(const detail::Array<T, K>& array)
+template <std::size_t N, template <class, std::size_t> class ArrayLike, class T, std::size_t K>
+constexpr auto convert_array_to_size(const ArrayLike<T, K>& array)
 {
     return detail::convert_array_to_size<N>(array, std::make_index_sequence<std::min(N, K)>{});
 }

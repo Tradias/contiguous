@@ -47,6 +47,13 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         return std::pair{result, address + VALUE_BYTES};
     }
 
+    static auto load_(std::byte* address, std::size_t) noexcept
+    {
+        address = detail::assume_aligned<ALIGNMENT>(address);
+        auto result = std::launder(reinterpret_cast<PointerType>(address));
+        return result;
+    }
+
     template <bool NeedsAlignment, bool, class Arg>
     CNTGS_RESTRICT_RETURN static std::byte* store(Arg&& arg, std::byte* CNTGS_RESTRICT address, std::size_t)
     {
@@ -291,6 +298,13 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
             std::launder(reinterpret_cast<IteratorType>(detail::align_if<NeedsAlignment, ALIGNMENT>(address)));
         const auto last = first + size;
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
+    }
+
+    static auto load_(std::byte* address, std::size_t size) noexcept
+    {
+        const auto first = std::launder(reinterpret_cast<IteratorType>(detail::assume_aligned<ALIGNMENT>(address)));
+        const auto last = first + size;
+        return PointerType{first, last};
     }
 
     template <bool NeedsAlignment, bool IgnoreAliasing, class RangeOrIterator>
