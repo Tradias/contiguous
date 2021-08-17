@@ -15,7 +15,9 @@ namespace cntgs::detail
 template <class T>
 struct MoveDefaultingValue
 {
-    T value;
+    T value{};
+
+    MoveDefaultingValue() = default;
 
     constexpr explicit MoveDefaultingValue(T value) noexcept : value(value) {}
 

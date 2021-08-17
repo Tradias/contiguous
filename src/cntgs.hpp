@@ -454,7 +454,9 @@ namespace cntgs::detail
 template <class T>
 struct MoveDefaultingValue
 {
-    T value;
+    T value{};
+
+    MoveDefaultingValue() = default;
 
     constexpr explicit MoveDefaultingValue(T value) noexcept : value(value) {}
 
@@ -1748,7 +1750,7 @@ class FixedSizeGetter
 
   public:
     template <class Type>
-    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
+    static constexpr bool CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
 
     template <class, std::size_t I, std::size_t N>
     static constexpr auto get(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
@@ -1761,7 +1763,7 @@ class ContiguousReferenceSizeGetter
 {
   public:
     template <class Type>
-    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
+    static constexpr bool CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
 
     template <class Type, std::size_t I, bool IsConst, class... Parameter>
     static constexpr auto get(
@@ -1859,7 +1861,6 @@ template <std::size_t... I, class... Parameter>
 class ElementTraits<std::index_sequence<I...>, Parameter...>
 {
   private:
-    using Self = ElementTraits<std::index_sequence<I...>, Parameter...>;
     using ListTraits = detail::ParameterListTraits<Parameter...>;
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
     using ContiguousPointer = typename detail::ContiguousVectorTraits<Parameter...>::PointerType;
@@ -1926,6 +1927,15 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         return address;
     }
 
+    template <class Type, std::size_t K, class AlignmentNeedsType, class FixedSizeGetterType, class FixedSizesType>
+    static auto load_one(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
+    {
+        static constexpr auto NEEDS_ALIGNMENT = AlignmentNeedsType::template VALUE<K>;
+        static constexpr auto IS_SIZE_PROVIDED = FixedSizeGetterType::template CAN_PROVIDE_SIZE<Type>;
+        return detail::ParameterTraits<Type>::template load<NEEDS_ALIGNMENT, IS_SIZE_PROVIDED>(
+            address, FixedSizeGetterType::template get<Type, K>(fixed_sizes));
+    }
+
   public:
     template <std::size_t K>
     using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
@@ -1934,24 +1944,25 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address,
                                                        const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        return Self::template emplace_at<true>(address, fixed_sizes, std::forward<Args>(args)...);
+        return ElementTraits::template emplace_at<true>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
     template <class... Args>
     static std::byte* emplace_at_aliased(std::byte* CNTGS_RESTRICT address, const FixedSizesArray& fixed_sizes,
                                          Args&&... args)
     {
-        return Self::template emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
+        return ElementTraits::template emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    template <class AlignmentNeedsType = AlignmentNeeds, class FixedSizeGetterType = FixedSizeGetter,
-              class FixedSizesType = FixedSizesArray>
+    template <class AlignmentNeedsType = ElementTraits::AlignmentNeeds,
+              class FixedSizeGetterType = ElementTraits::FixedSizeGetter,
+              class FixedSizesType = ElementTraits::FixedSizesArray>
     static auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
         ContiguousPointer result;
-        ((std::tie(std::get<I>(result), address) = detail::ParameterTraits<Parameter>::template load<
-              AlignmentNeedsType::template VALUE<I>, FixedSizeGetterType::template CAN_PROVIDE_SIZE<Parameter>>(
-              address, FixedSizeGetterType::template get<Parameter, I>(fixed_sizes))),
+        ((std::tie(std::get<I>(result), address) =
+              ElementTraits::template load_one<Parameter, I, AlignmentNeedsType, FixedSizeGetterType>(address,
+                                                                                                      fixed_sizes)),
          ...);
         return result;
     }
@@ -2002,7 +2013,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         else if constexpr (INDEX != SKIP)
         {
             const auto [source_start, source_end, target_start] =
-                Self::template get_data_begin_and_end<K, INDEX>(source, target);
+                ElementTraits::template get_data_begin_and_end<K, INDEX>(source, target);
             std::memmove(target_start, source_start, source_end - source_start);
         }
     }
@@ -2011,7 +2022,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static void assign(const cntgs::BasicContiguousReference<IsLhsConst, Parameter...>& source,
                        const ContiguousReference& target)
     {
-        (Self::template assign_one<UseMove, I>(source, target), ...);
+        (ElementTraits::template assign_one<UseMove, I>(source, target), ...);
     }
 
     template <std::size_t K>
@@ -2024,14 +2035,15 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
+            const auto [lhs_start, lhs_end, rhs_start] =
+                ElementTraits::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
             detail::trivial_swap_ranges(lhs_start, lhs_end, rhs_start);
         }
     }
 
     static void swap(const ContiguousReference& lhs, const ContiguousReference& rhs)
     {
-        (Self::template swap_one<I>(lhs, rhs), ...);
+        (ElementTraits::template swap_one<I>(lhs, rhs), ...);
     }
 
     template <std::size_t K, bool IsLhsConst, bool IsRhsConst>
@@ -2045,7 +2057,8 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
+            const auto [lhs_start, lhs_end, rhs_start] =
+                ElementTraits::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
             const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(cntgs::get<INDEX>(rhs));
             return detail::trivial_equal(lhs_start, lhs_end, rhs_start, rhs_end);
         }
@@ -2059,7 +2072,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static constexpr auto equal(const cntgs::BasicContiguousReference<IsLhsConst, Parameter...>& lhs,
                                 const cntgs::BasicContiguousReference<IsRhsConst, Parameter...>& rhs)
     {
-        return (Self::template equal_one<I>(lhs, rhs) && ...);
+        return (ElementTraits::template equal_one<I>(lhs, rhs) && ...);
     }
 
     template <std::size_t K, bool IsLhsConst, bool IsRhsConst>
@@ -2074,7 +2087,8 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         }
         else if constexpr (INDEX != SKIP)
         {
-            const auto [lhs_start, lhs_end, rhs_start] = Self::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
+            const auto [lhs_start, lhs_end, rhs_start] =
+                ElementTraits::template get_data_begin_and_end<K, INDEX>(lhs, rhs);
             const auto rhs_end = ParameterTraitsAt<INDEX>::data_end(cntgs::get<INDEX>(rhs));
             return detail::trivial_lexicographical_compare(lhs_start, lhs_end, rhs_start, rhs_end);
         }
@@ -2088,7 +2102,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static constexpr auto lexicographical_compare(const cntgs::BasicContiguousReference<IsLhsConst, Parameter...>& lhs,
                                                   const cntgs::BasicContiguousReference<IsRhsConst, Parameter...>& rhs)
     {
-        return (Self::template lexicographical_compare_one<I>(lhs, rhs) && ...);
+        return (ElementTraits::template lexicographical_compare_one<I>(lhs, rhs) && ...);
     }
 
     static void destruct(const ContiguousReference& reference) noexcept

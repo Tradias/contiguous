@@ -46,7 +46,7 @@ class FixedSizeGetter
 
   public:
     template <class Type>
-    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
+    static constexpr bool CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
 
     template <class, std::size_t I, std::size_t N>
     static constexpr auto get(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
@@ -59,7 +59,7 @@ class ContiguousReferenceSizeGetter
 {
   public:
     template <class Type>
-    static constexpr auto CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
+    static constexpr bool CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
 
     template <class Type, std::size_t I, bool IsConst, class... Parameter>
     static constexpr auto get(
