@@ -394,11 +394,11 @@ BENCHMARK_TEMPLATE(BM_full_iteration, 1, 45)
     ->Name("full iteration: std::pmr::vector<std::pmr::vector<float>>")
     ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
 
-BENCHMARK_TEMPLATE(BM_full_iteration, 2, 24)
+BENCHMARK_TEMPLATE(BM_full_iteration, 2, 45)
     ->Name("full iteration: ContiguousVector<FixedSize<float>>")
     ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
 
-BENCHMARK_TEMPLATE(BM_full_iteration, 3, 24)
+BENCHMARK_TEMPLATE(BM_full_iteration, 3, 45)
     ->Name("full iteration: ContiguousVector<VaryingSize<float>>")
     ->ArgsProduct({INPUT_SIZES, {15, 30, 45}});
 
