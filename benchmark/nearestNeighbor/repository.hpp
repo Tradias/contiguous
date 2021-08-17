@@ -17,10 +17,10 @@ namespace cntgs::bench
 {
 struct StaticFeatureRepository
 {
+    std::unique_ptr<float[]> contiguous_features;
     size_t dims;
     size_t size;
-    std::unique_ptr<float[]> contiguous_features;
-
+    
     StaticFeatureRepository(std::unique_ptr<float[]> contiguous_features, size_t dims, size_t size)
         : contiguous_features{std::move(contiguous_features)}, dims{dims}, size{size}
     {

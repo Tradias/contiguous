@@ -58,7 +58,7 @@ struct ObjectDistance
 
 template <class Container>
 auto yahoo_search(const bench::Graph<Container>& graph, const std::vector<uint32_t>& entry_node_indizies,
-                  const std::byte* query, const float eps, const int k)
+                  const std::byte* query, const float eps, const size_t k)
 {
     using ResultSet = std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>>;
     using UncheckedSet = std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::greater<ObjectDistance>>;

@@ -21,10 +21,10 @@ void BM_nearest_neighbor(benchmark::State& state)
         data_path / "k24nns_128D_L2_Path10_Rnd3+3_AddK20Eps0.2_ImproveK20Eps0.02_ImproveExtK12-1StepEps0.02.deg");
     const std::vector<uint32_t> entry_node_indices{graph.get_internal_index(0)};
     const auto search_radius_epsilon = 0.01f;
-    const auto search_results = 100;
+    const size_t search_results = 100;
     for (auto _ : state)
     {
-        for (int i = 0; i < repository.size; i++)
+        for (size_t i = 0; i < repository.size; i++)
         {
             auto query = reinterpret_cast<const std::byte*>(repository.get_feature(i));
             auto result_queue =

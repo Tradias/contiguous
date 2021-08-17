@@ -64,13 +64,8 @@ class L2Float16Ext
   public:
     inline static float compare(const void* pVect1v, const void* pVect2v, const void* qty_ptr)
     {
-#ifndef _WINDOWS
-        float* a = (float*)__builtin_assume_aligned((float*)pVect1v, 32);
-        float* b = (float*)__builtin_assume_aligned((float*)pVect2v, 32);
-#else
         float* a = (float*)pVect1v;
         float* b = (float*)pVect2v;
-#endif
 
         size_t size = *((size_t*)qty_ptr);
         const float* last = a + size;
@@ -125,7 +120,7 @@ class L2Float16Ext
         }
 #endif
 
-        float alignas(32) f[4];
+        alignas(32) float f[4];
         _mm_storeu_ps(f, sum128);
 
         return f[0] + f[1] + f[2] + f[3];
@@ -137,7 +132,7 @@ class L2Float4Ext
   public:
     inline static float compare(const void* pVect1v, const void* pVect2v, const void* qty_ptr)
     {
-        float alignas(32) TmpRes[8];
+        alignas(32) float TmpRes[8];
         float* pVect1 = (float*)pVect1v;
         float* pVect2 = (float*)pVect2v;
         size_t qty = *((size_t*)qty_ptr);
