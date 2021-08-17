@@ -64,13 +64,8 @@ class L2Float16Ext
   public:
     inline static float compare(const void* pVect1v, const void* pVect2v, const void* qty_ptr)
     {
-#ifndef _WINDOWS
-        float* a = (float*)__builtin_assume_aligned((float*)pVect1v, 32);
-        float* b = (float*)__builtin_assume_aligned((float*)pVect2v, 32);
-#else
         float* a = (float*)pVect1v;
         float* b = (float*)pVect2v;
-#endif
 
         size_t size = *((size_t*)qty_ptr);
         const float* last = a + size;

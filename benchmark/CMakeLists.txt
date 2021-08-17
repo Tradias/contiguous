@@ -15,7 +15,7 @@ function(cntgs_add_benchmark _name)
                 nearestNeighbor/search.hpp)
 
     target_compile_options(${_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
-                                            -Wextra -pedantic-errors>)
+                                            -Wextra -pedantic-errors -msse4.1>)
 
     target_compile_definitions(${_name} PRIVATE "CNTGS_BENCHMARK_GRAPH_DATA_DIR=\"${CNTGS_BENCHMARK_GRAPH_DATA_DIR}\"")
 

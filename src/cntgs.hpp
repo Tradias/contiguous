@@ -4009,8 +4009,9 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
             {
                 auto&& source = self[i];
                 auto&& target =
-                    new_locator.load_element_at<detail::DefaultAlignmentNeeds, detail::ContiguousReferenceSizeGetter>(
-                        i, new_memory, source);
+                    new_locator
+                        .template load_element_at<detail::DefaultAlignmentNeeds, detail::ContiguousReferenceSizeGetter>(
+                            i, new_memory, source);
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }
         }
