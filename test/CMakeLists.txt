@@ -54,7 +54,7 @@ endif()
 function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
     add_executable(${_cntgs_name})
 
-    target_sources(${_cntgs_name} PRIVATE main.cpp ${_cntgs_disassembly_file}
+    target_sources(${_cntgs_name} PRIVATE "main.cpp" "${_cntgs_disassembly_file}"
                                           $<TARGET_PROPERTY:cntgs,CNTGS_SOURCE_FILES> ${ARGN})
 
     if(CNTGS_TEST_COVERAGE)
@@ -107,5 +107,5 @@ if(CNTGS_DISCOVER_TESTS)
 endif()
 
 if(CNTGS_TEST_COVERAGE)
-    cntgs_coverage_report_for_target(cntgs-test-cpp17 ${CMAKE_CURRENT_SOURCE_DIR}/test-contiguous.cpp)
+    cntgs_coverage_report_for_target(cntgs-test-cpp17)
 endif()
