@@ -22,6 +22,7 @@ void BM_nearest_neighbor(benchmark::State& state)
     const std::vector<uint32_t> entry_node_indices{graph.get_internal_index(0)};
     const auto search_radius_epsilon = 0.01f;
     const size_t search_results = 100;
+    size_t queries_processed{};
     for (auto _ : state)
     {
         for (size_t i = 0; i < repository.size; i++)
@@ -30,11 +31,13 @@ void BM_nearest_neighbor(benchmark::State& state)
             auto result_queue =
                 bench::yahoo_search(graph, entry_node_indices, query, search_radius_epsilon, search_results);
             benchmark::DoNotOptimize(result_queue);
+            ++queries_processed;
         }
     }
+    state.SetItemsProcessed(queries_processed);
 }
 
-static constexpr auto ITERATION = 7;
+static constexpr auto ITERATION = 20;
 
 BENCHMARK_TEMPLATE(BM_nearest_neighbor, bench::FixedSizeContainer)
     ->Name("nearest neighbor cntgs")

@@ -26,7 +26,7 @@ struct StaticFeatureRepository
     {
     }
 
-    const float* get_feature(uint32_t node_id) const { return &contiguous_features[node_id * dims]; }
+    const float* get_feature(size_t node_id) const { return &contiguous_features[node_id * dims]; }
 };
 
 auto fvecs_read(const std::filesystem::path& fname, size_t& d_out, size_t& n_out)
