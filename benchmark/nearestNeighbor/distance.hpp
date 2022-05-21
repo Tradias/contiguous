@@ -9,8 +9,12 @@
 #ifndef NO_MANUAL_VECTORIZATION
 #ifdef _MSC_VER
 #if (defined(_M_AMD64) || defined(_M_X64) || defined(_M_IX86_FP) == 2)
+#ifndef __SSE__
 #define __SSE__
+#endif
+#ifndef __SSE2__
 #define __SSE2__
+#endif
 #elif defined(_M_IX86_FP) == 1
 #define __SSE__
 #endif

@@ -6,6 +6,7 @@
 #include "cntgs/contiguous.hpp"
 
 #include <benchmark/benchmark.h>
+#include <cista/cista.h>
 
 #include <memory_resource>
 #include <random>
@@ -22,6 +23,16 @@ using FixedSizeVector = cntgs::ContiguousVector<cntgs::FixedSize<float>>;
 using TwoFixedSizeVector = cntgs::ContiguousVector<cntgs::FixedSize<float>, float, cntgs::FixedSize<float>>;
 using VaryingSizeVector = cntgs::ContiguousVector<cntgs::VaryingSize<float>>;
 using TwoVaryingSizeVector = cntgs::ContiguousVector<cntgs::VaryingSize<float>, float, cntgs::VaryingSize<float>>;
+
+struct Cista
+{
+    cista::offset::vector<float> a;
+    float b;
+    cista::offset::vector<float> c;
+};
+
+using CistaBuf = cista::buf<cista::byte_buf>;
+using CistaData = cista::offset::vector<Cista>;
 
 template <std::size_t N, std::size_t K>
 struct TwoArray
@@ -60,6 +71,17 @@ struct VectorTwoVector
         : resource(std::make_unique<std::pmr::monotonic_buffer_resource>(
               floats * sizeof(float) + elements * sizeof(TwoVector) + elements * MSVC_VECTOR_CONSTRUCTION_OVERHEAD * 2 +
               LEEWAY))
+    {
+    }
+};
+
+struct CistaVector
+{
+    std::unique_ptr<CistaBuf> buffer;
+    CistaData& vector;
+
+    explicit CistaVector(std::unique_ptr<CistaBuf> buffer)
+        : buffer(std::move(buffer)), vector(*cista::deserialize<CistaData>(*this->buffer))
     {
     }
 };
@@ -142,6 +164,22 @@ template <class... T>
 auto iterate(const cntgs::ContiguousVector<T...>& vector, size_t)
 {
     for (auto&& [a, b, c] : vector)
+    {
+        for (auto&& e : a)
+        {
+            work(e);
+        }
+        work(b);
+        for (auto&& e : c)
+        {
+            work(e);
+        }
+    }
+}
+
+auto iterate(const CistaVector& vector, size_t)
+{
+    for (auto&& [a, b, c] : vector.vector)
     {
         for (auto&& e : a)
         {
@@ -327,6 +365,20 @@ void fill_two_vector(cntgs::ContiguousVector<T...>& target, const std::vector<st
     }
 }
 
+auto get_two_vector(const std::vector<std::vector<float>>& source)
+{
+    CistaData targetv;
+    for (auto&& v : source)
+    {
+        targetv.emplace_back(Cista{cista::offset::vector<float>{v.data(), v.data() + v.size() / 2}, v.front(),
+                                   cista::offset::vector<float>{v.data() + v.size() / 2, v.data() + v.size()}});
+    }
+    auto buffer = std::make_unique<CistaBuf>();
+    cista::serialize(*buffer, targetv);
+    CistaVector result{std::move(buffer)};
+    return result;
+}
+
 template <std::size_t N>
 auto make_two_element_input_vectors(std::size_t elements, std::size_t fixed_size)
 {
@@ -340,7 +392,7 @@ auto make_two_element_input_vectors(std::size_t elements, std::size_t fixed_size
     TwoVaryingSizeVector varying_size_vector{input.size(), input.size() * fixed_size * sizeof(float)};
     fill_two_vector(varying_size_vector, input);
     return std::tuple{std::move(array_vector), std::move(vector_vector), std::move(fixed_size_vector),
-                      std::move(varying_size_vector)};
+                      std::move(varying_size_vector), get_two_vector(input)};
 }
 
 static std::vector<int64_t> INPUT_SIZES{100000, 250000, 500000};
@@ -551,4 +603,8 @@ BENCHMARK_TEMPLATE(BM_full_iteration_two, 2, 45)
 
 BENCHMARK_TEMPLATE(BM_full_iteration_two, 3, 45)
     ->Name("full iteration2: ContiguousVector<VaryingSize<float>,float,VaryingSize<float>>")
+    ->ArgsProduct({INPUT_SIZES, {20, 25, 30, 70, 80, 90}});
+
+BENCHMARK_TEMPLATE(BM_full_iteration_two, 4, 45)
+    ->Name("full iteration2: Cista<offset::vector<float>,float,offset::vector<float>>")
     ->ArgsProduct({INPUT_SIZES, {20, 25, 30, 70, 80, 90}});
