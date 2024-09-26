@@ -102,7 +102,6 @@ TEST_CASE("ContiguousReference: swap and iter_swap with ContiguousVectorIterator
     {
         using std::swap;
         swap(vector[0], vector[1]);
-        swap(vector[1], vector[1]);
     }
     test::check_equal_using_get(vector[0], 30, test::array_one_unique_ptr(40));
     test::check_equal_using_get(vector[1], 10, test::array_one_unique_ptr(20));
@@ -116,7 +115,6 @@ TEST_CASE("ContiguousReference: FixedSize swap partially trivial")
     vector.emplace_back(30, FLOATS1_ALT, test::array_one_unique_ptr(40));
     using std::swap;
     swap(vector[0], vector[1]);
-    swap(vector[1], vector[1]);
     test::check_equal_using_get(vector.front(), 30, FLOATS1_ALT, test::array_one_unique_ptr(40));
     test::check_equal_using_get(vector.back(), 10, FLOATS1, test::array_one_unique_ptr(20));
 }

@@ -3,10 +3,10 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+#include "cista/cista.h"
 #include "cntgs/contiguous.hpp"
 
 #include <benchmark/benchmark.h>
-#include <cista/cista.h>
 
 #include <memory_resource>
 #include <random>

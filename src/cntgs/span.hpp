@@ -42,6 +42,12 @@ struct Span
 
     Span(const Span& other) = default;
 
+    Span(Span&& other) = default;
+
+    Span& operator=(const Span& other) = default;
+    
+    Span& operator=(Span&& other) = default;
+
     constexpr Span(iterator first, iterator last) noexcept : first(first), last(last) {}
 
     constexpr Span(iterator first, size_type size) noexcept(noexcept(first + size)) : first(first), last(first + size)

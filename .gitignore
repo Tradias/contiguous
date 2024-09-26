@@ -70,3 +70,6 @@ sonar-cfamily-reproducer.zip
 
 # https://github.com/aras-p/ClangBuildAnalyzer
 ClangBuildAnalyzer.ini
+
+# clang language server
+.clangd

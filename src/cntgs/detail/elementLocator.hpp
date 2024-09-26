@@ -20,7 +20,7 @@
 namespace cntgs::detail
 {
 template <class Locator>
-auto move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator) noexcept
+auto move_elements(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator) noexcept
 {
     const auto target = locator.element_address(to, memory_begin);
     const auto source = locator.element_address(from, memory_begin);
@@ -76,12 +76,28 @@ class BaseElementLocator
 
     void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) const noexcept
     {
-        const auto diff = detail::move_elements_forward(from, to, memory_begin, *this);
-        const auto first_element_address = reinterpret_cast<std::byte**>(memory_begin);
-        std::transform(first_element_address + from, this->last_element_address, first_element_address + to,
+        const auto diff = detail::move_elements(from, to, memory_begin, *this);
+        const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
+        std::transform(element_addresses_begin + from, this->last_element_address, element_addresses_begin + to,
                        [&](auto address)
                        {
                            return address - diff;
+                       });
+    }
+
+    void make_room_for_last_element_at(std::size_t from, std::size_t size_of_element,
+                                       std::byte* memory_begin) const noexcept
+    {
+        const auto source = this->element_address(from, memory_begin);
+        const auto target = source + size_of_element;
+        const auto count = static_cast<std::size_t>(this->data_end() - source);
+        std::memmove(target, source, count);
+        *this->last_element_address = this->last_element;
+        const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
+        std::transform(element_addresses_begin + from, this->last_element_address, element_addresses_begin + from + 1,
+                       [&](auto address)
+                       {
+                           return address + size_of_element;
                        });
     }
 };
@@ -110,20 +126,30 @@ class ElementLocator : public BaseElementLocator
     }
 
     template <class... Args>
-    void emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
+    auto emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        *this->last_element_address = last_element;
+        const auto new_last_element =
+            ElementTraits::emplace_at(this->last_element, fixed_sizes, std::forward<Args>(args)...);
+        *this->last_element_address = this->last_element;
         ++this->last_element_address;
-        last_element = ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
+        this->last_element = new_last_element;
+        return this->last_element;
     }
 
     template <class... Args>
-    static void emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizesArray& fixed_sizes,
+    static auto emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizesArray& fixed_sizes,
                            Args&&... args)
     {
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
         element_addresses_begin[index + 1] =
             ElementTraits::emplace_at_aliased(element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
+        return element_addresses_begin[index + 1];
+    }
+
+    template <class... Args>
+    static auto emplace_at(std::byte* address, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
+    {
+        ElementTraits::emplace_at_aliased(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
     void trivially_copy_into(std::size_t old_max_element_count, std::byte* CNTGS_RESTRICT old_memory_begin,
@@ -210,7 +236,15 @@ class BaseAllFixedSizeElementLocator
 
     void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) const noexcept
     {
-        detail::move_elements_forward(from, to, {}, *this);
+        detail::move_elements(from, to, {}, *this);
+    }
+
+    void make_room_for_last_element_at(std::size_t from, std::size_t size_of_element, const std::byte*) const noexcept
+    {
+        const auto source = this->element_address(from, {});
+        const auto target = source + size_of_element;
+        const auto count = static_cast<std::size_t>(this->data_end() - source);
+        std::memmove(target, source, count);
     }
 };
 
@@ -238,17 +272,19 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
     }
 
     template <class... Args>
-    void emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
+    auto emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        auto last_element = this->element_address(this->element_count, {});
+        const auto last_element = this->element_address(this->element_count, {});
+        auto end = ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
         ++this->element_count;
-        ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
+        return end;
     }
 
     template <class... Args>
-    void emplace_at(std::size_t index, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
+    auto emplace_at(std::size_t index, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
+        return ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes,
+                                                 std::forward<Args>(args)...);
     }
 
     void trivially_copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept

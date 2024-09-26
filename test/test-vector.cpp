@@ -244,6 +244,135 @@ TEST_CASE("ContiguousVector: std::string emplace_back with iterator")
     CHECK_EQ(STRING2, *string_ptr);
 }
 
+template <class Vector, class T2, class U2, class T3, class U3, class T4, class U4>
+void check_after_emplace(Vector& vector, std::pair<T2, U2> expected_first, std::pair<T3, U3> expected_second,
+                         std::pair<T4, U4> expected_third)
+{
+    test::check_equal_using_get(vector[0], std::get<0>(expected_first), std::get<1>(expected_first));
+    test::check_equal_using_get(vector[1], std::get<0>(expected_second), std::get<1>(expected_second));
+    test::check_equal_using_get(vector[2], std::get<0>(expected_third), std::get<1>(expected_third));
+}
+
+template <class Vector, class T1, class U1, class T2, class U2, class T3, class U3, class T4, class U4>
+void check_emplace_at_begin(Vector& vector, std::pair<T1, U1> element_to_emplace, std::pair<T2, U2> expected_first,
+                            std::pair<T3, U3> expected_second, std::pair<T4, U4> expected_third)
+{
+    auto it = vector.emplace(vector.begin(), std::get<0>(element_to_emplace), std::get<1>(element_to_emplace));
+    CHECK(vector.begin() == it);
+    check_after_emplace(vector, std::move(expected_first), std::move(expected_second), std::move(expected_third));
+}
+
+template <class Vector, class T1, class U1, class T2, class U2, class T3, class U3, class T4, class U4>
+void check_emplace_in_the_middle(Vector& vector, std::pair<T1, U1> element_to_emplace, std::pair<T2, U2> expected_first,
+                                 std::pair<T3, U3> expected_second, std::pair<T4, U4> expected_third)
+{
+    auto it = vector.emplace(++vector.begin(), std::get<0>(element_to_emplace), std::get<1>(element_to_emplace));
+    CHECK(++vector.begin() == it);
+    check_after_emplace(vector, std::move(expected_first), std::move(expected_second), std::move(expected_third));
+}
+
+template <class Vector, class T1, class U1, class T2, class U2, class T3, class U3, class T4, class U4>
+void check_emplace_at_end(Vector& vector, std::pair<T1, U1> element_to_emplace, std::pair<T2, U2> expected_first,
+                          std::pair<T3, U3> expected_second, std::pair<T4, U4> expected_third)
+{
+    auto it = vector.emplace(vector.end(), std::get<0>(element_to_emplace), std::get<1>(element_to_emplace));
+    CHECK(--vector.end() == it);
+    check_after_emplace(vector, std::move(expected_first), std::move(expected_second), std::move(expected_third));
+}
+
+TEST_CASE("ContiguousVector: FixedSize std::string emplace")
+{
+    cntgs::ContiguousVector<cntgs::FixedSize<std::string>, std::string> vector{4, {1}};
+    vector.emplace_back(std::vector{STRING1}, STRING1);
+    vector.emplace_back(std::vector{STRING1}, STRING2);
+    SUBCASE("at begin")
+    {
+        check_emplace_at_begin(vector, std::pair{std::vector{STRING2}, STRING2},
+                               std::pair{std::vector{STRING2}, STRING2}, std::pair{std::vector{STRING1}, STRING1},
+                               std::pair{std::vector{STRING1}, STRING2});
+    }
+    SUBCASE("in the middle")
+    {
+        check_emplace_in_the_middle(vector, std::pair{std::vector{STRING2}, STRING2},
+                                    std::pair{std::vector{STRING1}, STRING1}, std::pair{std::vector{STRING2}, STRING2},
+                                    std::pair{std::vector{STRING1}, STRING2});
+    }
+    SUBCASE("at end")
+    {
+        check_emplace_at_end(vector, std::pair{std::vector{STRING2}, STRING2}, std::pair{std::vector{STRING1}, STRING1},
+                             std::pair{std::vector{STRING1}, STRING2}, std::pair{std::vector{STRING2}, STRING2});
+    }
+}
+
+TEST_CASE("ContiguousVector: OneFixed emplace")
+{
+    OneFixed vector{4, {2}};
+    vector.emplace_back(10u, FLOATS1);
+    vector.emplace_back(20u, FLOATS1_ALT);
+    SUBCASE("at begin")
+    {
+        check_emplace_at_begin(vector, std::pair{30u, FLOATS1_ALT}, std::pair{30u, FLOATS1_ALT},
+                               std::pair{10u, FLOATS1}, std::pair{20u, FLOATS1_ALT});
+    }
+    SUBCASE("in the middle")
+    {
+        check_emplace_in_the_middle(vector, std::pair{30u, FLOATS1_ALT}, std::pair{10u, FLOATS1},
+                                    std::pair{30u, FLOATS1_ALT}, std::pair{20u, FLOATS1_ALT});
+    }
+    SUBCASE("at end")
+    {
+        check_emplace_at_end(vector, std::pair{30u, FLOATS1_ALT}, std::pair{10u, FLOATS1}, std::pair{20u, FLOATS1_ALT},
+                             std::pair{30u, FLOATS1_ALT});
+    }
+}
+
+TEST_CASE("ContiguousVector: OneVarying emplace")
+{
+    OneVarying vector{4, 12 * sizeof(float)};
+    vector.emplace_back(10u, FLOATS2);
+    vector.emplace_back(20u, FLOATS1_ALT);
+    SUBCASE("at begin")
+    {
+        check_emplace_at_begin(vector, std::pair{30u, FLOATS2_ALT}, std::pair{30u, FLOATS2_ALT},
+                               std::pair{10u, FLOATS2}, std::pair{20u, FLOATS1_ALT});
+    }
+    SUBCASE("in the middle")
+    {
+        check_emplace_in_the_middle(vector, std::pair{30u, FLOATS2_ALT}, std::pair{10u, FLOATS2},
+                                    std::pair{30u, FLOATS2_ALT}, std::pair{20u, FLOATS1_ALT});
+    }
+    SUBCASE("at end")
+    {
+        check_emplace_at_end(vector, std::pair{30u, FLOATS2_ALT}, std::pair{10u, FLOATS2}, std::pair{20u, FLOATS1_ALT},
+                             std::pair{30u, FLOATS2_ALT});
+    }
+}
+
+TEST_CASE("ContiguousVector: OneVarying std::string emplace" * doctest::skip())
+{
+    cntgs::ContiguousVector<cntgs::VaryingSize<std::string>, std::string> vector{4, 7 * sizeof(std::string)};
+    vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
+    vector.emplace_back(std::array{STRING1}, STRING2);
+    SUBCASE("at begin")
+    {
+        check_emplace_at_begin(
+            vector, std::pair{std::array{STRING2, STRING2}, STRING2}, std::pair{std::array{STRING2, STRING2}, STRING2},
+            std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING1}, STRING2});
+    }
+    SUBCASE("in the middle")
+    {
+        check_emplace_in_the_middle(
+            vector, std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING2, STRING2}, STRING2},
+            std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING1}, STRING2});
+    }
+    SUBCASE("at end")
+    {
+        check_emplace_at_end(vector, std::pair{std::array{STRING1, STRING2}, STRING1},
+                             std::pair{std::array{STRING1}, STRING2}, std::pair{std::array{STRING2, STRING2}, STRING2},
+                             std::pair{std::array{STRING1, STRING2}, STRING1});
+    }
+}
+
 template <class Vector1, class Vector2>
 void check_equality(Vector1& lhs, Vector2& rhs)
 {

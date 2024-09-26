@@ -173,6 +173,22 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         this->locator->emplace_back(this->locator.fixed_sizes(), std::forward<Args>(args)...);
     }
 
+    template <class... Args>
+    iterator emplace(const_iterator position, Args&&... args)
+    {
+        auto it = this->make_iterator(position);
+        const auto back_begin = this->data_end();
+        const auto back_end = this->locator->emplace_back(this->locator.fixed_sizes(), std::forward<Args>(args)...);
+        const auto size = back_end - back_begin;
+        this->make_room_for_last_element_at(it.index(), size);
+        const auto target_begin = it.data();
+        std::memcpy(target_begin, back_end, size);
+        auto&& source = (*this)[this->size()];
+        auto&& target = ElementTraits::load_element_at(target_begin, this->locator.fixed_sizes());
+        ElementTraits::template construct_if_non_trivial<true>(source, target);
+        return std::next(this->begin(), it.index());
+    }
+
     void pop_back() noexcept
     {
         ElementTraits::destruct(this->back());
@@ -189,7 +205,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     iterator erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
-        iterator it_position{*this, position.index()};
+        auto it_position = this->make_iterator(position);
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
         this->move_elements_forward(next_position, it_position.index());
@@ -200,8 +216,8 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     iterator erase(const_iterator first, const_iterator last) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         const auto current_size = this->size();
-        iterator it_first{*this, first.index()};
-        iterator it_last{*this, last.index()};
+        const auto it_first = this->make_iterator(first);
+        const auto it_last = this->make_iterator(last);
         BasicContiguousVector::destruct(it_first, it_last);
         if (last.index() < current_size && first.index() != last.index())
         {
@@ -364,16 +380,17 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         const auto new_memory_size = this->locator->calculate_new_memory_size(
             new_max_element_count, new_varying_size_bytes, this->locator.fixed_sizes());
         StorageType new_memory{new_memory_size, this->get_allocator()};
-        BasicContiguousVector::insert_into<true, true>(*this->locator, new_max_element_count, new_memory.get(), *this);
+        BasicContiguousVector::insert_into<true>(*this->locator, new_max_element_count, new_memory.get(), *this);
         this->max_element_count = new_max_element_count;
         this->memory.reset(std::move(new_memory));
     }
 
-    template <bool UseMove, bool IsDestruct = false, class Self = BasicContiguousVector>
+    template <bool IsDestruct = false, class Self = BasicContiguousVector>
     static void insert_into(ElementLocator& locator, size_type new_max_element_count, std::byte* new_memory, Self& from)
     {
+        static constexpr auto USE_MOVE = !std::is_const_v<Self>;
         static constexpr auto IS_TRIVIAL =
-            UseMove ? ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE : ListTraits::IS_TRIVIALLY_COPY_CONSTRUCTIBLE;
+            USE_MOVE ? ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE : ListTraits::IS_TRIVIALLY_COPY_CONSTRUCTIBLE;
         if constexpr (IS_TRIVIAL && (!IsDestruct || ListTraits::IS_TRIVIALLY_DESTRUCTIBLE))
         {
             locator.trivially_copy_into(from.max_element_count, from.memory.get(), new_max_element_count, new_memory);
@@ -382,7 +399,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         {
             ElementLocator new_locator{locator, from.max_element_count, from.memory.get(), new_max_element_count,
                                        new_memory};
-            BasicContiguousVector::uninitialized_construct_if_non_trivial<UseMove>(from, new_memory, new_locator);
+            BasicContiguousVector::uninitialized_construct_if_non_trivial<USE_MOVE>(from, new_memory, new_locator);
             if constexpr (IsDestruct)
             {
                 from.destruct();
@@ -425,6 +442,21 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         }
     }
 
+    void make_room_for_last_element_at(std::size_t from, [[maybe_unused]] std::size_t bytes)
+    {
+        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+        {
+            this->locator->make_room_for_last_element_at(from, bytes, this->memory.get());
+        }
+        else
+        {
+            for (auto i = this->size(); i != from; --i)
+            {
+                this->emplace_at(i, (*this)[i - std::size_t{1}], ListTraits::make_index_sequence());
+            }
+        }
+    }
+
     template <std::size_t... I>
     void emplace_at(std::size_t i, const reference& element, std::index_sequence<I...>)
     {
@@ -462,15 +494,15 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
                     // allocate memory first because it might throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
                     this->destruct();
-                    BasicContiguousVector::insert_into<true>(*other_locator, other.max_element_count, new_memory.get(),
-                                                             other);
+                    BasicContiguousVector::insert_into(*other_locator, other.max_element_count, new_memory.get(),
+                                                       other);
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
                     this->destruct();
-                    BasicContiguousVector::insert_into<true>(*other_locator, other.max_element_count,
-                                                             this->memory.get(), other);
+                    BasicContiguousVector::insert_into(*other_locator, other.max_element_count, this->memory.get(),
+                                                       other);
                 }
                 this->max_element_count = other.max_element_count;
                 this->locator = other_locator;
@@ -481,7 +513,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     auto copy_construct_locator(const BasicContiguousVector& other)
     {
         auto other_locator = other.locator;
-        BasicContiguousVector::insert_into<false>(*other_locator, other.max_element_count, this->memory.get(), other);
+        BasicContiguousVector::insert_into(*other_locator, other.max_element_count, this->memory.get(), other);
         return other_locator;
     }
 
@@ -490,7 +522,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         this->destruct();
         this->memory = other.memory;
         auto other_locator = other.locator;
-        BasicContiguousVector::insert_into<false>(*other_locator, other.max_element_count, this->memory.get(), other);
+        BasicContiguousVector::insert_into(*other_locator, other.max_element_count, this->memory.get(), other);
         this->max_element_count = other.max_element_count;
         this->locator = other_locator;
     }
@@ -537,6 +569,8 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
             return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
         }
     }
+
+    constexpr iterator make_iterator(const const_iterator& it) noexcept { return {*this, it.index()}; }
 
     constexpr void destruct_if_owned() noexcept
     {

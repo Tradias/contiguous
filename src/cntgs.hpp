@@ -412,6 +412,12 @@ struct Span
 
     Span(const Span& other) = default;
 
+    Span(Span&& other) = default;
+
+    Span& operator=(const Span& other) = default;
+    
+    Span& operator=(Span&& other) = default;
+
     constexpr Span(iterator first, iterator last) noexcept : first(first), last(last) {}
 
     constexpr Span(iterator first, size_type size) noexcept(noexcept(first + size)) : first(first), last(first + size)
@@ -2860,7 +2866,7 @@ struct tuple_size<::cntgs::BasicContiguousElement<Allocator, Parameter...>>
 namespace cntgs::detail
 {
 template <class Locator>
-auto move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator) noexcept
+auto move_elements(std::size_t from, std::size_t to, std::byte* memory_begin, const Locator& locator) noexcept
 {
     const auto target = locator.element_address(to, memory_begin);
     const auto source = locator.element_address(from, memory_begin);
@@ -2916,12 +2922,28 @@ class BaseElementLocator
 
     void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) const noexcept
     {
-        const auto diff = detail::move_elements_forward(from, to, memory_begin, *this);
-        const auto first_element_address = reinterpret_cast<std::byte**>(memory_begin);
-        std::transform(first_element_address + from, this->last_element_address, first_element_address + to,
+        const auto diff = detail::move_elements(from, to, memory_begin, *this);
+        const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
+        std::transform(element_addresses_begin + from, this->last_element_address, element_addresses_begin + to,
                        [&](auto address)
                        {
                            return address - diff;
+                       });
+    }
+
+    void make_room_for_last_element_at(std::size_t from, std::size_t size_of_element,
+                                       std::byte* memory_begin) const noexcept
+    {
+        const auto source = this->element_address(from, memory_begin);
+        const auto target = source + size_of_element;
+        const auto count = static_cast<std::size_t>(this->data_end() - source);
+        std::memmove(target, source, count);
+        *this->last_element_address = this->last_element;
+        const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
+        std::transform(element_addresses_begin + from, this->last_element_address, element_addresses_begin + from + 1,
+                       [&](auto address)
+                       {
+                           return address + size_of_element;
                        });
     }
 };
@@ -2950,20 +2972,30 @@ class ElementLocator : public BaseElementLocator
     }
 
     template <class... Args>
-    void emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
+    auto emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        *this->last_element_address = last_element;
+        const auto new_last_element =
+            ElementTraits::emplace_at(this->last_element, fixed_sizes, std::forward<Args>(args)...);
+        *this->last_element_address = this->last_element;
         ++this->last_element_address;
-        last_element = ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
+        this->last_element = new_last_element;
+        return this->last_element;
     }
 
     template <class... Args>
-    static void emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizesArray& fixed_sizes,
+    static auto emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizesArray& fixed_sizes,
                            Args&&... args)
     {
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
         element_addresses_begin[index + 1] =
             ElementTraits::emplace_at_aliased(element_addresses_begin[index], fixed_sizes, std::forward<Args>(args)...);
+        return element_addresses_begin[index + 1];
+    }
+
+    template <class... Args>
+    static auto emplace_at(std::byte* address, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
+    {
+        ElementTraits::emplace_at_aliased(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
     void trivially_copy_into(std::size_t old_max_element_count, std::byte* CNTGS_RESTRICT old_memory_begin,
@@ -3050,7 +3082,15 @@ class BaseAllFixedSizeElementLocator
 
     void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) const noexcept
     {
-        detail::move_elements_forward(from, to, {}, *this);
+        detail::move_elements(from, to, {}, *this);
+    }
+
+    void make_room_for_last_element_at(std::size_t from, std::size_t size_of_element, const std::byte*) const noexcept
+    {
+        const auto source = this->element_address(from, {});
+        const auto target = source + size_of_element;
+        const auto count = static_cast<std::size_t>(this->data_end() - source);
+        std::memmove(target, source, count);
     }
 };
 
@@ -3078,17 +3118,19 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
     }
 
     template <class... Args>
-    void emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
+    auto emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        auto last_element = this->element_address(this->element_count, {});
+        const auto last_element = this->element_address(this->element_count, {});
+        auto end = ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
         ++this->element_count;
-        ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
+        return end;
     }
 
     template <class... Args>
-    void emplace_at(std::size_t index, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
+    auto emplace_at(std::size_t index, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
+        return ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes,
+                                                 std::forward<Args>(args)...);
     }
 
     void trivially_copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
@@ -3674,6 +3716,22 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         this->locator->emplace_back(this->locator.fixed_sizes(), std::forward<Args>(args)...);
     }
 
+    template <class... Args>
+    iterator emplace(const_iterator position, Args&&... args)
+    {
+        auto it = this->make_iterator(position);
+        const auto back_begin = this->data_end();
+        const auto back_end = this->locator->emplace_back(this->locator.fixed_sizes(), std::forward<Args>(args)...);
+        const auto size = back_end - back_begin;
+        this->make_room_for_last_element_at(it.index(), size);
+        const auto target_begin = it.data();
+        std::memcpy(target_begin, back_end, size);
+        auto&& source = (*this)[this->size()];
+        auto&& target = ElementTraits::load_element_at(target_begin, this->locator.fixed_sizes());
+        ElementTraits::template construct_if_non_trivial<true>(source, target);
+        return std::next(this->begin(), it.index());
+    }
+
     void pop_back() noexcept
     {
         ElementTraits::destruct(this->back());
@@ -3690,7 +3748,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     iterator erase(const_iterator position) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
-        iterator it_position{*this, position.index()};
+        auto it_position = this->make_iterator(position);
         const auto next_position = position.index() + 1;
         ElementTraits::destruct(*it_position);
         this->move_elements_forward(next_position, it_position.index());
@@ -3701,8 +3759,8 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     iterator erase(const_iterator first, const_iterator last) noexcept(ListTraits::IS_NOTHROW_MOVE_CONSTRUCTIBLE)
     {
         const auto current_size = this->size();
-        iterator it_first{*this, first.index()};
-        iterator it_last{*this, last.index()};
+        const auto it_first = this->make_iterator(first);
+        const auto it_last = this->make_iterator(last);
         BasicContiguousVector::destruct(it_first, it_last);
         if (last.index() < current_size && first.index() != last.index())
         {
@@ -3865,16 +3923,17 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         const auto new_memory_size = this->locator->calculate_new_memory_size(
             new_max_element_count, new_varying_size_bytes, this->locator.fixed_sizes());
         StorageType new_memory{new_memory_size, this->get_allocator()};
-        BasicContiguousVector::insert_into<true, true>(*this->locator, new_max_element_count, new_memory.get(), *this);
+        BasicContiguousVector::insert_into<true>(*this->locator, new_max_element_count, new_memory.get(), *this);
         this->max_element_count = new_max_element_count;
         this->memory.reset(std::move(new_memory));
     }
 
-    template <bool UseMove, bool IsDestruct = false, class Self = BasicContiguousVector>
+    template <bool IsDestruct = false, class Self = BasicContiguousVector>
     static void insert_into(ElementLocator& locator, size_type new_max_element_count, std::byte* new_memory, Self& from)
     {
+        static constexpr auto USE_MOVE = !std::is_const_v<Self>;
         static constexpr auto IS_TRIVIAL =
-            UseMove ? ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE : ListTraits::IS_TRIVIALLY_COPY_CONSTRUCTIBLE;
+            USE_MOVE ? ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE : ListTraits::IS_TRIVIALLY_COPY_CONSTRUCTIBLE;
         if constexpr (IS_TRIVIAL && (!IsDestruct || ListTraits::IS_TRIVIALLY_DESTRUCTIBLE))
         {
             locator.trivially_copy_into(from.max_element_count, from.memory.get(), new_max_element_count, new_memory);
@@ -3883,7 +3942,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         {
             ElementLocator new_locator{locator, from.max_element_count, from.memory.get(), new_max_element_count,
                                        new_memory};
-            BasicContiguousVector::uninitialized_construct_if_non_trivial<UseMove>(from, new_memory, new_locator);
+            BasicContiguousVector::uninitialized_construct_if_non_trivial<USE_MOVE>(from, new_memory, new_locator);
             if constexpr (IsDestruct)
             {
                 from.destruct();
@@ -3926,6 +3985,21 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         }
     }
 
+    void make_room_for_last_element_at(std::size_t from, [[maybe_unused]] std::size_t bytes)
+    {
+        if constexpr (ListTraits::IS_TRIVIALLY_MOVE_CONSTRUCTIBLE && ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
+        {
+            this->locator->make_room_for_last_element_at(from, bytes, this->memory.get());
+        }
+        else
+        {
+            for (auto i = this->size(); i != from; --i)
+            {
+                this->emplace_at(i, (*this)[i - std::size_t{1}], ListTraits::make_index_sequence());
+            }
+        }
+    }
+
     template <std::size_t... I>
     void emplace_at(std::size_t i, const reference& element, std::index_sequence<I...>)
     {
@@ -3963,15 +4037,15 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
                     // allocate memory first because it might throw
                     StorageType new_memory{other.memory_consumption(), this->get_allocator()};
                     this->destruct();
-                    BasicContiguousVector::insert_into<true>(*other_locator, other.max_element_count, new_memory.get(),
-                                                             other);
+                    BasicContiguousVector::insert_into(*other_locator, other.max_element_count, new_memory.get(),
+                                                       other);
                     this->memory = std::move(new_memory);
                 }
                 else
                 {
                     this->destruct();
-                    BasicContiguousVector::insert_into<true>(*other_locator, other.max_element_count,
-                                                             this->memory.get(), other);
+                    BasicContiguousVector::insert_into(*other_locator, other.max_element_count, this->memory.get(),
+                                                       other);
                 }
                 this->max_element_count = other.max_element_count;
                 this->locator = other_locator;
@@ -3982,7 +4056,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     auto copy_construct_locator(const BasicContiguousVector& other)
     {
         auto other_locator = other.locator;
-        BasicContiguousVector::insert_into<false>(*other_locator, other.max_element_count, this->memory.get(), other);
+        BasicContiguousVector::insert_into(*other_locator, other.max_element_count, this->memory.get(), other);
         return other_locator;
     }
 
@@ -3991,7 +4065,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         this->destruct();
         this->memory = other.memory;
         auto other_locator = other.locator;
-        BasicContiguousVector::insert_into<false>(*other_locator, other.max_element_count, this->memory.get(), other);
+        BasicContiguousVector::insert_into(*other_locator, other.max_element_count, this->memory.get(), other);
         this->max_element_count = other.max_element_count;
         this->locator = other_locator;
     }
@@ -4038,6 +4112,8 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
             return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
         }
     }
+
+    constexpr iterator make_iterator(const const_iterator& it) noexcept { return {*this, it.index()}; }
 
     constexpr void destruct_if_owned() noexcept
     {
