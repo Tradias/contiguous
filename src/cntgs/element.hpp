@@ -350,8 +350,8 @@ class BasicContiguousElement
                         StorageType new_memory{other.memory_.size(), get_allocator()};
                         destruct();
                         reference_.tuple_ = store_and_load(other.reference_, other_size_in_bytes,
-                                                                       BasicContiguousElement::memory_begin(new_memory))
-                                                      .tuple_;
+                                                           BasicContiguousElement::memory_begin(new_memory))
+                                                .tuple_;
                         memory_ = std::move(new_memory);
                     }
                     else

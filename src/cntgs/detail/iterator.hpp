@@ -47,11 +47,11 @@ constexpr auto operator_arrow_produces_pointer_to_iterator_reference_type() noex
 
 template <class I>
 inline constexpr auto CONTIGUOUS_ITERATOR_V =
-    detail::DerivedFrom<typename std::iterator_traits<I>::iterator_category, std::random_access_iterator_tag>&&
-        std::is_lvalue_reference_v<typename std::iterator_traits<I>::reference>&&
-            std::is_same_v<typename std::iterator_traits<I>::value_type,
-                           detail::RemoveCvrefT<typename std::iterator_traits<I>::reference>>&&
-            detail::operator_arrow_produces_pointer_to_iterator_reference_type<I>();
+    detail::DerivedFrom<typename std::iterator_traits<I>::iterator_category, std::random_access_iterator_tag> &&
+    std::is_lvalue_reference_v<typename std::iterator_traits<I>::reference> &&
+    std::is_same_v<typename std::iterator_traits<I>::value_type,
+                   detail::RemoveCvrefT<typename std::iterator_traits<I>::reference>> &&
+    detail::operator_arrow_produces_pointer_to_iterator_reference_type<I>();
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_ITERATOR_HPP

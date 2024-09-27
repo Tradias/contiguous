@@ -45,7 +45,7 @@ struct Span
     Span(Span&& other) = default;
 
     Span& operator=(const Span& other) = default;
-    
+
     Span& operator=(Span&& other) = default;
 
     constexpr Span(iterator first, iterator last) noexcept : first_(first), last_(last) {}

@@ -126,9 +126,9 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
         : max_element_count_(vector.max_element_count),
           memory_(vector.memory, vector.memory_size,
-                 *std::launder(reinterpret_cast<allocator_type*>(&vector.allocator))),
+                  *std::launder(reinterpret_cast<allocator_type*>(&vector.allocator))),
           locator_(*std::launder(reinterpret_cast<ElementLocator*>(&vector.locator)),
-                  detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
+                   detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
     {
         vector.is_memory_owned.value_ = false;
     }
@@ -259,10 +259,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     [[nodiscard]] constexpr bool empty() const noexcept { return locator_->empty(memory_.get()); }
 
-    [[nodiscard]] constexpr std::byte* data() noexcept
-    {
-        return locator_->element_address({}, memory_.get());
-    }
+    [[nodiscard]] constexpr std::byte* data() noexcept { return locator_->element_address({}, memory_.get()); }
 
     [[nodiscard]] constexpr const std::byte* data() const noexcept
     {
@@ -377,8 +374,8 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
     {
-        const auto new_memory_size = locator_->calculate_new_memory_size(
-            new_max_element_count, new_varying_size_bytes, locator_.fixed_sizes());
+        const auto new_memory_size =
+            locator_->calculate_new_memory_size(new_max_element_count, new_varying_size_bytes, locator_.fixed_sizes());
         StorageType new_memory{new_memory_size, get_allocator()};
         BasicContiguousVector::insert_into<true>(*locator_, new_max_element_count, new_memory.get(), *this);
         max_element_count_ = new_max_element_count;
@@ -460,8 +457,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     template <std::size_t... I>
     void emplace_at(std::size_t i, const reference& element, std::index_sequence<I...>)
     {
-        locator_->emplace_at(i, memory_.get(), locator_.fixed_sizes(),
-                                  std::move(cntgs::get<I>(element))...);
+        locator_->emplace_at(i, memory_.get(), locator_.fixed_sizes(), std::move(cntgs::get<I>(element))...);
         ElementTraits::destruct(element);
     }
 
@@ -501,8 +497,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
                 else
                 {
                     destruct();
-                    BasicContiguousVector::insert_into(*other_locator, other.max_element_count_, memory_.get(),
-                                                       other);
+                    BasicContiguousVector::insert_into(*other_locator, other.max_element_count_, memory_.get(), other);
                 }
                 max_element_count_ = other.max_element_count_;
                 locator_ = other_locator;

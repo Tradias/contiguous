@@ -23,7 +23,7 @@ concept DerivedFrom = std::derived_from<Derived, Base>;
 #else
 template <class Derived, class Base>
 inline constexpr auto DerivedFrom =
-    std::is_base_of_v<Base, Derived>&& std::is_convertible_v<const volatile Derived*, const volatile Base*>;
+    std::is_base_of_v<Base, Derived> && std::is_convertible_v<const volatile Derived*, const volatile Base*>;
 #endif
 
 #ifdef __cpp_lib_remove_cvref
@@ -148,13 +148,13 @@ template <class T>
 inline constexpr auto IS_NOTRHOW_EQUALITY_COMPARABLE = noexcept(std::declval<const T&>() == std::declval<const T&>());
 
 template <class T>
-inline constexpr auto IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE = noexcept(std::declval<const T&>() <
-                                                                       std::declval<const T&>());
+inline constexpr auto IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE =
+    noexcept(std::declval<const T&>() < std::declval<const T&>());
 
 template <class T, class U>
 inline constexpr auto MEMCPY_COMPATIBLE =
-    detail::EQUAL_SIZEOF<T, U>&& std::is_trivially_copyable_v<T>&& std::is_trivially_copyable_v<U>&&
-        std::is_floating_point_v<T> == std::is_floating_point_v<U>;
+    detail::EQUAL_SIZEOF<T, U> && std::is_trivially_copyable_v<T> && std::is_trivially_copyable_v<U> &&
+    std::is_floating_point_v<T> == std::is_floating_point_v<U>;
 
 // Implementation taken from MSVC _Can_memcmp_elements
 template <class T, class U = T,

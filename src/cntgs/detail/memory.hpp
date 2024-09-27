@@ -100,8 +100,8 @@ auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNT
 }
 
 template <bool IgnoreAliasing, class TargetType, class Range>
-auto uninitialized_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address, std::size_t)
-    -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
+auto uninitialized_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address,
+                             std::size_t) -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
 {
     return detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), address);
 }

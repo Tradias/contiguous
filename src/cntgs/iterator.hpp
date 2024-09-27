@@ -118,10 +118,7 @@ class ContiguousVectorIterator
         return copy;
     }
 
-    [[nodiscard]] constexpr difference_type operator+(ContiguousVectorIterator it) const noexcept
-    {
-        return i_ + it.i_;
-    }
+    [[nodiscard]] constexpr difference_type operator+(ContiguousVectorIterator it) const noexcept { return i_ + it.i_; }
 
     constexpr ContiguousVectorIterator& operator+=(difference_type diff) noexcept
     {
@@ -136,10 +133,7 @@ class ContiguousVectorIterator
         return copy;
     }
 
-    [[nodiscard]] constexpr difference_type operator-(ContiguousVectorIterator it) const noexcept
-    {
-        return i_ - it.i_;
-    }
+    [[nodiscard]] constexpr difference_type operator-(ContiguousVectorIterator it) const noexcept { return i_ - it.i_; }
 
     constexpr ContiguousVectorIterator& operator-=(difference_type diff) noexcept
     {

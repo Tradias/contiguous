@@ -120,7 +120,7 @@ class ElementLocator : public BaseElementLocator
                    std::size_t new_max_element_count, std::byte* new_memory_begin) noexcept
     {
         trivially_copy_into(old_locator, old_max_element_count, old_memory_begin, new_max_element_count,
-                                  new_memory_begin);
+                            new_memory_begin);
     }
 
     template <class... Args>
@@ -153,8 +153,7 @@ class ElementLocator : public BaseElementLocator
     void trivially_copy_into(std::size_t old_max_element_count, std::byte* CNTGS_RESTRICT old_memory_begin,
                              std::size_t new_max_element_count, std::byte* CNTGS_RESTRICT new_memory_begin) noexcept
     {
-        trivially_copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count,
-                                  new_memory_begin);
+        trivially_copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count, new_memory_begin);
     }
 
     static constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
@@ -281,8 +280,7 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
     template <class... Args>
     auto emplace_at(std::size_t index, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        return ElementTraits::emplace_at_aliased(element_address(index, {}), fixed_sizes,
-                                                 std::forward<Args>(args)...);
+        return ElementTraits::emplace_at_aliased(element_address(index, {}), fixed_sizes, std::forward<Args>(args)...);
     }
 
     void trivially_copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
@@ -294,8 +292,8 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
                                              const FixedSizesArray&) noexcept
     {
         constexpr auto ALIGNMENT_OVERHEAD = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
-        return varying_size_bytes + stride_ * max_element_count +
-               ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
+        return varying_size_bytes + stride_ * max_element_count + ElementLocator::reserved_bytes(max_element_count) +
+               ALIGNMENT_OVERHEAD;
     }
 
   private:
