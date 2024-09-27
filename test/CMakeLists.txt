@@ -72,7 +72,7 @@ function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
 endfunction()
 
 set(CNTGS_TEST_SOURCE_FILES "test-vector.cpp" "test-element.cpp" "test-reference.cpp" "test-iterator.cpp"
-                            "test-type-erase.cpp" "test-code-gen.cpp")
+                            "test-code-gen.cpp")
 
 cntgs_add_test(cntgs-test-cpp17 "${CMAKE_CURRENT_BINARY_DIR}/cntgs-code-gen-objects-cpp17.asm"
                ${CNTGS_TEST_SOURCE_FILES})

@@ -12,7 +12,6 @@ list(
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/parameter.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/reference.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/span.hpp"
-    "${CMAKE_CURRENT_LIST_DIR}/cntgs/typeErasedVector.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/vector.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/algorithm.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/allocator.hpp"

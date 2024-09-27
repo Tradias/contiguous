@@ -22,7 +22,6 @@
 #include "cntgs/parameter.hpp"
 #include "cntgs/reference.hpp"
 #include "cntgs/span.hpp"
-#include "cntgs/typeErasedVector.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -121,16 +120,6 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
                                     std::enable_if_t<IsNoneSpecial>* = nullptr)
         : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator)
     {
-    }
-
-    explicit BasicContiguousVector(cntgs::TypeErasedVector&& vector) noexcept
-        : max_element_count_(vector.max_element_count),
-          memory_(vector.memory, vector.memory_size,
-                  *std::launder(reinterpret_cast<allocator_type*>(&vector.allocator))),
-          locator_(*std::launder(reinterpret_cast<ElementLocator*>(&vector.locator)),
-                   detail::convert_array_to_size<ListTraits::CONTIGUOUS_FIXED_SIZE_COUNT>(vector.fixed_sizes))
-    {
-        vector.is_memory_owned.value_ = false;
     }
 
     BasicContiguousVector(const BasicContiguousVector& other)

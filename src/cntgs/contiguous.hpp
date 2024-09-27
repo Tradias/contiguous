@@ -11,7 +11,6 @@
 #include "cntgs/parameter.hpp"
 #include "cntgs/reference.hpp"
 #include "cntgs/span.hpp"
-#include "cntgs/typeErasedVector.hpp"
 #include "cntgs/vector.hpp"
 
 #endif  // CNTGS_CNTGS_CONTIGUOUS_HPP

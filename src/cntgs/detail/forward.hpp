@@ -31,8 +31,6 @@ class BasicContiguousVector;
 template <bool IsConst, class Options, class... Parameter>
 class ContiguousVectorIterator;
 
-class TypeErasedVector;
-
 template <bool IsConst, class... Parameter>
 class BasicContiguousReference;
 

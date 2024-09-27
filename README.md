@@ -253,23 +253,3 @@ using Vector = cntgs::ContiguousVector<              //
 <sup><a href='/example/vector-with-alignment.cpp#L29-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-vector-with-alignment' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## Type erase a ContiguousVector
-
-For passing a `cntgs::ContiguousVector` across complex API boundaries it might be benefical to erase its type. The `cntgs::TypeErasedVector` can be used to take care of that.
-
-<!-- snippet: type-erased-vector -->
-<a id='snippet-type-erased-vector'></a>
-```cpp
-using Vector = cntgs::ContiguousVector<cntgs::FixedSize<float>,  //
-                                       cntgs::VaryingSize<uint32_t>>;
-Vector vector{1, 2 * sizeof(uint32_t), {1}};
-fill_vector(vector);
-
-cntgs::TypeErasedVector type_erased_vector{std::move(vector)};
-
-Vector restored{std::move(type_erased_vector)};
-```
-<sup><a href='/example/type-erased-vector.cpp#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-type-erased-vector' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-
