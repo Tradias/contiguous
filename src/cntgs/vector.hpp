@@ -283,6 +283,13 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return memory_.get_allocator(); }
 
+    friend constexpr void swap(BasicContiguousVector& lhs, BasicContiguousVector& rhs) noexcept
+    {
+        std::swap(lhs.max_element_count_, rhs.max_element_count_);
+        detail::swap(lhs.memory_, rhs.memory_);
+        std::swap(lhs.locator_, rhs.locator_);
+    }
+
     template <class... TOption>
     [[nodiscard]] constexpr auto operator==(
         const cntgs::BasicContiguousVector<cntgs::Options<TOption...>, Parameter...>& other) const
@@ -574,15 +581,6 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         }
     }
 };
-
-template <class... Option, class... T>
-constexpr void swap(cntgs::BasicContiguousVector<cntgs::Options<Option...>, T...>& lhs,
-                    cntgs::BasicContiguousVector<cntgs::Options<Option...>, T...>& rhs) noexcept
-{
-    std::swap(lhs.max_element_count_, rhs.max_element_count_);
-    detail::swap(lhs.memory_, rhs.memory_);
-    std::swap(lhs.locator_, rhs.locator_);
-}
 }  // namespace cntgs
 
 #endif  // CNTGS_CNTGS_VECTOR_HPP

@@ -135,6 +135,12 @@ class BasicContiguousElement
 
     [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return memory_.get_allocator(); }
 
+    friend constexpr void swap(BasicContiguousElement& lhs, BasicContiguousElement& rhs) noexcept
+    {
+        detail::swap(lhs.memory_, rhs.memory_);
+        std::swap(lhs.reference_.tuple_, rhs.reference_.tuple_);
+    }
+
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
@@ -380,14 +386,6 @@ class BasicContiguousElement
         }
     }
 };
-
-template <class Allocator, class... T>
-constexpr void swap(cntgs::BasicContiguousElement<Allocator, T...>& lhs,
-                    cntgs::BasicContiguousElement<Allocator, T...>& rhs) noexcept
-{
-    detail::swap(lhs.memory_, rhs.memory_);
-    std::swap(lhs.reference_.tuple_, rhs.reference_.tuple_);
-}
 
 template <std::size_t I, class Allocator, class... Parameter>
 [[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousElement<Allocator, Parameter...>& element) noexcept

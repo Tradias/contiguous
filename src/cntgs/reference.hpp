@@ -128,6 +128,12 @@ class BasicContiguousReference
             cntgs::get<sizeof...(Parameter) - 1>(*this));
     }
 
+    friend constexpr void swap(const BasicContiguousReference& lhs,
+                               const BasicContiguousReference& rhs) noexcept(ListTraits::IS_NOTHROW_SWAPPABLE)
+    {
+        ElementTraits::swap(rhs, lhs);
+    }
+
     template <bool OtherIsConst>
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other)
         const noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
@@ -239,14 +245,6 @@ class BasicContiguousReference
         ElementTraits::template assign<USE_MOVE>(other, *this);
     }
 };
-
-template <bool IsConst, class... Parameter>
-constexpr void swap(const cntgs::BasicContiguousReference<IsConst, Parameter...>& lhs,
-                    const cntgs::BasicContiguousReference<IsConst, Parameter...>&
-                        rhs) noexcept(detail::ParameterListTraits<Parameter...>::IS_NOTHROW_SWAPPABLE)
-{
-    detail::ElementTraitsT<Parameter...>::swap(rhs, lhs);
-}
 
 template <std::size_t I, bool IsConst, class... Parameter>
 [[nodiscard]] constexpr std::tuple_element_t<I, cntgs::BasicContiguousReference<IsConst, Parameter...>> get(
