@@ -353,18 +353,6 @@ class ElementLocatorAndFixedSizes
 
     constexpr const auto& fixed_sizes() const noexcept { return Base::get(); }
 };
-
-using TypeErasedElementLocator =
-    std::aligned_storage_t<std::max(sizeof(detail::ElementLocator<false>), sizeof(detail::ElementLocator<true>)),
-                           std::max(alignof(detail::ElementLocator<false>), alignof(detail::ElementLocator<true>))>;
-
-template <class T>
-auto type_erase_element_locator(T&& locator) noexcept
-{
-    detail::TypeErasedElementLocator result;
-    detail::construct_at(reinterpret_cast<detail::RemoveCvrefT<T>*>(&result), std::forward<T>(locator));
-    return result;
-}
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_ELEMENTLOCATOR_HPP

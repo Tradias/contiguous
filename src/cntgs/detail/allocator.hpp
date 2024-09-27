@@ -15,8 +15,6 @@
 
 namespace cntgs::detail
 {
-using TypeErasedAllocator = std::aligned_storage_t<32>;
-
 template <class Allocator>
 class AllocatorAwarePointer
 {
@@ -190,14 +188,6 @@ constexpr void swap(detail::AllocatorAwarePointer<Allocator>& lhs,
     }
     swap(lhs.get(), rhs.get());
     swap(lhs.size(), rhs.size());
-}
-
-template <class T>
-auto type_erase_allocator(T&& allocator) noexcept
-{
-    detail::TypeErasedAllocator result;
-    detail::construct_at(reinterpret_cast<detail::RemoveCvrefT<T>*>(&result), std::forward<T>(allocator));
-    return result;
 }
 }  // namespace cntgs::detail
 
