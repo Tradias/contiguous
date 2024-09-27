@@ -12,27 +12,19 @@
 
 namespace cntgs::detail
 {
-template <class, class = std::void_t<>>
-struct HasDataAndSize : std::false_type
-{
-};
+template <class, class = void>
+inline constexpr bool HAS_DATA_AND_SIZE = false;
 
 template <class T>
-struct HasDataAndSize<T, std::void_t<decltype(std::data(std::declval<T&>())), decltype(std::size(std::declval<T&>()))>>
-    : std::true_type
-{
-};
+inline constexpr bool HAS_DATA_AND_SIZE<
+    T, std::void_t<decltype(std::data(std::declval<T&>())), decltype(std::size(std::declval<T&>()))>> = true;
 
-template <class, class = std::void_t<>>
-struct IsRange : std::false_type
-{
-};
+template <class, class = void>
+inline constexpr bool IS_RANGE = false;
 
 template <class T>
-struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype(std::end(std::declval<T&>()))>>
-    : std::true_type
-{
-};
+inline constexpr bool
+    IS_RANGE<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype(std::end(std::declval<T&>()))>> = true;
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_RANGE_HPP

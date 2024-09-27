@@ -20,7 +20,3 @@
 #include <utility>
 #include <vector>
 #include <version>
-
-#ifdef __cpp_lib_concepts
-#include <concepts>
-#endif

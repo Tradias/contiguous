@@ -81,7 +81,7 @@ template <bool IgnoreAliasing, class TargetType, class Range>
 auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address)
 {
     using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
-    if constexpr (IgnoreAliasing && detail::HasDataAndSize<std::decay_t<Range>>{} &&
+    if constexpr (IgnoreAliasing && detail::HAS_DATA_AND_SIZE<std::decay_t<Range>> &&
                   detail::MEMCPY_COMPATIBLE<TargetType, RangeValueType>)
     {
         return detail::memcpy(std::data(range), reinterpret_cast<std::byte*>(address), std::size(range));
@@ -101,14 +101,14 @@ auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNT
 
 template <bool IgnoreAliasing, class TargetType, class Range>
 auto uninitialized_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address,
-                             std::size_t) -> std::enable_if_t<detail::IsRange<Range>::value, std::byte*>
+                             std::size_t) -> std::enable_if_t<detail::IS_RANGE<Range>, std::byte*>
 {
     return detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), address);
 }
 
 template <bool IgnoreAliasing, class TargetType, class Iterator>
 auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType* CNTGS_RESTRICT address,
-                             std::size_t size) -> std::enable_if_t<!detail::IsRange<Iterator>::value, std::byte*>
+                             std::size_t size) -> std::enable_if_t<!detail::IS_RANGE<Iterator>, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
     if constexpr (IgnoreAliasing && std::is_pointer_v<Iterator> &&

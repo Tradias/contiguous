@@ -11,16 +11,12 @@
 
 namespace cntgs::test
 {
-template <class, class = std::void_t<>>
-struct IsRange : std::false_type
-{
-};
+template <class, class = void>
+inline constexpr bool IS_RANGE = false;
 
 template <class T>
-struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype(std::end(std::declval<T&>()))>>
-    : std::true_type
-{
-};
+inline constexpr bool
+    IS_RANGE<T, std::void_t<decltype(std::begin(std::declval<T&>())), decltype(std::end(std::declval<T&>()))>> = true;
 
 template <class Lhs, class Rhs, class Comp = std::equal_to<>>
 auto range_equal(Lhs&& lhs, Rhs&& rhs, Comp&& comp = {})

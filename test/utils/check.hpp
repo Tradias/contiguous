@@ -57,7 +57,7 @@ bool check_equal(const Lhs& lhs, const Rhs& rhs)
         CHECK_EQ(lhs, rhs);
         return lhs == rhs;
     }
-    if constexpr (test::IsRange<test::RemoveCvrefT<Lhs>>::value)
+    if constexpr (test::IS_RANGE<test::RemoveCvrefT<Lhs>>)
     {
         auto result = test::range_equal(lhs, rhs,
                                         [](auto&& lhs_value, auto&& rhs_value)

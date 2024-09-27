@@ -13,15 +13,11 @@
 
 namespace cntgs::detail
 {
-template <class, class = std::void_t<>>
-struct HasOperatorArrow : std::false_type
-{
-};
+template <class, class = void>
+inline constexpr bool HAS_OPERATOR_ARROW = false;
 
 template <class T>
-struct HasOperatorArrow<T, std::void_t<decltype(std::declval<const T&>().operator->())>> : std::true_type
-{
-};
+inline constexpr bool HAS_OPERATOR_ARROW<T, std::void_t<decltype(std::declval<const T&>().operator->())>> = true;
 
 template <class T>
 struct ArrowProxy
@@ -34,7 +30,7 @@ struct ArrowProxy
 template <class I>
 constexpr auto operator_arrow_produces_pointer_to_iterator_reference_type() noexcept
 {
-    if constexpr (detail::HasOperatorArrow<I>::value)
+    if constexpr (detail::HAS_OPERATOR_ARROW<I>)
     {
         return std::is_same_v<decltype(std::declval<const I&>().operator->()),
                               std::add_pointer_t<typename std::iterator_traits<I>::reference>>;
@@ -46,8 +42,8 @@ constexpr auto operator_arrow_produces_pointer_to_iterator_reference_type() noex
 }
 
 template <class I>
-inline constexpr auto CONTIGUOUS_ITERATOR_V =
-    detail::DerivedFrom<typename std::iterator_traits<I>::iterator_category, std::random_access_iterator_tag> &&
+inline constexpr bool CONTIGUOUS_ITERATOR_V =
+    detail::IS_DERIVED_FROM<typename std::iterator_traits<I>::iterator_category, std::random_access_iterator_tag> &&
     std::is_lvalue_reference_v<typename std::iterator_traits<I>::reference> &&
     std::is_same_v<typename std::iterator_traits<I>::value_type,
                    detail::RemoveCvrefT<typename std::iterator_traits<I>::reference>> &&

@@ -89,9 +89,8 @@ class BasicContiguousElement
     template <class OtherAllocator>
     constexpr BasicContiguousElement(
         BasicContiguousElement<OtherAllocator, Parameter...>&& other,
-        const allocator_type&
-            allocator) noexcept(detail::AreEqualityComparable<allocator_type, OtherAllocator>::value &&
-                                AllocatorTraits::is_always_equal::value)
+        const allocator_type& allocator) noexcept(detail::ARE_EQUALITY_COMPARABLE<allocator_type, OtherAllocator> &&
+                                                  AllocatorTraits::is_always_equal::value)
         : memory_(acquire_memory(other, allocator)), reference_(acquire_reference(other, allocator))
     {
     }
@@ -237,7 +236,7 @@ class BasicContiguousElement
     auto acquire_memory(BasicContiguousElement<OtherAllocator, Parameter...>& other,
                         [[maybe_unused]] const allocator_type& allocator) const
     {
-        if constexpr (detail::AreEqualityComparable<allocator_type, OtherAllocator>::value)
+        if constexpr (detail::ARE_EQUALITY_COMPARABLE<allocator_type, OtherAllocator>)
         {
             if constexpr (AllocatorTraits::is_always_equal::value)
             {
@@ -262,7 +261,7 @@ class BasicContiguousElement
     auto acquire_reference(BasicContiguousElement<OtherAllocator, Parameter...>& other,
                            [[maybe_unused]] const allocator_type& allocator) const
     {
-        if constexpr (detail::AreEqualityComparable<allocator_type, OtherAllocator>::value)
+        if constexpr (detail::ARE_EQUALITY_COMPARABLE<allocator_type, OtherAllocator>)
         {
             if constexpr (AllocatorTraits::is_always_equal::value)
             {

@@ -107,7 +107,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         calculate_consecutive_indices<detail::EqualityMemcmpCompatible>()};
 
     static constexpr auto CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES{
-        calculate_consecutive_indices<detail::LexicographicalMemcmpCompatibleT>()};
+        calculate_consecutive_indices<detail::LexicographicalMemcmpCompatible>()};
 
     template <std::size_t K, std::size_t L, bool IsLhsConst, bool IsRhsConst>
     static constexpr auto get_data_begin_and_end(
