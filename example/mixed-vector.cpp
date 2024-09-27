@@ -17,7 +17,7 @@ int main()
 
     // begin-snippet: mixed-vector-construction
     cntgs::ContiguousVector<cntgs::FixedSize<std::unique_ptr<int32_t>>,  //
-                            cntgs::Varying<std::unique_ptr<uint32_t>>>
+                            cntgs::VaryingSize<std::unique_ptr<uint32_t>>>
         vector{initial_capacity, varying_object_count * sizeof(std::unique_ptr<uint32_t>), {fixed_object_count}};
     // end-snippet
 
@@ -34,8 +34,8 @@ int main()
     auto&& objects_of_first_parameter = cntgs::get<0>(vector.front());
     // end-snippet
 
-    assert((std::is_same_v<cntgs::Span<std::unique_ptr<int32_t>>, decltype(first_parameter)>));
-    assert(1u == *a);
+    assert((std::is_same_v<cntgs::Span<std::unique_ptr<int32_t>>, decltype(objects_of_first_parameter)>));
+    assert(1u == *objects_of_first_parameter.front());
 
     return 0;
 }

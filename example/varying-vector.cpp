@@ -28,8 +28,8 @@ int main()
     assert(0 == vector.size());
 
     // begin-snippet: varying-vector-emplace_back
-    vector.emplace_back(std::vector{1, 2}, 10.f);
-    vector.emplace_back(std::vector{3, 4, 5}, 20.f);
+    vector.emplace_back(std::array{1, 2}, 10.f);
+    vector.emplace_back(std::array{3, 4, 5}, 20.f);
     // end-snippet
 
     assert(2 == vector.size());
