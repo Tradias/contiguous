@@ -34,26 +34,26 @@ class AllocatorAwarePointer
     {
         using Base = detail::EmptyBaseOptimization<Allocator>;
 
-        Pointer ptr{};
-        std::size_t size{};
+        Pointer ptr_{};
+        std::size_t size_{};
 
         Impl() = default;
 
         constexpr Impl(Pointer ptr, std::size_t size, const Allocator& allocator) noexcept
-            : Base{allocator}, ptr(ptr), size(size)
+            : Base{allocator}, ptr_(ptr), size_(size)
         {
         }
     };
 
-    Impl impl;
+    Impl impl_;
 
-    constexpr auto allocate() { return AllocatorTraits::allocate(this->get_allocator(), this->size()); }
+    constexpr auto allocate() { return AllocatorTraits::allocate(get_allocator(), size()); }
 
     constexpr void deallocate() noexcept
     {
-        if (this->get())
+        if (get())
         {
-            AllocatorTraits::deallocate(this->get_allocator(), this->get(), this->size());
+            AllocatorTraits::deallocate(get_allocator(), get(), size());
         }
     }
 
@@ -72,12 +72,12 @@ class AllocatorAwarePointer
     AllocatorAwarePointer() = default;
 
     constexpr AllocatorAwarePointer(std::size_t size, const Allocator& allocator)
-        : impl(AllocatorAwarePointer::allocate_if_not_zero(size, allocator), size, allocator)
+        : impl_(AllocatorAwarePointer::allocate_if_not_zero(size, allocator), size, allocator)
     {
     }
 
     constexpr AllocatorAwarePointer(pointer ptr, std::size_t size, const Allocator& allocator) noexcept
-        : impl(ptr, size, allocator)
+        : impl_(ptr, size, allocator)
     {
     }
 
@@ -88,7 +88,7 @@ class AllocatorAwarePointer
     }
 
     constexpr AllocatorAwarePointer(AllocatorAwarePointer&& other) noexcept
-        : impl(other.release(), other.size(), other.get_allocator())
+        : impl_(other.release(), other.size(), other.get_allocator())
     {
     }
 
@@ -97,7 +97,7 @@ class AllocatorAwarePointer
 #endif
         ~AllocatorAwarePointer() noexcept
     {
-        this->deallocate();
+        deallocate();
     }
 
     constexpr AllocatorAwarePointer& operator=(const AllocatorAwarePointer& other)
@@ -107,21 +107,21 @@ class AllocatorAwarePointer
             if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value &&
                           !AllocatorTraits::is_always_equal::value)
             {
-                if (this->get_allocator() != other.get_allocator())
+                if (get_allocator() != other.get_allocator())
                 {
-                    this->deallocate();
-                    this->propagate_on_container_copy_assignment(other);
-                    this->size() = other.size();
-                    this->get() = this->allocate();
+                    deallocate();
+                    propagate_on_container_copy_assignment(other);
+                    size() = other.size();
+                    get() = allocate();
                     return *this;
                 }
             }
-            this->propagate_on_container_copy_assignment(other);
-            if (this->size() < other.size() || !this->get())
+            propagate_on_container_copy_assignment(other);
+            if (size() < other.size() || !get())
             {
-                this->deallocate();
-                this->size() = other.size();
-                this->get() = this->allocate();
+                deallocate();
+                size() = other.size();
+                get() = allocate();
             }
         }
         return *this;
@@ -131,42 +131,42 @@ class AllocatorAwarePointer
     {
         if (this != std::addressof(other))
         {
-            this->propagate_on_container_move_assignment(other);
-            this->deallocate();
-            this->get() = other.release();
-            this->size() = other.size();
+            propagate_on_container_move_assignment(other);
+            deallocate();
+            get() = other.release();
+            size() = other.size();
         }
         return *this;
     }
 
-    constexpr decltype(auto) get_allocator() noexcept { return this->impl.get(); }
+    constexpr decltype(auto) get_allocator() noexcept { return impl_.get(); }
 
-    constexpr auto get_allocator() const noexcept { return this->impl.get(); }
+    constexpr auto get_allocator() const noexcept { return impl_.get(); }
 
-    constexpr auto& get() noexcept { return this->impl.ptr; }
+    constexpr auto& get() noexcept { return impl_.ptr_; }
 
-    constexpr auto get() const noexcept { return this->impl.ptr; }
+    constexpr auto get() const noexcept { return impl_.ptr_; }
 
-    constexpr auto& size() noexcept { return this->impl.size; }
+    constexpr auto& size() noexcept { return impl_.size_; }
 
-    constexpr auto size() const noexcept { return this->impl.size; }
+    constexpr auto size() const noexcept { return impl_.size_; }
 
-    constexpr explicit operator bool() const noexcept { return this->get() != nullptr; }
+    constexpr explicit operator bool() const noexcept { return get() != nullptr; }
 
-    constexpr auto release() noexcept { return std::exchange(this->impl.ptr, nullptr); }
+    constexpr auto release() noexcept { return std::exchange(impl_.ptr_, nullptr); }
 
     constexpr void reset(AllocatorAwarePointer&& other) noexcept
     {
-        this->deallocate();
-        this->get() = other.release();
-        this->size() = other.size();
+        deallocate();
+        get() = other.release();
+        size() = other.size();
     }
 
     constexpr void propagate_on_container_copy_assignment(const AllocatorAwarePointer& other) noexcept
     {
         if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value)
         {
-            this->get_allocator() = other.get_allocator();
+            get_allocator() = other.get_allocator();
         }
     }
 
@@ -174,7 +174,7 @@ class AllocatorAwarePointer
     {
         if constexpr (AllocatorTraits::propagate_on_container_move_assignment::value)
         {
-            this->get_allocator() = std::move(other.get_allocator());
+            get_allocator() = std::move(other.get_allocator());
         }
     }
 };

@@ -38,7 +38,7 @@ class BasicContiguousReference
     static constexpr auto IS_CONST = IsConst;
 
   public:
-    PointerTuple tuple;
+    PointerTuple tuple_;
 
     BasicContiguousReference() = default;
     ~BasicContiguousReference() = default;
@@ -49,28 +49,28 @@ class BasicContiguousReference
     template <bool OtherIsConst>
     /*implicit*/ constexpr BasicContiguousReference(
         const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>& other) noexcept
-        : tuple(other.tuple)
+        : tuple_(other.tuple_)
     {
     }
 
     template <class Allocator>
     /*implicit*/ constexpr BasicContiguousReference(
         const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) noexcept
-        : BasicContiguousReference(other.reference)
+        : BasicContiguousReference(other.reference_)
     {
     }
 
     template <class Allocator>
     /*implicit*/ constexpr BasicContiguousReference(
         cntgs::BasicContiguousElement<Allocator, Parameter...>& other) noexcept
-        : BasicContiguousReference(other.reference)
+        : BasicContiguousReference(other.reference_)
     {
     }
 
     constexpr BasicContiguousReference& operator=(const BasicContiguousReference& other) noexcept(
         ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->assign(other);
+        assign(other);
         return *this;
     }
 
@@ -78,7 +78,7 @@ class BasicContiguousReference
     constexpr BasicContiguousReference& operator=(const cntgs::BasicContiguousReference<OtherIsConst, Parameter...>&
                                                       other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->assign(other);
+        assign(other);
         return *this;
     }
 
@@ -86,14 +86,14 @@ class BasicContiguousReference
     constexpr BasicContiguousReference& operator=(const cntgs::BasicContiguousElement<Allocator, Parameter...>&
                                                       other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->assign(other.reference);
+        assign(other.reference);
         return *this;
     }
 
     constexpr BasicContiguousReference& operator=(BasicContiguousReference&& other) noexcept(
         ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        this->assign(other);
+        assign(other);
         return *this;
     }
 
@@ -103,7 +103,7 @@ class BasicContiguousReference
                                                                           ? ListTraits::IS_NOTHROW_COPY_ASSIGNABLE
                                                                           : ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        this->assign(other);
+        assign(other);
         return *this;
     }
 
@@ -111,11 +111,11 @@ class BasicContiguousReference
     constexpr BasicContiguousReference& operator=(
         cntgs::BasicContiguousElement<Allocator, Parameter...>&& other) noexcept(ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        this->assign(other.reference);
+        assign(other.reference_);
         return *this;
     }
 
-    [[nodiscard]] constexpr std::size_t size_in_bytes() const noexcept { return this->data_end() - this->data_begin(); }
+    [[nodiscard]] constexpr std::size_t size_in_bytes() const noexcept { return data_end() - data_begin(); }
 
     [[nodiscard]] constexpr auto data_begin() const noexcept
     {
@@ -139,7 +139,7 @@ class BasicContiguousReference
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
-        return *this == other.reference;
+        return *this == other.reference_;
     }
 
     template <bool OtherIsConst>
@@ -153,7 +153,7 @@ class BasicContiguousReference
     [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
-        return !(*this == other.reference);
+        return !(*this == other.reference_);
     }
 
     template <bool OtherIsConst>
@@ -167,7 +167,7 @@ class BasicContiguousReference
     [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return *this < other.reference;
+        return *this < other.reference_;
     }
 
     template <bool OtherIsConst>
@@ -181,7 +181,7 @@ class BasicContiguousReference
     [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return !(other.reference < *this);
+        return !(other.reference_ < *this);
     }
 
     template <bool OtherIsConst>
@@ -195,7 +195,7 @@ class BasicContiguousReference
     [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return other.reference < *this;
+        return other.reference_ < *this;
     }
 
     template <bool OtherIsConst>
@@ -209,7 +209,7 @@ class BasicContiguousReference
     [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousElement<Allocator, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return !(*this < other.reference);
+        return !(*this < other.reference_);
     }
 
   private:
@@ -230,7 +230,7 @@ class BasicContiguousReference
     {
     }
 
-    constexpr explicit BasicContiguousReference(const PointerTuple& tuple) noexcept : tuple(tuple) {}
+    constexpr explicit BasicContiguousReference(const PointerTuple& tuple) noexcept : tuple_(tuple) {}
 
     template <class Reference>
     void assign(Reference& other) const
@@ -254,11 +254,11 @@ template <std::size_t I, bool IsConst, class... Parameter>
 {
     if constexpr (IsConst)
     {
-        return detail::as_const_ref(std::get<I>(reference.tuple));
+        return detail::as_const_ref(std::get<I>(reference.tuple_));
     }
     else
     {
-        return detail::as_ref(std::get<I>(reference.tuple));
+        return detail::as_ref(std::get<I>(reference.tuple_));
     }
 }
 }  // namespace cntgs

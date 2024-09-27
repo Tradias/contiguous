@@ -15,7 +15,7 @@ namespace cntgs::detail
 template <class T, std::size_t N>
 struct Array
 {
-    std::array<T, N> array;
+    std::array<T, N> array_;
 };
 
 template <class T>
@@ -29,7 +29,7 @@ struct Array<T, 0>
 template <std::size_t I, class T, std::size_t N>
 constexpr decltype(auto) get(const detail::Array<T, N>& array) noexcept
 {
-    return std::get<I>(array.array);
+    return std::get<I>(array.array_);
 }
 
 template <std::size_t, class T>

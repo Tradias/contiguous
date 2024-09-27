@@ -26,9 +26,9 @@ struct HasOperatorArrow<T, std::void_t<decltype(std::declval<const T&>().operato
 template <class T>
 struct ArrowProxy
 {
-    T t;
+    T t_;
 
-    constexpr const T* operator->() const noexcept { return &t; }
+    constexpr const T* operator->() const noexcept { return &t_; }
 };
 
 template <class I>

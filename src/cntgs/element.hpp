@@ -42,39 +42,39 @@ class BasicContiguousElement
   public:
     using allocator_type = Allocator;
 
-    StorageType memory;
-    Reference reference;
+    StorageType memory_;
+    Reference reference_;
 
     template <bool IsConst>
     /*implicit*/ BasicContiguousElement(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other,
                                         const allocator_type& allocator = {})
-        : memory(other.size_in_bytes(), allocator), reference(this->store_and_load(other, other.size_in_bytes()))
+        : memory_(other.size_in_bytes(), allocator), reference_(store_and_load(other, other.size_in_bytes()))
     {
     }
 
     template <bool IsConst>
     /*implicit*/ BasicContiguousElement(cntgs::BasicContiguousReference<IsConst, Parameter...>&& other,
                                         const allocator_type& allocator = {})
-        : memory(other.size_in_bytes(), allocator), reference(this->store_and_load(other, other.size_in_bytes()))
+        : memory_(other.size_in_bytes(), allocator), reference_(store_and_load(other, other.size_in_bytes()))
     {
     }
 
     /*implicit*/ BasicContiguousElement(const BasicContiguousElement& other)
-        : memory(other.memory), reference(this->store_and_load(other.reference, other.reference.size_in_bytes()))
+        : memory_(other.memory_), reference_(store_and_load(other.reference_, other.reference_.size_in_bytes()))
     {
     }
 
     template <class OtherAllocator>
     explicit BasicContiguousElement(const BasicContiguousElement<OtherAllocator, Parameter...>& other)
-        : memory(other.memory), reference(this->store_and_load(other.reference, other.reference.size_in_bytes()))
+        : memory_(other.memory_), reference_(store_and_load(other.reference_, other.reference_.size_in_bytes()))
     {
     }
 
     template <class OtherAllocator>
     BasicContiguousElement(const BasicContiguousElement<OtherAllocator, Parameter...>& other,
                            const allocator_type& allocator)
-        : memory(other.reference.size_in_bytes(), allocator),
-          reference(this->store_and_load(other.reference, other.reference.size_in_bytes()))
+        : memory_(other.reference_.size_in_bytes(), allocator),
+          reference_(store_and_load(other.reference_, other.reference_.size_in_bytes()))
     {
     }
 
@@ -82,26 +82,27 @@ class BasicContiguousElement
 
     template <class OtherAllocator>
     constexpr explicit BasicContiguousElement(BasicContiguousElement<OtherAllocator, Parameter...>&& other) noexcept
-        : memory(std::move(other.memory)), reference(std::move(other.reference))
+        : memory_(std::move(other.memory_)), reference_(std::move(other.reference_))
     {
     }
 
     template <class OtherAllocator>
     constexpr BasicContiguousElement(
         BasicContiguousElement<OtherAllocator, Parameter...>&& other,
-        const allocator_type& allocator) noexcept(detail::AreEqualityComparable<allocator_type, OtherAllocator>::value&&
-                                                      AllocatorTraits::is_always_equal::value)
-        : memory(this->acquire_memory(other, allocator)), reference(this->acquire_reference(other, allocator))
+        const allocator_type&
+            allocator) noexcept(detail::AreEqualityComparable<allocator_type, OtherAllocator>::value &&
+                                AllocatorTraits::is_always_equal::value)
+        : memory_(acquire_memory(other, allocator)), reference_(acquire_reference(other, allocator))
     {
     }
 
-    ~BasicContiguousElement() noexcept { this->destruct(); }
+    ~BasicContiguousElement() noexcept { destruct(); }
 
     BasicContiguousElement& operator=(const BasicContiguousElement& other)
     {
         if (this != std::addressof(other))
         {
-            this->copy_assign(other);
+            copy_assign(other);
         }
         return *this;
     }
@@ -111,7 +112,7 @@ class BasicContiguousElement
     {
         if (this != std::addressof(other))
         {
-            this->move_assign(std::move(other));
+            move_assign(std::move(other));
         }
         return *this;
     }
@@ -120,7 +121,7 @@ class BasicContiguousElement
     constexpr BasicContiguousElement& operator=(const cntgs::BasicContiguousReference<IsConst, Parameter...>&
                                                     other) noexcept(ListTraits::IS_NOTHROW_COPY_ASSIGNABLE)
     {
-        this->reference = other;
+        reference_ = other;
         return *this;
     }
 
@@ -129,95 +130,95 @@ class BasicContiguousElement
                                                     other) noexcept(IsConst ? ListTraits::IS_NOTHROW_COPY_ASSIGNABLE
                                                                             : ListTraits::IS_NOTHROW_MOVE_ASSIGNABLE)
     {
-        this->reference = std::move(other);
+        reference_ = std::move(other);
         return *this;
     }
 
-    [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return this->memory.get_allocator(); }
+    [[nodiscard]] constexpr allocator_type get_allocator() const noexcept { return memory_.get_allocator(); }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator==(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
-        return this->reference == other;
+        return reference_ == other;
     }
 
     [[nodiscard]] constexpr auto operator==(const BasicContiguousElement& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
-        return this->reference == other.reference;
+        return reference_ == other.reference_;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator!=(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
-        return !(this->reference == other);
+        return !(reference_ == other);
     }
 
     [[nodiscard]] constexpr auto operator!=(const BasicContiguousElement& other) const
         noexcept(ListTraits::IS_NOTHROW_EQUALITY_COMPARABLE)
     {
-        return !(this->reference == other.reference);
+        return !(reference_ == other.reference_);
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator<(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return this->reference < other;
+        return reference_ < other;
     }
 
     [[nodiscard]] constexpr auto operator<(const BasicContiguousElement& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return this->reference < other.reference;
+        return reference_ < other.reference_;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator<=(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return !(other < this->reference);
+        return !(other < reference_);
     }
 
     [[nodiscard]] constexpr auto operator<=(const BasicContiguousElement& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return !(other.reference < this->reference);
+        return !(other.reference_ < reference_);
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator>(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return other < this->reference;
+        return other < reference_;
     }
 
     [[nodiscard]] constexpr auto operator>(const BasicContiguousElement& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return other.reference < this->reference;
+        return other.reference_ < reference_;
     }
 
     template <bool IsConst>
     [[nodiscard]] constexpr auto operator>=(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return !(this->reference < other);
+        return !(reference_ < other);
     }
 
     [[nodiscard]] constexpr auto operator>=(const BasicContiguousElement& other) const
         noexcept(ListTraits::IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE)
     {
-        return !(this->reference < other.reference);
+        return !(reference_ < other.reference_);
     }
 
   private:
     template <class SourceReference>
     auto store_and_load(SourceReference& source, std::size_t memory_size) const
     {
-        return this->store_and_load(source, memory_size, this->memory_begin());
+        return store_and_load(source, memory_size, memory_begin());
     }
 
     template <class SourceReference>
@@ -240,20 +241,20 @@ class BasicContiguousElement
         {
             if constexpr (AllocatorTraits::is_always_equal::value)
             {
-                return std::move(other.memory);
+                return std::move(other.memory_);
             }
             else
             {
-                if (allocator == other.memory.get_allocator())
+                if (allocator == other.memory_.get_allocator())
                 {
-                    return std::move(other.memory);
+                    return std::move(other.memory_);
                 }
-                return StorageType(other.memory.size(), allocator);
+                return StorageType(other.memory_.size(), allocator);
             }
         }
         else
         {
-            return StorageType(other.memory.size(), allocator);
+            return StorageType(other.memory_.size(), allocator);
         }
     }
 
@@ -265,24 +266,24 @@ class BasicContiguousElement
         {
             if constexpr (AllocatorTraits::is_always_equal::value)
             {
-                return std::move(other.reference);
+                return std::move(other.reference_);
             }
             else
             {
-                if (allocator == other.memory.get_allocator())
+                if (allocator == other.memory_.get_allocator())
                 {
-                    return std::move(other.reference);
+                    return std::move(other.reference_);
                 }
-                return this->store_and_load(other.reference, other.memory.size());
+                return store_and_load(other.reference_, other.memory_.size());
             }
         }
         else
         {
-            return this->store_and_load(other.reference, other.memory.size());
+            return store_and_load(other.reference_, other.memory_.size());
         }
     }
 
-    auto memory_begin() const noexcept { return BasicContiguousElement::memory_begin(this->memory); }
+    auto memory_begin() const noexcept { return BasicContiguousElement::memory_begin(memory_); }
 
     static auto memory_begin(const StorageType& memory) noexcept
     {
@@ -299,14 +300,14 @@ class BasicContiguousElement
                           (!AllocatorTraits::propagate_on_container_copy_assignment::value ||
                            AllocatorTraits::is_always_equal::value))
             {
-                this->reference = other.reference;
-                this->memory.propagate_on_container_copy_assignment(other.memory);
+                reference_ = other.reference_;
+                memory_.propagate_on_container_copy_assignment(other.memory_);
             }
             else
             {
-                this->destruct();
-                this->memory = other.memory;
-                this->store_and_construct_reference_inplace(other.reference, other.memory.size());
+                destruct();
+                memory_ = other.memory_;
+                store_and_construct_reference_inplace(other.reference_, other.memory_.size());
             }
         }
     }
@@ -314,9 +315,9 @@ class BasicContiguousElement
     template <class OtherAllocator>
     constexpr void steal(BasicContiguousElement<OtherAllocator, Parameter...>&& other) noexcept
     {
-        this->destruct();
-        this->memory = std::move(other.memory);
-        this->reference.tuple = std::move(other.reference.tuple);
+        destruct();
+        memory_ = std::move(other.memory_);
+        reference_.tuple_ = std::move(other.reference_.tuple_);
     }
 
     template <class OtherAllocator>
@@ -325,38 +326,38 @@ class BasicContiguousElement
         if constexpr (AllocatorTraits::is_always_equal::value ||
                       AllocatorTraits::propagate_on_container_move_assignment::value)
         {
-            this->steal(std::move(other));
+            steal(std::move(other));
         }
         else
         {
-            if (this->get_allocator() == other.get_allocator())
+            if (get_allocator() == other.get_allocator())
             {
-                this->steal(std::move(other));
+                steal(std::move(other));
             }
             else
             {
                 if constexpr (ListTraits::IS_FIXED_SIZE_OR_PLAIN)
                 {
-                    this->reference = std::move(other.reference);
-                    this->memory.propagate_on_container_move_assignment(other.memory);
+                    reference_ = std::move(other.reference_);
+                    memory_.propagate_on_container_move_assignment(other.memory_);
                 }
                 else
                 {
-                    const auto other_size_in_bytes = other.reference.size_in_bytes();
-                    if (other_size_in_bytes > this->memory.size())
+                    const auto other_size_in_bytes = other.reference_.size_in_bytes();
+                    if (other_size_in_bytes > memory_.size())
                     {
                         // allocate memory first because it might throw
-                        StorageType new_memory{other.memory.size(), this->get_allocator()};
-                        this->destruct();
-                        this->reference.tuple = this->store_and_load(other.reference, other_size_in_bytes,
-                                                                     BasicContiguousElement::memory_begin(new_memory))
-                                                    .tuple;
-                        this->memory = std::move(new_memory);
+                        StorageType new_memory{other.memory_.size(), get_allocator()};
+                        destruct();
+                        reference_.tuple_ = store_and_load(other.reference_, other_size_in_bytes,
+                                                                       BasicContiguousElement::memory_begin(new_memory))
+                                                      .tuple_;
+                        memory_ = std::move(new_memory);
                     }
                     else
                     {
-                        this->destruct();
-                        this->store_and_construct_reference_inplace(other.reference, other_size_in_bytes);
+                        destruct();
+                        store_and_construct_reference_inplace(other.reference_, other_size_in_bytes);
                     }
                 }
             }
@@ -366,16 +367,16 @@ class BasicContiguousElement
     template <class SourceReference>
     void store_and_construct_reference_inplace(SourceReference& other, std::size_t memory_size)
     {
-        this->reference.tuple = this->store_and_load(other, memory_size).tuple;
+        reference_.tuple_ = store_and_load(other, memory_size).tuple_;
     }
 
     void destruct() noexcept
     {
         if constexpr (!ListTraits::IS_TRIVIALLY_DESTRUCTIBLE)
         {
-            if (this->memory)
+            if (memory_)
             {
-                ElementTraits::destruct(this->reference);
+                ElementTraits::destruct(reference_);
             }
         }
     }
@@ -385,34 +386,34 @@ template <class Allocator, class... T>
 constexpr void swap(cntgs::BasicContiguousElement<Allocator, T...>& lhs,
                     cntgs::BasicContiguousElement<Allocator, T...>& rhs) noexcept
 {
-    detail::swap(lhs.memory, rhs.memory);
-    std::swap(lhs.reference.tuple, rhs.reference.tuple);
+    detail::swap(lhs.memory_, rhs.memory_);
+    std::swap(lhs.reference_.tuple_, rhs.reference_.tuple_);
 }
 
 template <std::size_t I, class Allocator, class... Parameter>
 [[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousElement<Allocator, Parameter...>& element) noexcept
 {
-    return cntgs::get<I>(element.reference);
+    return cntgs::get<I>(element.reference_);
 }
 
 template <std::size_t I, class Allocator, class... Parameter>
 [[nodiscard]] constexpr decltype(auto) get(
     const cntgs::BasicContiguousElement<Allocator, Parameter...>& element) noexcept
 {
-    return detail::as_const(cntgs::get<I>(element.reference));
+    return detail::as_const(cntgs::get<I>(element.reference_));
 }
 
 template <std::size_t I, class Allocator, class... Parameter>
 [[nodiscard]] constexpr decltype(auto) get(cntgs::BasicContiguousElement<Allocator, Parameter...>&& element) noexcept
 {
-    return std::move(cntgs::get<I>(element.reference));
+    return std::move(cntgs::get<I>(element.reference_));
 }
 
 template <std::size_t I, class Allocator, class... Parameter>
 [[nodiscard]] constexpr decltype(auto) get(
     const cntgs::BasicContiguousElement<Allocator, Parameter...>&& element) noexcept
 {
-    return detail::as_const(std::move(cntgs::get<I>(element.reference)));
+    return detail::as_const(std::move(cntgs::get<I>(element.reference_)));
 }
 }  // namespace cntgs
 

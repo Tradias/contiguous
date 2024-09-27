@@ -29,13 +29,13 @@ class TypeErasedVector
 
     template <class Allocator, class... Parameter>
     explicit TypeErasedVector(cntgs::BasicContiguousVector<Allocator, Parameter...>&& vector) noexcept
-        : memory_size(vector.memory.size()),
-          max_element_count(vector.max_element_count),
-          memory(vector.memory.release()),
+        : memory_size(vector.memory_.size()),
+          max_element_count(vector.max_element_count_),
+          memory(vector.memory_.release()),
           is_memory_owned(true),
           fixed_sizes(
-              detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator.fixed_sizes())),
-          locator(detail::type_erase_element_locator(*vector.locator)),
+              detail::convert_array_to_size<detail::MAX_FIXED_SIZE_VECTOR_PARAMETER>(vector.locator_.fixed_sizes())),
+          locator(detail::type_erase_element_locator(*vector.locator_)),
           allocator(detail::type_erase_allocator(vector.get_allocator())),
           destructor(&TypeErasedVector::destruct<Allocator, Parameter...>)
     {
@@ -53,7 +53,7 @@ class TypeErasedVector
     template <class Allocator, class... Parameter>
     static void destruct(cntgs::TypeErasedVector& erased)
     {
-        if (erased.is_memory_owned.value)
+        if (erased.is_memory_owned.value_)
         {
             cntgs::BasicContiguousVector<Allocator, Parameter...>(std::move(erased));
         }

@@ -34,7 +34,7 @@ class ContiguousVectorIterator
     ContiguousVectorIterator() = default;
 
     constexpr ContiguousVectorIterator(const Vector& vector, SizeType index) noexcept
-        : i(index), memory(vector.memory.get()), locator(vector.locator)
+        : i_(index), memory_(vector.memory_.get()), locator_(vector.locator_)
     {
     }
 
@@ -46,7 +46,7 @@ class ContiguousVectorIterator
     template <bool OtherIsConst>
     /*implicit*/ constexpr ContiguousVectorIterator(
         const ContiguousVectorIterator<OtherIsConst, Options, Parameter...>& other) noexcept
-        : i(other.i), memory(other.memory), locator(other.locator)
+        : i_(other.i_), memory_(other.memory_), locator_(other.locator_)
     {
     }
 
@@ -57,37 +57,37 @@ class ContiguousVectorIterator
     constexpr ContiguousVectorIterator& operator=(
         const ContiguousVectorIterator<OtherIsConst, Options, Parameter...>& other) noexcept
     {
-        this->i = other.i;
-        this->memory = other.memory;
-        this->locator = other.locator;
+        i_ = other.i_;
+        memory_ = other.memory_;
+        locator_ = other.locator_;
         return *this;
     }
 
     ContiguousVectorIterator& operator=(const ContiguousVectorIterator&) = default;
     ContiguousVectorIterator& operator=(ContiguousVectorIterator&&) = default;
 
-    [[nodiscard]] constexpr auto index() const noexcept { return this->i; }
+    [[nodiscard]] constexpr auto index() const noexcept { return i_; }
 
     [[nodiscard]] constexpr auto data() const noexcept -> detail::ConditionalT<IsConst, const std::byte*, std::byte*>
     {
-        return this->locator->element_address(this->i, this->memory);
+        return locator_->element_address(i_, memory_);
     }
 
     [[nodiscard]] constexpr reference operator*() noexcept
     {
-        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
+        return reference{locator_->element_address(i_, memory_), locator_.fixed_sizes()};
     }
 
     [[nodiscard]] constexpr reference operator*() const noexcept
     {
-        return reference{this->locator->element_address(i, this->memory), this->locator.fixed_sizes()};
+        return reference{locator_->element_address(i_, memory_), locator_.fixed_sizes()};
     }
 
     [[nodiscard]] constexpr pointer operator->() const noexcept { return {*(*this)}; }
 
     constexpr ContiguousVectorIterator& operator++() noexcept
     {
-        ++this->i;
+        ++i_;
         return *this;
     }
 
@@ -100,7 +100,7 @@ class ContiguousVectorIterator
 
     constexpr ContiguousVectorIterator& operator--() noexcept
     {
-        --this->i;
+        --i_;
         return *this;
     }
 
@@ -114,36 +114,36 @@ class ContiguousVectorIterator
     [[nodiscard]] constexpr ContiguousVectorIterator operator+(difference_type diff) const noexcept
     {
         auto copy{*this};
-        copy.i += diff;
+        copy.i_ += diff;
         return copy;
     }
 
     [[nodiscard]] constexpr difference_type operator+(ContiguousVectorIterator it) const noexcept
     {
-        return this->i + it.i;
+        return i_ + it.i_;
     }
 
     constexpr ContiguousVectorIterator& operator+=(difference_type diff) noexcept
     {
-        this->i += diff;
+        i_ += diff;
         return *this;
     }
 
     [[nodiscard]] constexpr ContiguousVectorIterator operator-(difference_type diff) const noexcept
     {
         auto copy{*this};
-        copy.i -= diff;
+        copy.i_ -= diff;
         return copy;
     }
 
     [[nodiscard]] constexpr difference_type operator-(ContiguousVectorIterator it) const noexcept
     {
-        return this->i - it.i;
+        return i_ - it.i_;
     }
 
     constexpr ContiguousVectorIterator& operator-=(difference_type diff) noexcept
     {
-        this->i -= diff;
+        i_ -= diff;
         return *this;
     }
 
@@ -151,7 +151,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr bool operator==(const ContiguousVectorIterator& other) const noexcept
     {
-        return this->i == other.i && this->memory == other.memory;
+        return i_ == other.i_ && memory_ == other.memory_;
     }
 
     [[nodiscard]] constexpr bool operator!=(const ContiguousVectorIterator& other) const noexcept
@@ -161,7 +161,7 @@ class ContiguousVectorIterator
 
     [[nodiscard]] constexpr bool operator<(const ContiguousVectorIterator& other) const noexcept
     {
-        return this->i < other.i && this->memory == other.memory;
+        return i_ < other.i_ && memory_ == other.memory_;
     }
 
     [[nodiscard]] constexpr bool operator>(const ContiguousVectorIterator& other) const noexcept
@@ -182,9 +182,9 @@ class ContiguousVectorIterator
   private:
     friend cntgs::ContiguousVectorIterator<!IsConst, Options, Parameter...>;
 
-    SizeType i{};
-    MemoryPointer memory;
-    ElementLocatorAndFixedSizes locator;
+    SizeType i_{};
+    MemoryPointer memory_;
+    ElementLocatorAndFixedSizes locator_;
 };
 }  // namespace cntgs
 

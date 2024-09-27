@@ -6,7 +6,6 @@
 #ifndef CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 #define CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 
-#include "cntgs/detail/array.hpp"
 #include "cntgs/detail/elementTraits.hpp"
 #include "cntgs/detail/memory.hpp"
 #include "cntgs/detail/parameterListTraits.hpp"
@@ -14,7 +13,6 @@
 #include "cntgs/detail/utility.hpp"
 
 #include <algorithm>
-#include <array>
 #include <type_traits>
 
 namespace cntgs::detail
@@ -34,13 +32,13 @@ class BaseElementLocator
   protected:
     static constexpr auto RESERVED_BYTES_PER_ELEMENT = sizeof(std::byte*);
 
-    std::byte** last_element_address{};
-    std::byte* last_element{};
+    std::byte** last_element_address_{};
+    std::byte* last_element_{};
 
     BaseElementLocator() = default;
 
     constexpr BaseElementLocator(std::byte** last_element_address, std::byte* last_element) noexcept
-        : last_element_address(last_element_address), last_element(last_element)
+        : last_element_address_(last_element_address), last_element_(last_element)
     {
     }
 
@@ -52,12 +50,12 @@ class BaseElementLocator
 
     bool empty(std::byte* memory_begin) const noexcept
     {
-        return this->last_element_address == reinterpret_cast<std::byte**>(memory_begin);
+        return last_element_address_ == reinterpret_cast<std::byte**>(memory_begin);
     }
 
     std::size_t size(std::byte* memory_begin) const noexcept
     {
-        return this->last_element_address - reinterpret_cast<std::byte**>(memory_begin);
+        return last_element_address_ - reinterpret_cast<std::byte**>(memory_begin);
     }
 
     static auto element_address(std::size_t index, std::byte* memory_begin) noexcept
@@ -66,19 +64,19 @@ class BaseElementLocator
         return element_addresses_begin[index];
     }
 
-    constexpr auto data_end() const noexcept { return last_element; }
+    constexpr auto data_end() const noexcept { return last_element_; }
 
     void resize(std::size_t new_size, std::byte* memory_begin) noexcept
     {
-        this->last_element = BaseElementLocator::element_address(new_size, memory_begin);
-        this->last_element_address = reinterpret_cast<std::byte**>(memory_begin) + new_size;
+        last_element_ = BaseElementLocator::element_address(new_size, memory_begin);
+        last_element_address_ = reinterpret_cast<std::byte**>(memory_begin) + new_size;
     }
 
     void move_elements_forward(std::size_t from, std::size_t to, std::byte* memory_begin) const noexcept
     {
         const auto diff = detail::move_elements(from, to, memory_begin, *this);
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
-        std::transform(element_addresses_begin + from, this->last_element_address, element_addresses_begin + to,
+        std::transform(element_addresses_begin + from, last_element_address_, element_addresses_begin + to,
                        [&](auto address)
                        {
                            return address - diff;
@@ -88,13 +86,13 @@ class BaseElementLocator
     void make_room_for_last_element_at(std::size_t from, std::size_t size_of_element,
                                        std::byte* memory_begin) const noexcept
     {
-        const auto source = this->element_address(from, memory_begin);
+        const auto source = element_address(from, memory_begin);
         const auto target = source + size_of_element;
-        const auto count = static_cast<std::size_t>(this->data_end() - source);
+        const auto count = static_cast<std::size_t>(data_end() - source);
         std::memmove(target, source, count);
-        *this->last_element_address = this->last_element;
+        *last_element_address_ = last_element_;
         const auto element_addresses_begin = reinterpret_cast<std::byte**>(memory_begin);
-        std::transform(element_addresses_begin + from, this->last_element_address, element_addresses_begin + from + 1,
+        std::transform(element_addresses_begin + from, last_element_address_, element_addresses_begin + from + 1,
                        [&](auto address)
                        {
                            return address + size_of_element;
@@ -121,7 +119,7 @@ class ElementLocator : public BaseElementLocator
     ElementLocator(ElementLocator& old_locator, std::size_t old_max_element_count, std::byte* old_memory_begin,
                    std::size_t new_max_element_count, std::byte* new_memory_begin) noexcept
     {
-        this->trivially_copy_into(old_locator, old_max_element_count, old_memory_begin, new_max_element_count,
+        trivially_copy_into(old_locator, old_max_element_count, old_memory_begin, new_max_element_count,
                                   new_memory_begin);
     }
 
@@ -129,11 +127,11 @@ class ElementLocator : public BaseElementLocator
     auto emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         const auto new_last_element =
-            ElementTraits::emplace_at(this->last_element, fixed_sizes, std::forward<Args>(args)...);
-        *this->last_element_address = this->last_element;
-        ++this->last_element_address;
-        this->last_element = new_last_element;
-        return this->last_element;
+            ElementTraits::emplace_at(last_element_, fixed_sizes, std::forward<Args>(args)...);
+        *last_element_address_ = last_element_;
+        ++last_element_address_;
+        last_element_ = new_last_element;
+        return last_element_;
     }
 
     template <class... Args>
@@ -155,7 +153,7 @@ class ElementLocator : public BaseElementLocator
     void trivially_copy_into(std::size_t old_max_element_count, std::byte* CNTGS_RESTRICT old_memory_begin,
                              std::size_t new_max_element_count, std::byte* CNTGS_RESTRICT new_memory_begin) noexcept
     {
-        this->trivially_copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count,
+        trivially_copy_into(*this, old_max_element_count, old_memory_begin, new_max_element_count,
                                   new_memory_begin);
     }
 
@@ -176,11 +174,11 @@ class ElementLocator : public BaseElementLocator
         const auto old_start = ElementLocator::calculate_element_start(old_max_element_count, old_memory_begin);
         const auto size_diff = std::distance(new_memory_begin, new_start) - std::distance(old_memory_begin, old_start);
         const auto new_last_element_address = ElementLocator::copy_element_addresses(
-            new_memory_begin, old_memory_begin, old_locator.last_element_address, size_diff);
-        const auto old_used_memory_size = std::distance(old_start, old_locator.last_element);
+            new_memory_begin, old_memory_begin, old_locator.last_element_address_, size_diff);
+        const auto old_used_memory_size = std::distance(old_start, old_locator.last_element_);
         std::memcpy(new_start, old_start, old_used_memory_size);
-        this->last_element_address = new_last_element_address;
-        this->last_element = new_memory_begin + std::distance(old_memory_begin, old_locator.last_element) + size_diff;
+        last_element_address_ = new_last_element_address;
+        last_element_ = new_memory_begin + std::distance(old_memory_begin, old_locator.last_element_) + size_diff;
     }
 
     static auto copy_element_addresses(std::byte* new_memory_begin, std::byte* old_memory_begin,
@@ -207,32 +205,32 @@ class ElementLocator : public BaseElementLocator
 class BaseAllFixedSizeElementLocator
 {
   protected:
-    std::size_t element_count{};
-    std::size_t stride{};
-    std::byte* start{};
+    std::size_t element_count_{};
+    std::size_t stride_{};
+    std::byte* start_{};
 
     BaseAllFixedSizeElementLocator() = default;
 
     constexpr BaseAllFixedSizeElementLocator(std::size_t element_count, std::size_t stride, std::byte* start) noexcept
-        : element_count(element_count), stride(stride), start(start)
+        : element_count_(element_count), stride_(stride), start_(start)
     {
     }
 
   public:
     static constexpr auto reserved_bytes(std::size_t) noexcept { return std::size_t{}; }
 
-    constexpr bool empty(const std::byte*) const noexcept { return this->element_count == std::size_t{}; }
+    constexpr bool empty(const std::byte*) const noexcept { return element_count_ == std::size_t{}; }
 
-    constexpr std::size_t size(const std::byte*) const noexcept { return this->element_count; }
+    constexpr std::size_t size(const std::byte*) const noexcept { return element_count_; }
 
     constexpr auto element_address(std::size_t index, const std::byte*) const noexcept
     {
-        return this->start + this->stride * index;
+        return start_ + stride_ * index;
     }
 
-    constexpr auto data_end() const noexcept { return this->start + this->stride * this->element_count; }
+    constexpr auto data_end() const noexcept { return start_ + stride_ * element_count_; }
 
-    constexpr void resize(std::size_t new_size, const std::byte*) noexcept { this->element_count = new_size; }
+    constexpr void resize(std::size_t new_size, const std::byte*) noexcept { element_count_ = new_size; }
 
     void move_elements_forward(std::size_t from, std::size_t to, const std::byte*) const noexcept
     {
@@ -241,9 +239,9 @@ class BaseAllFixedSizeElementLocator
 
     void make_room_for_last_element_at(std::size_t from, std::size_t size_of_element, const std::byte*) const noexcept
     {
-        const auto source = this->element_address(from, {});
+        const auto source = element_address(from, {});
         const auto target = source + size_of_element;
-        const auto count = static_cast<std::size_t>(this->data_end() - source);
+        const auto count = static_cast<std::size_t>(data_end() - source);
         std::memmove(target, source, count);
     }
 };
@@ -266,37 +264,37 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
 
     ElementLocator(ElementLocator& old_locator, std::size_t, const std::byte*, std::size_t,
                    std::byte* new_memory_begin) noexcept
-        : BaseAllFixedSizeElementLocator(old_locator.element_count, old_locator.stride, {})
+        : BaseAllFixedSizeElementLocator(old_locator.element_count_, old_locator.stride_, {})
     {
-        this->trivially_copy_into(old_locator, new_memory_begin);
+        trivially_copy_into(old_locator, new_memory_begin);
     }
 
     template <class... Args>
     auto emplace_back(const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        const auto last_element = this->element_address(this->element_count, {});
+        const auto last_element = element_address(element_count_, {});
         auto end = ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
-        ++this->element_count;
+        ++element_count_;
         return end;
     }
 
     template <class... Args>
     auto emplace_at(std::size_t index, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        return ElementTraits::emplace_at_aliased(this->element_address(index, {}), fixed_sizes,
+        return ElementTraits::emplace_at_aliased(element_address(index, {}), fixed_sizes,
                                                  std::forward<Args>(args)...);
     }
 
     void trivially_copy_into(std::size_t, const std::byte*, std::size_t, std::byte* new_memory_begin) noexcept
     {
-        this->trivially_copy_into(*this, new_memory_begin);
+        trivially_copy_into(*this, new_memory_begin);
     }
 
     constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
                                              const FixedSizesArray&) noexcept
     {
         constexpr auto ALIGNMENT_OVERHEAD = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
-        return varying_size_bytes + this->stride * max_element_count +
+        return varying_size_bytes + stride_ * max_element_count +
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
     }
 
@@ -304,8 +302,8 @@ class ElementLocator<true, Parameter...> : public BaseAllFixedSizeElementLocator
     void trivially_copy_into(const ElementLocator& old_locator, std::byte* new_memory_begin) noexcept
     {
         const auto new_start = ElementLocator::calculate_element_start(new_memory_begin);
-        std::memcpy(new_start, old_locator.start, old_locator.element_count * old_locator.stride);
-        this->start = new_start;
+        std::memcpy(new_start, old_locator.start_, old_locator.element_count_ * old_locator.stride_);
+        start_ = new_start;
     }
 
     static constexpr auto calculate_element_start(std::byte* memory_begin) noexcept
@@ -330,28 +328,28 @@ class ElementLocatorAndFixedSizes
     using Base = detail::EmptyBaseOptimization<FixedSizesArray>;
 
   public:
-    Locator locator;
+    Locator locator_;
 
     ElementLocatorAndFixedSizes() = default;
 
     constexpr ElementLocatorAndFixedSizes(const Locator& locator, const FixedSizesArray& fixed_sizes) noexcept
-        : Base{fixed_sizes}, locator(locator)
+        : Base{fixed_sizes}, locator_(locator)
     {
     }
 
     constexpr ElementLocatorAndFixedSizes(std::size_t max_element_count, std::byte* memory,
                                           const FixedSizesArray& fixed_sizes) noexcept
-        : Base{fixed_sizes}, locator(max_element_count, memory, fixed_sizes)
+        : Base{fixed_sizes}, locator_(max_element_count, memory, fixed_sizes)
     {
     }
 
-    constexpr auto operator->() noexcept { return std::addressof(this->locator); }
+    constexpr auto operator->() noexcept { return std::addressof(locator_); }
 
-    constexpr auto operator->() const noexcept { return std::addressof(this->locator); }
+    constexpr auto operator->() const noexcept { return std::addressof(locator_); }
 
-    constexpr auto& operator*() noexcept { return this->locator; }
+    constexpr auto& operator*() noexcept { return locator_; }
 
-    constexpr const auto& operator*() const noexcept { return this->locator; }
+    constexpr const auto& operator*() const noexcept { return locator_; }
 
     constexpr auto& fixed_sizes() noexcept { return Base::get(); }
 

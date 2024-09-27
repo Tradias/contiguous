@@ -15,24 +15,24 @@ namespace cntgs::detail
 template <class T>
 struct MoveDefaultingValue
 {
-    T value{};
+    T value_{};
 
     MoveDefaultingValue() = default;
 
-    constexpr explicit MoveDefaultingValue(T value) noexcept : value(value) {}
+    constexpr explicit MoveDefaultingValue(T value) noexcept : value_(value) {}
 
     ~MoveDefaultingValue() = default;
 
     MoveDefaultingValue(const MoveDefaultingValue&) = default;
 
-    constexpr MoveDefaultingValue(MoveDefaultingValue&& other) noexcept : value(other.value) { other.value = T{}; }
+    constexpr MoveDefaultingValue(MoveDefaultingValue&& other) noexcept : value_(other.value_) { other.value_ = T{}; }
 
     MoveDefaultingValue& operator=(const MoveDefaultingValue& other) = default;
 
     constexpr MoveDefaultingValue& operator=(MoveDefaultingValue&& other) noexcept
     {
-        this->value = other.value;
-        other.value = T{};
+        value_ = other.value_;
+        other.value_ = T{};
         return *this;
     }
 };
@@ -41,24 +41,24 @@ template <class T, bool = (std::is_empty_v<T> && !std::is_final_v<T>)>
 class EmptyBaseOptimization
 {
   private:
-    T value;
+    T value_;
 
   public:
     EmptyBaseOptimization() = default;
 
     constexpr explicit EmptyBaseOptimization(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
-        : value{value}
+        : value_{value}
     {
     }
 
     constexpr explicit EmptyBaseOptimization(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
-        : value{std::move(value)}
+        : value_{std::move(value)}
     {
     }
 
-    constexpr auto& get() noexcept { return value; }
+    constexpr auto& get() noexcept { return value_; }
 
-    constexpr const auto& get() const noexcept { return value; }
+    constexpr const auto& get() const noexcept { return value_; }
 };
 
 template <class T>

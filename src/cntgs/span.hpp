@@ -30,13 +30,13 @@ struct Span
     using iterator = T*;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    iterator first;
-    iterator last;
+    iterator first_;
+    iterator last_;
 
     Span() = default;
 
     template <class U>
-    constexpr explicit Span(const Span<U>& other) noexcept : first(other.first), last(other.last)
+    constexpr explicit Span(const Span<U>& other) noexcept : first_(other.first_), last_(other.last_)
     {
     }
 
@@ -48,34 +48,34 @@ struct Span
     
     Span& operator=(Span&& other) = default;
 
-    constexpr Span(iterator first, iterator last) noexcept : first(first), last(last) {}
+    constexpr Span(iterator first, iterator last) noexcept : first_(first), last_(last) {}
 
-    constexpr Span(iterator first, size_type size) noexcept(noexcept(first + size)) : first(first), last(first + size)
+    constexpr Span(iterator first, size_type size) noexcept(noexcept(first + size)) : first_(first), last_(first + size)
     {
     }
 
-    [[nodiscard]] constexpr iterator begin() const noexcept { return this->first; }
+    [[nodiscard]] constexpr iterator begin() const noexcept { return first_; }
 
-    [[nodiscard]] constexpr iterator end() const noexcept { return this->last; }
+    [[nodiscard]] constexpr iterator end() const noexcept { return last_; }
 
-    [[nodiscard]] constexpr reverse_iterator rbegin() const noexcept { return reverse_iterator{this->end()}; }
+    [[nodiscard]] constexpr reverse_iterator rbegin() const noexcept { return reverse_iterator{end()}; }
 
-    [[nodiscard]] constexpr reverse_iterator rend() const noexcept { return reverse_iterator{this->begin()}; }
+    [[nodiscard]] constexpr reverse_iterator rend() const noexcept { return reverse_iterator{begin()}; }
 
-    [[nodiscard]] constexpr bool empty() const noexcept { return this->first == this->last; }
+    [[nodiscard]] constexpr bool empty() const noexcept { return first_ == last_; }
 
-    [[nodiscard]] constexpr size_type size() const noexcept { return this->last - this->first; }
+    [[nodiscard]] constexpr size_type size() const noexcept { return last_ - first_; }
 
-    [[nodiscard]] constexpr pointer data() const noexcept { return this->first; }
+    [[nodiscard]] constexpr pointer data() const noexcept { return first_; }
 
-    [[nodiscard]] constexpr reference operator[](size_type i) const noexcept { return this->first[i]; }
+    [[nodiscard]] constexpr reference operator[](size_type i) const noexcept { return first_[i]; }
 
-    [[nodiscard]] constexpr reference front() const noexcept { return this->first[0]; }
+    [[nodiscard]] constexpr reference front() const noexcept { return first_[0]; }
 
-    [[nodiscard]] constexpr reference back() const noexcept { return *(this->last - 1); }
+    [[nodiscard]] constexpr reference back() const noexcept { return *(last_ - 1); }
 
 #ifdef __cpp_lib_span
-    constexpr operator std::span<T>() const noexcept { return std::span<T>{first, last}; }
+    constexpr operator std::span<T>() const noexcept { return std::span<T>{first_, last_}; }
 #endif
 };
 }  // namespace cntgs
