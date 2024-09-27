@@ -19,6 +19,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 add_subdirectory(src)
 
 if(CNTGS_BUILD_TESTS)
+    include("${CMAKE_CURRENT_LIST_DIR}/cmake/CntgsInstallGitHooks.cmake")
     find_package(doctest REQUIRED)
     enable_testing()
     include(doctest)

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+"@CMAKE_COMMAND@" -P "@CNTGS_GIT_HOOKS_TARGET_DIR@/CntgsPreCommit.cmake"

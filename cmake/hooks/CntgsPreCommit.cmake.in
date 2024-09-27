@@ -1,0 +1,45 @@
+# Copyright 2024 Dennis Hezel
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
+# Do not ignore empty list items
+cmake_policy(SET CMP0007 NEW)
+
+execute_process(
+    COMMAND "@GIT_EXECUTABLE@" "diff-index" "--cached" "--name-only" "--diff-filter=ACMRT" "HEAD"
+    OUTPUT_VARIABLE _git_output
+    WORKING_DIRECTORY "@CMAKE_SOURCE_DIR@")
+
+string(REPLACE "\r" "" _git_output_no_carriage "${_git_output}")
+string(REPLACE "\n" ";" _git_output_list "${_git_output_no_carriage}")
+list(REMOVE_ITEM _git_output_list "")
+
+# process CMake files
+foreach(_git_out IN LISTS _git_output_list)
+    string(REGEX MATCHALL ".*\\.cmake\\.in\$|.*\\.cmake\$|.*CMakeLists.txt\$" _file "${_git_out}")
+
+    if(NOT "${_file}" STREQUAL "")
+        execute_process(COMMAND "@CNTGS_CMAKE_FORMAT_PROGRAM@" "-i" "${_file}" WORKING_DIRECTORY "@CMAKE_SOURCE_DIR@")
+
+        execute_process(COMMAND "@GIT_EXECUTABLE@" "add" "${_file}" WORKING_DIRECTORY "@CMAKE_SOURCE_DIR@")
+    endif()
+endforeach()
+
+# process cpp files
+foreach(_git_out IN LISTS _git_output_list)
+    string(REGEX MATCHALL ".*\\.hpp\$|.*\\.cpp\$|.*\\.h\$|.*\\.c\$" _file "${_git_out}")
+
+    if(NOT "${_file}" STREQUAL "")
+        execute_process(COMMAND "@CNTGS_CLANG_FORMAT_PROGRAM@" "-i" "-style=file" "${_file}"
+                        WORKING_DIRECTORY "@CMAKE_SOURCE_DIR@")
+
+        execute_process(COMMAND "@GIT_EXECUTABLE@" "add" "${_file}" WORKING_DIRECTORY "@CMAKE_SOURCE_DIR@")
+    endif()
+endforeach()
