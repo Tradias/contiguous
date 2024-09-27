@@ -5,8 +5,7 @@
     "ReadOnly": false,
     "LinkFormat": "GitHub",
     "ExcludeDirectories": [
-        "build",
-        "src/cntgs"
+        "build"
     ],
     "MaxWidth": 150
 }
