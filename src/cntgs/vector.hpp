@@ -91,27 +91,27 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     template <bool IsMixed = IS_MIXED>
     BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes, const FixedSizes& fixed_sizes,
                           const allocator_type& allocator = {}, std::enable_if_t<IsMixed>* = nullptr)
-        : BasicContiguousVector(max_element_count, varying_size_bytes, fixed_sizes, allocator)
+        : BasicContiguousVector(max_element_count, varying_size_bytes, fixed_sizes, allocator, 0)
     {
     }
 
     template <bool IsAllFixedSize = IS_ALL_FIXED_SIZE>
     constexpr BasicContiguousVector(size_type max_element_count, const FixedSizes& fixed_sizes,
                                     const allocator_type& allocator = {}, std::enable_if_t<IsAllFixedSize>* = nullptr)
-        : BasicContiguousVector(max_element_count, size_type{}, fixed_sizes, allocator)
+        : BasicContiguousVector(max_element_count, size_type{}, fixed_sizes, allocator, 0)
     {
     }
 
     template <bool IsAllVaryingSize = IS_ALL_VARYING_SIZE>
     BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
                           const allocator_type& allocator = {}, std::enable_if_t<IsAllVaryingSize>* = nullptr)
-        : BasicContiguousVector(max_element_count, varying_size_bytes, FixedSizes{}, allocator)
+        : BasicContiguousVector(max_element_count, varying_size_bytes, FixedSizes{}, allocator, 0)
     {
     }
 
     template <bool IsNoneSpecial = IS_ALL_PLAIN>
     constexpr explicit BasicContiguousVector(size_type max_element_count, std::enable_if_t<IsNoneSpecial>* = nullptr)
-        : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator_type{})
+        : BasicContiguousVector(max_element_count, size_type{}, FixedSizes{}, allocator_type{}, 0)
     {
     }
 
@@ -350,7 +350,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     }
 
     constexpr BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
-                                    const FixedSizes& fixed_sizes, const allocator_type& allocator)
+                                    const FixedSizes& fixed_sizes, const allocator_type& allocator, int)
         : max_element_count_(max_element_count),
           memory_(
               Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, FixedSizesArray{fixed_sizes}),

@@ -6,6 +6,8 @@
 #ifndef CNTGS_UTILS_TYPETRAITS_HPP
 #define CNTGS_UTILS_TYPETRAITS_HPP
 
+#include <type_traits>
+
 namespace cntgs::test
 {
 template <class T>

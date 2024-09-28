@@ -13,7 +13,6 @@
 #include <doctest/doctest.h>
 
 #include <cstddef>
-#include <functional>
 #include <string_view>
 #include <type_traits>
 #include <utility>

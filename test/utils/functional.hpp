@@ -6,6 +6,8 @@
 #ifndef CNTGS_UTILS_FUNCTIONAL_HPP
 #define CNTGS_UTILS_FUNCTIONAL_HPP
 
+#include <utility>
+
 namespace cntgs::test
 {
 struct Identity

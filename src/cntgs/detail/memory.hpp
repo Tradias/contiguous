@@ -26,9 +26,8 @@ namespace cntgs::detail
 using Byte = std::underlying_type_t<std::byte>;
 
 template <std::size_t N>
-struct alignas(N) AlignedByte
+struct alignas(N) Aligned
 {
-    std::byte byte_;
 };
 
 template <class T>

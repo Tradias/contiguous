@@ -76,7 +76,7 @@ TEST_CASE("ContiguousElement: converting constructors")
         OneFixed::value_type value{Vector2::value_type{vector[0]}, OneFixed::allocator_type{}};
         CHECK_EQ(vector[0], value);
     }
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     using ValueType = test::pmr::ContiguousVector<uint32_t, cntgs::FixedSize<float>>::value_type;
     SUBCASE("copy from reference and allocator")
     {
@@ -135,7 +135,7 @@ TEST_CASE("ContiguousElement: construct from move-only type")
         test::check_equal_using_get(vector[0], array_one_unique_ptr(nullptr), nullptr);
         test::check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
     }
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     using AllocValueType = typename decltype(fixed_vector_of_unique_ptrs(resource.get_allocator()))::value_type;
     SUBCASE("move from reference and allocator")
     {
@@ -442,6 +442,22 @@ TEST_CASE("ContiguousElement: value_type to (const_)reference for memcmp-compati
     SUBCASE("less equal") { check_less_equal(vector, test::Identity{}, test::Identity{}); }
     SUBCASE("greater") { check_greater(vector, test::Identity{}, test::Identity{}); }
     SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, test::Identity{}); }
+}
+
+TEST_CASE("ContiguousElement: one fixed one varying size: correct memory_consumption()")
+{
+    using Vector = ContiguousVectorWithAllocator<TestAllocator<>, cntgs::FixedSize<cntgs::AlignAs<uint16_t, 2>>,
+                                                 uint32_t, cntgs::VaryingSize<char>>;
+    const auto varying_byte_count = sizeof(char);
+    TestMemoryResource resource;
+    Vector vector{1, varying_byte_count, {3}, resource.get_allocator()};
+    vector.emplace_back(std::array{0, 1, 2}, 42, std::array{'8'});
+    resource.bytes_allocated = {};
+    Vector::value_type v{vector.front(), resource.get_allocator()};
+    const auto expected = 3 * sizeof(uint16_t) + sizeof(std::size_t) + sizeof(uint32_t) + varying_byte_count;
+    // there is no easy way to support custom allocators and do exact aligned allocations
+    CHECK_EQ(expected + 1, resource.bytes_allocated);
+    CHECK_EQ('8', cntgs::get<2>(v).front());
 }
 
 TEST_SUITE_END();

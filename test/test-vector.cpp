@@ -101,12 +101,15 @@ TEST_CASE("ContiguousVector: TwoFixed get_fixed_size<I>()")
 
 TEST_CASE("ContiguousVector: one fixed one varying size: correct memory_consumption()")
 {
-    using Vector = cntgs::ContiguousVector<cntgs::FixedSize<uint16_t>, uint32_t, cntgs::VaryingSize<float>>;
+    using Vector =
+        ContiguousVectorWithAllocator<TestAllocator<>, cntgs::FixedSize<uint16_t>, uint32_t, cntgs::VaryingSize<float>>;
     const auto varying_byte_count = 6 * sizeof(float);
-    Vector vector{2, varying_byte_count, {3}};
+    TestMemoryResource resource;
+    Vector vector{2, varying_byte_count, {3}, resource.get_allocator()};
     const auto expected =
         2 * (3 * sizeof(uint16_t) + sizeof(std::size_t) + sizeof(std::byte*) + sizeof(uint32_t)) + varying_byte_count;
     CHECK_EQ(expected, vector.memory_consumption());
+    CHECK_EQ(expected, resource.bytes_allocated);
 }
 
 TEST_CASE("ContiguousVector: TwoFixed correct memory_consumption()")
@@ -715,7 +718,7 @@ TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
 
 TEST_CASE("ContiguousVector: trivial OneFixed reserve with polymorphic_allocator")
 {
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     test::pmr::ContiguousVector<cntgs::FixedSize<float>, int> vector{0, {10}, resource.get_allocator()};
     vector.reserve(2);
     CHECK_EQ(2, vector.capacity());
@@ -913,7 +916,7 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscr
 
 TEST_CASE("ContiguousVector: OneFixedUniquePtr with polymorphic_allocator")
 {
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
     resource.check_was_used(vector.get_allocator());
 }
@@ -933,7 +936,7 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr with polymorphic_allocator move
         test::check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
         test::check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
     };
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
     SUBCASE("move into smaller vector equal allocator")
     {
@@ -949,7 +952,7 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr with polymorphic_allocator move
         resource.check_was_used(vector2.get_allocator());
         check_expected(vector2);
     }
-    TestMemoryResource resource2;
+    TestPmrMemoryResource resource2;
     SUBCASE("move into smaller vector")
     {
         decltype(vector) vector2{0, 0, resource2.get_allocator()};
@@ -968,9 +971,9 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr with polymorphic_allocator move
 
 TEST_CASE("ContiguousVector: OneFixedUniquePtr with polymorphic_allocator move assignment")
 {
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     auto vector = fixed_vector_of_unique_ptrs(resource.get_allocator());
-    TestMemoryResource resource2;
+    TestPmrMemoryResource resource2;
     SUBCASE("move into smaller vector")
     {
         decltype(vector) vector2{0, {}, resource2.get_allocator()};
@@ -1021,9 +1024,9 @@ TEST_CASE("ContiguousVector: OneVaryingString with std::allocator copy assignmen
 
 TEST_CASE("ContiguousVector: OneVaryingString with polymorphic_allocator copy assignment")
 {
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     auto vector = varying_vector_of_strings(resource.get_allocator());
-    TestMemoryResource resource2;
+    TestPmrMemoryResource resource2;
     SUBCASE("copy into smaller vector")
     {
         decltype(vector) vector2{0, 0, resource2.get_allocator()};
@@ -1076,9 +1079,9 @@ TEST_CASE("ContiguousVector: OneFixedString with std::allocator copy assignment"
 
 TEST_CASE("ContiguousVector: OneFixedString with polymorphic_allocator copy assignment")
 {
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     auto vector = fixed_vector_of_strings(resource.get_allocator());
-    TestMemoryResource resource2;
+    TestPmrMemoryResource resource2;
     SUBCASE("copy into smaller vector")
     {
         decltype(vector) vector2{0, {}, resource2.get_allocator()};
@@ -1123,9 +1126,9 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap same vector")
 
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap")
 {
-    TestMemoryResource resource;
+    TestPmrMemoryResource resource;
     auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
-    TestMemoryResource resource2;
+    TestPmrMemoryResource resource2;
     using std::swap;
     SUBCASE("swap into smaller vector")
     {
