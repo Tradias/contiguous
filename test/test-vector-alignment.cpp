@@ -52,7 +52,7 @@ TEST_CASE("ContiguousVector: TwoFixedAligned size() and capacity()")
     v.emplace_back(FLOATS1, 10u, FLOATS2);
     check_size1_and_capacity2(v);
     const auto size = (FLOATS1.size() * sizeof(float) + 8 + sizeof(uint32_t) + FLOATS2.size() * sizeof(float));
-    CHECK_EQ(2 * (size + size % 8) + 7, v.memory_consumption());
+    CHECK_EQ(2 * (size + size % 8), v.memory_consumption());
 }
 
 TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned size() and capacity()")

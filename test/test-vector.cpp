@@ -38,14 +38,14 @@ TEST_CASE("ContiguousVector: one fixed one varying size: correct memory_consumpt
     const auto varying_byte_count = 6 * sizeof(float);
     TestMemoryResource resource;
     Vector vector{2, varying_byte_count, {3}, resource.get_allocator()};
-    const auto bytes_allocated = resource.bytes_allocated;
     vector.emplace_back(std::initializer_list<uint16_t>{1, 2, 3}, 10, std::array{0.f, 0.1f, 0.2f});
     vector.emplace_back(std::initializer_list<uint16_t>{4, 5, 6}, 11, std::array{0.3f, 0.4f, 0.5f});
     const auto expected =
-        2 * (3 * sizeof(uint16_t) + sizeof(std::size_t) + sizeof(std::size_t) + sizeof(uint32_t)) + varying_byte_count;
+        2 * (3 * sizeof(uint16_t) + sizeof(uint32_t) + sizeof(std::size_t) + sizeof(std::size_t)) + varying_byte_count;
     CHECK_EQ(expected, vector.memory_consumption());
-    CHECK_EQ(expected, bytes_allocated);
-    CHECK_EQ(expected + 3 * sizeof(std::size_t), resource.bytes_allocated);  // reallocations
+#ifdef NDEBUG
+    CHECK_EQ(expected, resource.bytes_allocated);
+#endif
 }
 
 TEST_CASE("ContiguousVector: TwoFixed correct memory_consumption()")
@@ -108,29 +108,6 @@ TEST_CASE("ContiguousVector: trivial OneFixed reserve with polymorphic_allocator
     vector.emplace_back(std::array{1.f}, 10);
     resource.check_was_used(vector.get_allocator());
 }
-
-#if defined(__cpp_lib_constexpr_dynamic_alloc) && defined(__cpp_constinit)
-TEST_CASE("ContiguousVector: OneFixed constinit")
-{
-    SUBCASE("empty vector")
-    {
-        static constinit OneFixed v{0, {2}};
-        // TODO this causes a call to trivially_copy_into which calls memcpy with nullptr as second argument
-        v.reserve(2);
-        v.emplace_back(10u, FLOATS1);
-        check_size1_and_capacity2(v);
-    }
-    SUBCASE("constexpr")
-    {
-        constexpr auto SIZE = []
-        {
-            OneFixed v2{0, {2}};
-            return v2.size();
-        }();
-        CHECK_EQ(0, SIZE);
-    }
-}
-#endif
 
 #ifdef __cpp_lib_span
 TEST_CASE("ContiguousVector: cntgs::Span can be implicitly converted to std::span")

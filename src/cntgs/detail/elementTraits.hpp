@@ -24,18 +24,6 @@
 
 namespace cntgs::detail
 {
-struct DefaultAlignmentNeeds
-{
-    template <std::size_t>
-    static constexpr auto VALUE = true;
-};
-
-struct IgnoreFirstAlignmentNeeds
-{
-    template <std::size_t I>
-    static constexpr auto VALUE = I != 0;
-};
-
 template <std::size_t Alignment>
 constexpr auto alignment_offset(std::size_t position) noexcept
 {
@@ -67,10 +55,9 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
     using ContiguousPointer = typename detail::ContiguousVectorTraits<Parameter...>::PointerType;
     using ContiguousReference = typename detail::ContiguousVectorTraits<Parameter...>::ReferenceType;
-    using AlignmentNeeds = detail::ConditionalT<ListTraits::IS_FIXED_SIZE_OR_PLAIN, detail::IgnoreFirstAlignmentNeeds,
-                                                detail::DefaultAlignmentNeeds>;
     using FixedSizeGetter = detail::FixedSizeGetter<Parameter...>;
 
+    static constexpr auto ALIGNMENT_OF_FIRST_PARAMETER = ListTraits::template ParameterTraitsAt<0>::ALIGNMENT;
     static constexpr auto SKIP = std::numeric_limits<std::size_t>::max();
     static constexpr auto MANUAL = SKIP - 1;
 
@@ -122,17 +109,16 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     template <bool IgnoreAliasing, class... Args>
     static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        ((address =
-              detail::ParameterTraits<Parameter>::template store<AlignmentNeeds::template VALUE<I>, IgnoreAliasing>(
-                  std::forward<Args>(args), address, FixedSizeGetter::template get<Parameter, I>(fixed_sizes))),
+        ((address = detail::ParameterTraits<Parameter>::template store<true, IgnoreAliasing>(
+              std::forward<Args>(args), address, FixedSizeGetter::template get<Parameter, I>(fixed_sizes))),
          ...);
         return address;
     }
 
-    template <class Type, std::size_t K, class AlignmentNeedsType, class FixedSizeGetterType, class FixedSizesType>
+    template <class Type, std::size_t K, class FixedSizeGetterType, class FixedSizesType>
     static auto load_one(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
-        static constexpr auto NEEDS_ALIGNMENT = AlignmentNeedsType::template VALUE<K>;
+        static constexpr auto NEEDS_ALIGNMENT = K != 0;
         static constexpr auto IS_SIZE_PROVIDED = FixedSizeGetterType::template CAN_PROVIDE_SIZE<Type>;
         return detail::ParameterTraits<Type>::template load<NEEDS_ALIGNMENT, IS_SIZE_PROVIDED>(
             address, FixedSizeGetterType::template get<Type, K>(fixed_sizes));
@@ -141,6 +127,22 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
   public:
     template <std::size_t K>
     using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
+
+    using StorageElementType = detail::Aligned<ALIGNMENT_OF_FIRST_PARAMETER>;
+
+    template <class StorageType, class Allocator>
+    static constexpr auto allocate_memory(std::size_t size_in_bytes, const Allocator& allocator)
+    {
+        const auto remainder = size_in_bytes % ElementTraits::ALIGNMENT_OF_FIRST_PARAMETER;
+        auto count = size_in_bytes / ElementTraits::ALIGNMENT_OF_FIRST_PARAMETER;
+        count += remainder == 0 ? 0 : 1;
+        return StorageType(count, allocator);
+    }
+
+    static constexpr std::byte* align_for_first_parameter(std::byte* address) noexcept
+    {
+        return detail::align<ALIGNMENT_OF_FIRST_PARAMETER>(address);
+    }
 
     template <class... Args>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address,
@@ -156,15 +158,13 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         return ElementTraits::template emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    template <class AlignmentNeedsType = ElementTraits::AlignmentNeeds,
-              class FixedSizeGetterType = ElementTraits::FixedSizeGetter,
+    template <class FixedSizeGetterType = ElementTraits::FixedSizeGetter,
               class FixedSizesType = ElementTraits::FixedSizesArray>
     static auto load_element_at(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
         ContiguousPointer result;
         ((std::tie(std::get<I>(result), address) =
-              ElementTraits::template load_one<Parameter, I, AlignmentNeedsType, FixedSizeGetterType>(address,
-                                                                                                      fixed_sizes)),
+              ElementTraits::template load_one<Parameter, I, FixedSizeGetterType>(address, fixed_sizes)),
          ...);
         return result;
     }
@@ -186,7 +186,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
                         detail::alignment_offset<detail::ParameterTraits<Parameter>::ALIGNMENT>(result)),
              ...);
         }
-        return result + detail::alignment_offset<ParameterTraitsAt<0>::ALIGNMENT>(result);
+        return result + detail::alignment_offset<ALIGNMENT_OF_FIRST_PARAMETER>(result);
     }
 
     template <bool UseMove, bool IsConst>

@@ -34,10 +34,7 @@ class BasicContiguousElement
     using VectorTraits = detail::ContiguousVectorTraits<Parameter...>;
     using ElementTraits = detail::ElementTraitsT<Parameter...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
-
-    static constexpr auto ALIGNMENT_OF_FIRST_PARAMETER = ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT;
-
-    using StorageElementType = detail::Aligned<ALIGNMENT_OF_FIRST_PARAMETER>;
+    using StorageElementType = typename std::allocator_traits<Allocator>::value_type;
     using StorageType = detail::AllocatorAwarePointer<
         typename std::allocator_traits<Allocator>::template rebind_alloc<StorageElementType>>;
     using Reference = typename VectorTraits::ReferenceType;
@@ -51,7 +48,7 @@ class BasicContiguousElement
     template <bool IsConst>
     /*implicit*/ BasicContiguousElement(const cntgs::BasicContiguousReference<IsConst, Parameter...>& other,
                                         const allocator_type& allocator = {})
-        : memory_(allocate_memory(other.size_in_bytes(), allocator)),
+        : memory_(ElementTraits::template allocate_memory<StorageType>(other.size_in_bytes(), allocator)),
           reference_(store_and_load(other, other.size_in_bytes()))
     {
     }
@@ -59,7 +56,7 @@ class BasicContiguousElement
     template <bool IsConst>
     /*implicit*/ BasicContiguousElement(cntgs::BasicContiguousReference<IsConst, Parameter...>&& other,
                                         const allocator_type& allocator = {})
-        : memory_(allocate_memory(other.size_in_bytes(), allocator)),
+        : memory_(ElementTraits::template allocate_memory<StorageType>(other.size_in_bytes(), allocator)),
           reference_(store_and_load(other, other.size_in_bytes()))
     {
     }
@@ -78,7 +75,7 @@ class BasicContiguousElement
     template <class OtherAllocator>
     BasicContiguousElement(const BasicContiguousElement<OtherAllocator, Parameter...>& other,
                            const allocator_type& allocator)
-        : memory_(allocate_memory(other.reference_.size_in_bytes(), allocator)),
+        : memory_(ElementTraits::template allocate_memory<StorageType>(other.reference_.size_in_bytes(), allocator)),
           reference_(store_and_load(other.reference_, other.reference_.size_in_bytes()))
     {
     }
@@ -225,14 +222,6 @@ class BasicContiguousElement
     }
 
   private:
-    static constexpr auto allocate_memory(std::size_t size_in_bytes, const Allocator& allocator)
-    {
-        const auto remainder = size_in_bytes % ALIGNMENT_OF_FIRST_PARAMETER;
-        size_in_bytes /= ALIGNMENT_OF_FIRST_PARAMETER;
-        size_in_bytes += remainder == 0 ? 0 : 1;
-        return StorageType(size_in_bytes, allocator);
-    }
-
     template <class SourceReference>
     auto store_and_load(SourceReference& source, std::size_t memory_size) const
     {
