@@ -6,11 +6,11 @@
 #ifndef CNTGS_UTILS_CHECK_HPP
 #define CNTGS_UTILS_CHECK_HPP
 
+#include "utils/doctest.hpp"
 #include "utils/range.hpp"
 #include "utils/typeTraits.hpp"
 
 #include <cntgs/contiguous.hpp>
-#include <doctest/doctest.h>
 
 #include <cstddef>
 #include <string_view>

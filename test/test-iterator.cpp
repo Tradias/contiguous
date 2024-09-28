@@ -4,18 +4,16 @@
 // https://opensource.org/licenses/MIT
 
 #include "utils/check.hpp"
+#include "utils/doctest.hpp"
 #include "utils/fixture.hpp"
 #include "utils/functional.hpp"
 #include "utils/range.hpp"
 #include "utils/typedefs.hpp"
 
 #include <cntgs/contiguous.hpp>
-#include <doctest/doctest.h>
 
 namespace test_iterator
 {
-TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
-
 using namespace cntgs;
 using namespace cntgs::test;
 
@@ -84,6 +82,4 @@ TEST_CASE("ContiguousIterator: std::rotate with ContiguousVectorIterator of Fixe
     test::check_equal_using_get(vector[0], array_one_unique_ptr(30), 40);
     test::check_equal_using_get(vector[1], array_one_unique_ptr(10), 20);
 }
-
-TEST_SUITE_END();
 }  // namespace test_iterator

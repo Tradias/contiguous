@@ -4,6 +4,7 @@
 // https://opensource.org/licenses/MIT
 
 #include "utils/check.hpp"
+#include "utils/doctest.hpp"
 #include "utils/fixture.hpp"
 #include "utils/functional.hpp"
 #include "utils/noexcept.hpp"
@@ -11,14 +12,11 @@
 #include "utils/typedefs.hpp"
 
 #include <cntgs/contiguous.hpp>
-#include <doctest/doctest.h>
 
 #include <memory>
 
 namespace test_reference
 {
-TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
-
 using namespace cntgs;
 using namespace cntgs::test;
 
@@ -129,6 +127,4 @@ TEST_CASE("ContiguousReference: OneVarying::(const_)reference comparison operato
     SUBCASE("greater") { check_greater(vector, test::Identity{}, test::Identity{}); }
     SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, test::Identity{}); }
 }
-
-TEST_SUITE_END();
 }  // namespace test_reference

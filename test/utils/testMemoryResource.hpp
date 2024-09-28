@@ -6,7 +6,7 @@
 #ifndef CNTGS_UTILS_TESTMEMORYRESOURCE_HPP
 #define CNTGS_UTILS_TESTMEMORYRESOURCE_HPP
 
-#include <doctest/doctest.h>
+#include "utils/doctest.hpp"
 
 #include <algorithm>
 #include <array>

@@ -4,6 +4,7 @@
 // https://opensource.org/licenses/MIT
 
 #include "utils/check.hpp"
+#include "utils/doctest.hpp"
 #include "utils/fixture.hpp"
 #include "utils/functional.hpp"
 #include "utils/noexcept.hpp"
@@ -12,7 +13,6 @@
 #include "utils/typedefs.hpp"
 
 #include <cntgs/contiguous.hpp>
-#include <doctest/doctest.h>
 
 #include <array>
 #include <list>
@@ -31,8 +31,6 @@
 
 namespace test_vector
 {
-TEST_SUITE_BEGIN(CNTGS_TEST_CPP_VERSION);
-
 using namespace cntgs;
 using namespace cntgs::test;
 
@@ -1168,6 +1166,4 @@ TEST_CASE("ContiguousVector: OneVaryingString clear")
     auto vector = varying_vector_of_strings();
     check_clear_followed_by_emplace_back(vector);
 }
-
-TEST_SUITE_END();
 }  // namespace test_vector
