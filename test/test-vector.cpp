@@ -38,10 +38,14 @@ TEST_CASE("ContiguousVector: one fixed one varying size: correct memory_consumpt
     const auto varying_byte_count = 6 * sizeof(float);
     TestMemoryResource resource;
     Vector vector{2, varying_byte_count, {3}, resource.get_allocator()};
+    const auto bytes_allocated = resource.bytes_allocated;
+    vector.emplace_back(std::initializer_list<uint16_t>{1, 2, 3}, 10, std::array{0.f, 0.1f, 0.2f});
+    vector.emplace_back(std::initializer_list<uint16_t>{4, 5, 6}, 11, std::array{0.3f, 0.4f, 0.5f});
     const auto expected =
-        2 * (3 * sizeof(uint16_t) + sizeof(std::size_t) + sizeof(std::byte*) + sizeof(uint32_t)) + varying_byte_count;
+        2 * (3 * sizeof(uint16_t) + sizeof(std::size_t) + sizeof(std::size_t) + sizeof(uint32_t)) + varying_byte_count;
     CHECK_EQ(expected, vector.memory_consumption());
-    CHECK_EQ(expected, resource.bytes_allocated);
+    CHECK_EQ(expected, bytes_allocated);
+    CHECK_EQ(expected + 3 * sizeof(std::size_t), resource.bytes_allocated);  // reallocations
 }
 
 TEST_CASE("ContiguousVector: TwoFixed correct memory_consumption()")
@@ -180,15 +184,17 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap")
     SUBCASE("swap into smaller vector")
     {
         decltype(vector) vector2{0, 0, resource2.get_allocator()};
+        auto buffer = resource.buffer;
         swap(vector2, vector);
-        resource2.check_was_not_used(vector2.get_allocator());
+        CHECK(std::equal(buffer.begin(), buffer.end(), resource.buffer.begin()));
         check_varying_vector_unique_ptrs(vector2);
     }
     SUBCASE("swap into larger vector")
     {
         decltype(vector) vector2{3, 10, resource2.get_allocator()};
+        auto buffer = resource.buffer;
         swap(vector2, vector);
-        resource2.check_was_not_used(vector2.get_allocator());
+        CHECK(std::equal(buffer.begin(), buffer.end(), resource.buffer.begin()));
         check_varying_vector_unique_ptrs(vector2);
     }
 }

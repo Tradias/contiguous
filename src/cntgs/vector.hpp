@@ -51,8 +51,8 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     using Allocator = typename ParsedOptions::Allocator;
     using ListTraits = detail::ParameterListTraits<Parameter...>;
     using VectorTraits = detail::ContiguousVectorTraits<Parameter...>;
-    using ElementLocator = detail::ElementLocatorT<Parameter...>;
-    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Parameter...>;
+    using ElementLocator = detail::ElementLocatorT<Allocator, Parameter...>;
+    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Allocator, Parameter...>;
     using ElementTraits = detail::ElementTraitsT<Parameter...>;
     using AllocatorTraits = std::allocator_traits<Allocator>;
     using StorageType = detail::AllocatorAwarePointer<Allocator>;
@@ -159,18 +159,18 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     template <class... Args>
     void emplace_back(Args&&... args)
     {
-        locator_->emplace_back(locator_.fixed_sizes(), std::forward<Args>(args)...);
+        emplace_back_impl(std::forward<Args>(args)...);
     }
 
     template <class... Args>
     iterator emplace(const_iterator position, Args&&... args)
     {
         auto it = make_iterator(position);
+        const auto target_begin = it.data();
         const auto back_begin = data_end();
-        const auto back_end = locator_->emplace_back(locator_.fixed_sizes(), std::forward<Args>(args)...);
+        const auto back_end = emplace_back_impl(std::forward<Args>(args)...);
         const auto byte_count = back_end - back_begin;
         make_room_for_last_element_at(it.index(), byte_count);
-        const auto target_begin = it.data();
         std::memcpy(target_begin, back_end, byte_count);
         auto&& source = (*this)[size()];
         auto&& target = ElementTraits::load_element_at(target_begin, locator_.fixed_sizes());
@@ -267,7 +267,10 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     [[nodiscard]] constexpr size_type capacity() const noexcept { return max_element_count_; }
 
-    [[nodiscard]] constexpr size_type memory_consumption() const noexcept { return memory_.size(); }
+    [[nodiscard]] constexpr size_type memory_consumption() const noexcept
+    {
+        return memory_.size() + locator_->memory_size();
+    }
 
     [[nodiscard]] constexpr iterator begin() noexcept { return iterator{*this}; }
 
@@ -285,9 +288,10 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     friend constexpr void swap(BasicContiguousVector& lhs, BasicContiguousVector& rhs) noexcept
     {
-        std::swap(lhs.max_element_count_, rhs.max_element_count_);
-        detail::swap(lhs.memory_, rhs.memory_);
-        std::swap(lhs.locator_, rhs.locator_);
+        using std::swap;
+        swap(lhs.max_element_count_, rhs.max_element_count_);
+        swap(lhs.memory_, rhs.memory_);
+        swap(lhs.locator_, rhs.locator_);
     }
 
     template <class... TOption>
@@ -345,7 +349,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
                                     const allocator_type& allocator)
         : max_element_count_(max_element_count),
           memory_(memory, memory_size, is_memory_owned, allocator),
-          locator_(max_element_count, memory_.get(), FixedSizesArray{fixed_sizes})
+          locator_(max_element_count, memory_.get(), FixedSizesArray{fixed_sizes}, allocator)
     {
     }
 
@@ -355,7 +359,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
           memory_(
               Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, FixedSizesArray{fixed_sizes}),
               allocator),
-          locator_(max_element_count, memory_.get(), FixedSizesArray{fixed_sizes})
+          locator_(max_element_count, memory_.get(), FixedSizesArray{fixed_sizes}, allocator)
     {
     }
 
@@ -366,6 +370,12 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         constexpr auto ALIGNMENT_OVERHEAD = ListTraits::template ParameterTraitsAt<0>::ALIGNMENT - 1;
         return varying_size_bytes + ElementTraits::calculate_element_size(fixed_sizes) * max_element_count +
                ElementLocator::reserved_bytes(max_element_count) + ALIGNMENT_OVERHEAD;
+    }
+
+    template <class... Args>
+    auto emplace_back_impl(Args&&... args)
+    {
+        return locator_->emplace_back(memory_.get(), locator_.fixed_sizes(), std::forward<Args>(args)...);
     }
 
     void grow(size_type new_max_element_count, size_type new_varying_size_bytes)
@@ -390,14 +400,14 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         }
         else
         {
-            ElementLocator new_locator{locator, from.max_element_count_, from.memory_.get(), new_max_element_count,
-                                       new_memory};
+            ElementLocator new_locator{detail::move_if<USE_MOVE>(locator), from.max_element_count_, from.memory_.get(),
+                                       new_max_element_count, new_memory};
             BasicContiguousVector::uninitialized_construct_if_non_trivial<USE_MOVE>(from, new_memory, new_locator);
             if constexpr (IsDestruct)
             {
                 from.destruct();
             }
-            locator = new_locator;
+            locator = std::move(new_locator);
         }
     }
 
@@ -462,7 +472,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
         destruct();
         max_element_count_ = other.max_element_count_;
         memory_ = std::move(other.memory_);
-        locator_ = other.locator_;
+        locator_ = std::move(other.locator_);
     }
 
     constexpr void move_assign(BasicContiguousVector&& other)
@@ -480,7 +490,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
             }
             else
             {
-                auto other_locator = other.locator_;
+                auto other_locator = std::move(other.locator_);
                 if (other.memory_consumption() > memory_consumption())
                 {
                     // allocate memory first because it might throw
@@ -496,7 +506,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
                     BasicContiguousVector::insert_into(*other_locator, other.max_element_count_, memory_.get(), other);
                 }
                 max_element_count_ = other.max_element_count_;
-                locator_ = other_locator;
+                locator_ = std::move(other_locator);
             }
         }
     }

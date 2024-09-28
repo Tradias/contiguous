@@ -21,10 +21,9 @@ TEST_CASE("ContiguousIterator: OneVarying sizeof(iterator)")
 {
     struct Expected
     {
-        std::size_t i{};
-        std::byte* memory;
-        std::byte** last_element_address{};
-        std::byte* last_element{};
+        std::size_t i_;
+        std::byte* memory_;
+        std::size_t* element_addresses_;
     };
     CHECK_EQ(sizeof(Expected), sizeof(OneVarying::iterator));
 }

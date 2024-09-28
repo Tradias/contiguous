@@ -111,6 +111,19 @@ constexpr decltype(auto) as_const_ref(T&& value) noexcept
 {
     return detail::as_const(detail::as_ref(std::forward<T>(value)));
 }
+
+template <bool UseMove, class T>
+constexpr decltype(auto) move_if(T& value)
+{
+    if constexpr (UseMove)
+    {
+        return std::move(value);
+    }
+    else
+    {
+        return (value);
+    }
+}
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_UTILITY_HPP

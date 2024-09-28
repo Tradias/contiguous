@@ -20,7 +20,9 @@ class ContiguousVectorIterator
 {
   private:
     using Vector = cntgs::BasicContiguousVector<Options, Parameter...>;
-    using ElementLocatorAndFixedSizes = detail::ElementLocatorAndFixedSizes<Parameter...>;
+    using ElementLocatorAndFixedSizes = detail::IteratorElementLocatorAndFixedSizes<
+        detail::ParameterListTraits<Parameter...>::IS_FIXED_SIZE_OR_PLAIN,
+        typename detail::ParameterListTraits<Parameter...>::FixedSizesArray>;
     using SizeType = typename Vector::size_type;
     using MemoryPointer = typename std::allocator_traits<typename Vector::allocator_type>::pointer;
 
@@ -34,7 +36,7 @@ class ContiguousVectorIterator
     ContiguousVectorIterator() = default;
 
     constexpr ContiguousVectorIterator(const Vector& vector, SizeType index) noexcept
-        : i_(index), memory_(vector.memory_.get()), locator_(vector.locator_)
+        : i_(index), memory_(vector.memory_.get()), locator_(const_cast<Vector&>(vector).locator_)
     {
     }
 
