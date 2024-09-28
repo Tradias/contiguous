@@ -110,6 +110,14 @@ bool check_equal_using_get(T&& t, Args&&... args)
     return detail::check_equal_using_get(std::forward<T>(t), std::make_index_sequence<sizeof...(Args)>{}, args...);
 }
 
+template <class T>
+auto check_size1_and_capacity2(T& v)
+{
+    CHECK_EQ(1, v.size());
+    CHECK_EQ(2, v.capacity());
+    CHECK_FALSE(v.empty());
+}
+
 template <template <bool> class T>
 void check_conditionally_nothrow_comparison()
 {

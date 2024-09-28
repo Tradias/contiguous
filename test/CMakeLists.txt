@@ -71,8 +71,17 @@ function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
     target_precompile_headers(${_cntgs_name} PRIVATE "utils/precompiledHeader.hpp")
 endfunction()
 
-set(CNTGS_TEST_SOURCE_FILES "test-vector.cpp" "test-element.cpp" "test-reference.cpp" "test-iterator.cpp"
-                            "test-code-gen.cpp")
+set(CNTGS_TEST_SOURCE_FILES
+    "test-vector.cpp"
+    "test-vector-alignment.cpp"
+    "test-vector-comparison.cpp"
+    "test-vector-emplace.cpp"
+    "test-vector-erase.cpp"
+    "test-vector-special-member.cpp"
+    "test-element.cpp"
+    "test-reference.cpp"
+    "test-iterator.cpp"
+    "test-code-gen.cpp")
 
 cntgs_add_test(cntgs-test-cpp17 "${CMAKE_CURRENT_BINARY_DIR}/cntgs-code-gen-objects-cpp17.asm"
                ${CNTGS_TEST_SOURCE_FILES})
