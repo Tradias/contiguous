@@ -9,17 +9,14 @@
 
 #include <cntgs/contiguous.hpp>
 
-#include <array>
-#include <ostream>
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace test_contiguous
 {
 auto get_disassembly_of_functions(const std::vector<std::string>& function_names)
 {
-    return cntgs::test::get_disassembly_of_functions(CNTGS_CODE_GEN_DISASSEMBLY_FILE, function_names);
+    return test::get_disassembly_of_functions(CNTGS_CODE_GEN_DISASSEMBLY_FILE, function_names);
 }
 
 void check_code_gen_sizes(const std::string& reference, const std::string& contiguous, size_t size_deviation = 0)
@@ -27,8 +24,8 @@ void check_code_gen_sizes(const std::string& reference, const std::string& conti
     auto disassemblies = get_disassembly_of_functions({reference, contiguous});
     CAPTURE(disassemblies[0]);
     CAPTURE(disassemblies[1]);
-    const auto reference_line_count = cntgs::test::count_lines(disassemblies[0]);
-    const auto contiguous_line_count = cntgs::test::count_lines(disassemblies[1]);
+    const auto reference_line_count = test::count_lines(disassemblies[0]);
+    const auto contiguous_line_count = test::count_lines(disassemblies[1]);
     CAPTURE(reference_line_count);
     CAPTURE(contiguous_line_count);
     REQUIRE((reference_line_count > 0 && contiguous_line_count > 0));

@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <type_traits>
 
-namespace cntgs::test
+namespace test
 {
 template <class, class = void>
 inline constexpr bool IS_RANGE = false;
@@ -23,6 +23,6 @@ auto range_equal(Lhs&& lhs, Rhs&& rhs, Comp&& comp = {})
 {
     return std::equal(std::begin(lhs), std::end(lhs), std::begin(rhs), std::end(rhs), std::forward<Comp>(comp));
 }
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_RANGE_HPP

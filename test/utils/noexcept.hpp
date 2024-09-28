@@ -6,7 +6,7 @@
 #ifndef CNTGS_UTILS_NOEXCEPT_HPP
 #define CNTGS_UTILS_NOEXCEPT_HPP
 
-namespace cntgs::test
+namespace test
 {
 template <bool IsNoexcept>
 struct Noexcept
@@ -19,6 +19,6 @@ struct Noexcept
     bool operator==(const Noexcept&) const noexcept(IsNoexcept);
     bool operator<(const Noexcept&) const noexcept(IsNoexcept);
 };
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_NOEXCEPT_HPP

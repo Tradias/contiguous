@@ -15,7 +15,7 @@
 namespace test_vector_alignment
 {
 using namespace cntgs;
-using namespace cntgs::test;
+using namespace test;
 
 TEST_CASE("ContiguousVector: PlainAligned size() and capacity()")
 {
@@ -71,7 +71,7 @@ TEST_CASE("ContiguousVector: PlainAligned emplace_back() and subscript operator"
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
-        test::check_equal_using_get(vector[i], 'a', i);
+        check_equal_using_get(vector[i], 'a', i);
         auto&& [a, b] = vector[i];
         check_alignment(&b, 8);
     }
@@ -86,7 +86,7 @@ TEST_CASE("ContiguousVector: OneVaryingAligned emplace_back() and subscript oper
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
-        test::check_equal_using_get(vector[i], FLOATS1, i);
+        check_equal_using_get(vector[i], FLOATS1, i);
         auto&& [a, b] = vector[i];
         check_alignment(a, 16);
     }
@@ -101,7 +101,7 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript oper
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
-        test::check_equal_using_get(vector[i], i, FLOATS1, FLOATS2);
+        check_equal_using_get(vector[i], i, FLOATS1, FLOATS2);
         auto&& [a, b, c] = vector[i];
         check_alignment(b, 8);
         check_alignment(c, 16);
@@ -117,7 +117,7 @@ TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operat
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
-        test::check_equal_using_get(vector[i], i, FLOATS1);
+        check_equal_using_get(vector[i], i, FLOATS1);
         auto&& [a, b] = vector[i];
         check_alignment(b, 32);
     }
@@ -132,7 +132,7 @@ TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operat
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
-        test::check_equal_using_get(vector[i], FLOATS1, i, FLOATS2);
+        check_equal_using_get(vector[i], FLOATS1, i, FLOATS2);
         auto&& [a, b, c] = vector[i];
         check_alignment(a, 8);
         check_alignment(&b, 16);
@@ -149,7 +149,7 @@ TEST_CASE("ContiguousVector: TwoFixedAlignedAlt emplace_back() and subscript ope
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
-        test::check_equal_using_get(vector[i], FLOATS1, uint2, i);
+        check_equal_using_get(vector[i], FLOATS1, uint2, i);
         auto&& [a, b, c] = vector[i];
         check_alignment(a, 32);
     }
@@ -164,7 +164,7 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscr
     }
     for (uint32_t i = 0; i < 5; ++i)
     {
-        test::check_equal_using_get(vector[i], FLOATS1, i, FLOATS2);
+        check_equal_using_get(vector[i], FLOATS1, i, FLOATS2);
         auto&& [a, b, c] = vector[i];
         check_alignment(a, 16);
         check_alignment(c, 8);

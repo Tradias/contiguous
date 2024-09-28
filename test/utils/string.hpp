@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-namespace cntgs::test
+namespace test
 {
 namespace detail
 {
@@ -46,6 +46,6 @@ auto format(std::string_view format, Args&&... args)
     }
     return std::move(stream).str();
 }
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_STRING_HPP

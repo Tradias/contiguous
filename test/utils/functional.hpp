@@ -8,7 +8,7 @@
 
 #include <utility>
 
-namespace cntgs::test
+namespace test
 {
 struct Identity
 {
@@ -28,6 +28,6 @@ struct ToValueType
         return typename Vector::value_type{std::forward<T>(t)};
     }
 };
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_FUNCTIONAL_HPP

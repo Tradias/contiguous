@@ -22,7 +22,7 @@
 namespace test_vector
 {
 using namespace cntgs;
-using namespace cntgs::test;
+using namespace test;
 
 TEST_CASE("ContiguousVector: TwoFixed get_fixed_size<I>()")
 {
@@ -79,7 +79,7 @@ TEST_CASE("ContiguousVector: ContiguousVector is conditionally nothrow")
     check_always_nothrow_move_construct<NoexceptVector>();
     CHECK(std::is_nothrow_move_assignable_v<NoexceptVector<true>>);
     CHECK(std::is_nothrow_move_assignable_v<NoexceptVector<false>>);
-    CHECK_FALSE(std::is_nothrow_move_assignable_v<test::pmr::ContiguousVector<float>>);
+    CHECK_FALSE(std::is_nothrow_move_assignable_v<pmr::ContiguousVector<float>>);
 }
 
 TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
@@ -87,18 +87,18 @@ TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
     cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{0, 0};
     vector.reserve(1, 3 * sizeof(std::unique_ptr<int>));
     vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    test::check_equal_using_get(vector[0], array_one_unique_ptr(), 20);
+    check_equal_using_get(vector[0], array_one_unique_ptr(), 20);
     vector.reserve(3, 8 * sizeof(std::unique_ptr<int>));
     vector.emplace_back(array_two_unique_ptr(), std::make_unique<int>(50));
     vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    test::check_equal_using_get(vector[1], array_two_unique_ptr(), 50);
-    test::check_equal_using_get(vector[2], array_one_unique_ptr(), 20);
+    check_equal_using_get(vector[1], array_two_unique_ptr(), 50);
+    check_equal_using_get(vector[2], array_one_unique_ptr(), 20);
 }
 
 TEST_CASE("ContiguousVector: trivial OneFixed reserve with polymorphic_allocator")
 {
     TestPmrMemoryResource resource;
-    test::pmr::ContiguousVector<cntgs::FixedSize<float>, int> vector{0, {10}, resource.get_allocator()};
+    pmr::ContiguousVector<cntgs::FixedSize<float>, int> vector{0, {10}, resource.get_allocator()};
     vector.reserve(2);
     CHECK_EQ(2, vector.capacity());
     vector.emplace_back(std::array{1.f}, 10);
@@ -150,8 +150,8 @@ template <class Vector>
 void check_varying_vector_unique_ptrs(const Vector& vector)
 {
     CHECK_EQ(2, vector.size());
-    test::check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
-    test::check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
+    check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
+    check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
 }
 
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap empty vector")
@@ -201,7 +201,7 @@ void check_clear_followed_by_emplace_back(cntgs::BasicContiguousVector<T...>& ve
     CHECK_EQ(expected_capacity, vector.capacity());
     CHECK(vector.empty());
     vector.emplace_back(std::array{STRING2, STRING2}, STRING2);
-    test::check_equal_using_get(vector[0], std::array{STRING2, STRING2}, STRING2);
+    check_equal_using_get(vector[0], std::array{STRING2, STRING2}, STRING2);
 }
 
 TEST_CASE("ContiguousVector: OneFixedString clear")

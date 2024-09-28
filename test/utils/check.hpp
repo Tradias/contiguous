@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace cntgs::test
+namespace test
 {
 namespace detail
 {
@@ -100,7 +100,7 @@ bool check_equal(const Lhs& lhs, const Rhs& rhs)
 template <class T, std::size_t... I, class... Args>
 bool check_equal_using_get(T&& t, std::index_sequence<I...>, Args&&... args)
 {
-    return (detail::check_equal(get<I>(std::forward<T>(t)), args) && ...);
+    return (detail::check_equal(cntgs::get<I>(std::forward<T>(t)), args) && ...);
 }
 }  // namespace detail
 
@@ -216,6 +216,6 @@ void check_greater_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTran
     CHECK_FALSE(lhs_transformer(vector[0]) >= rhs_transformer(std::as_const(vector)[1]));
     CHECK_GE(lhs_transformer(std::as_const(vector)[3]), rhs_transformer(std::as_const(vector)[2]));
 }
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_CHECK_HPP

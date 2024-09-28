@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-namespace cntgs::test
+namespace test
 {
 size_t count_lines(const std::string& text)
 {
@@ -17,4 +17,4 @@ size_t count_lines(const std::string& text)
     stream.str(text);
     return std::count(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>(), '\n');
 }
-}  // namespace cntgs::test
+}  // namespace test

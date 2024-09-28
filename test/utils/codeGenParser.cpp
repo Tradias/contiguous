@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace cntgs::test
+namespace test
 {
 namespace
 {
@@ -74,4 +74,4 @@ std::vector<std::string> get_disassembly_of_functions(const std::filesystem::pat
     }
     return result;
 }
-}  // namespace cntgs::test
+}  // namespace test

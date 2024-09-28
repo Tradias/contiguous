@@ -21,7 +21,7 @@
 namespace test_element
 {
 using namespace cntgs;
-using namespace cntgs::test;
+using namespace test;
 
 TEST_CASE("ContiguousElement: converting constructors")
 {
@@ -49,7 +49,7 @@ TEST_CASE("ContiguousElement: converting constructors")
         OneFixed::value_type value{OneFixed::value_type{vector[0]}};
         CHECK_EQ(vector[0], value);
     }
-    using Vector2 = test::ContiguousVectorWithAllocator<std::allocator<int>, uint32_t, cntgs::FixedSize<float>>;
+    using Vector2 = ContiguousVectorWithAllocator<std::allocator<int>, uint32_t, cntgs::FixedSize<float>>;
     Vector2 vector2{1, {FLOATS1.size()}};
     vector2.emplace_back(10u, FLOATS1);
     SUBCASE("copy from value_type")
@@ -75,7 +75,7 @@ TEST_CASE("ContiguousElement: converting constructors")
         CHECK_EQ(vector[0], value);
     }
     TestPmrMemoryResource resource;
-    using ValueType = test::pmr::ContiguousVector<uint32_t, cntgs::FixedSize<float>>::value_type;
+    using ValueType = pmr::ContiguousVector<uint32_t, cntgs::FixedSize<float>>::value_type;
     SUBCASE("copy from reference and allocator")
     {
         const auto ref{vector[0]};
@@ -130,8 +130,8 @@ TEST_CASE("ContiguousElement: construct from move-only type")
     SUBCASE("move from reference")
     {
         ValueType value{vector[0]};
-        test::check_equal_using_get(vector[0], array_one_unique_ptr(nullptr), nullptr);
-        test::check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
+        check_equal_using_get(vector[0], array_one_unique_ptr(nullptr), nullptr);
+        check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
     }
     TestPmrMemoryResource resource;
     using AllocValueType = typename decltype(fixed_vector_of_unique_ptrs(resource.get_allocator()))::value_type;
@@ -139,16 +139,16 @@ TEST_CASE("ContiguousElement: construct from move-only type")
     {
         AllocValueType value{vector[0], resource.get_allocator()};
         resource.check_was_used(value.get_allocator());
-        test::check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
+        check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
     }
     SUBCASE("move from value_type and allocator")
     {
         AllocValueType value{ValueType{vector[0]}, resource.get_allocator()};
         resource.check_was_used(value.get_allocator());
-        test::check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
+        check_equal_using_get(value, array_one_unique_ptr(10), std::make_unique<int>(20));
         AllocValueType value2{std::move(value)};
         CHECK_EQ(resource.get_allocator(), value2.get_allocator());
-        test::check_equal_using_get(value2, array_one_unique_ptr(10), std::make_unique<int>(20));
+        check_equal_using_get(value2, array_one_unique_ptr(10), std::make_unique<int>(20));
     }
 }
 
@@ -165,7 +165,7 @@ TEST_CASE("ContiguousElement: FixedSize can be copy assigned - std::allocator")
         value2 = value2;
     }
     SUBCASE("reference to value_type") { value2 = ReferenceType{value1}; }
-    test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+    check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
 }
 
 TEST_CASE("ContiguousElement: VaryingSize can be copy assigned - std::allocator")
@@ -177,12 +177,12 @@ TEST_CASE("ContiguousElement: VaryingSize can be copy assigned - std::allocator"
     SUBCASE("larger into smaller")
     {
         value2 = value1;
-        test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+        check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
     }
     SUBCASE("smaller into larger")
     {
         value1 = value2;
-        test::check_equal_using_get(value1, std::array{STRING1}, STRING2);
+        check_equal_using_get(value1, std::array{STRING1}, STRING2);
     }
 }
 
@@ -196,14 +196,14 @@ TEST_CASE("ContiguousElement: FixedSize can be copy assigned - std::polymorphic_
         ValueType value1{vector[0], resource.get_allocator()};
         ValueType value2{vector[1], resource.get_allocator()};
         value2 = value1;
-        test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+        check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
     }
     SUBCASE("non-equal allocator")
     {
         ValueType value1{vector[0], resource.get_allocator()};
         ValueType value2{vector[1]};
         value2 = value1;
-        test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+        check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
     }
 }
 
@@ -219,12 +219,12 @@ TEST_CASE("ContiguousElement: VaryingSize can be copy assigned - std::polymorphi
         SUBCASE("larger into smaller")
         {
             value2 = value1;
-            test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+            check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
         }
         SUBCASE("smaller into larger")
         {
             value1 = value2;
-            test::check_equal_using_get(value1, std::array{STRING1}, STRING2);
+            check_equal_using_get(value1, std::array{STRING1}, STRING2);
         }
     }
     SUBCASE("non-equal allocator")
@@ -234,12 +234,12 @@ TEST_CASE("ContiguousElement: VaryingSize can be copy assigned - std::polymorphi
         SUBCASE("larger into smaller")
         {
             value2 = value1;
-            test::check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+            check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
         }
         SUBCASE("smaller into larger")
         {
             value1 = value2;
-            test::check_equal_using_get(value1, std::array{STRING1}, STRING2);
+            check_equal_using_get(value1, std::array{STRING1}, STRING2);
         }
     }
 }
@@ -251,7 +251,7 @@ TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::allocator")
     ValueType value1{vector[0]};
     ValueType value2{vector[1]};
     value1 = std::move(value2);
-    test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
+    check_equal_using_get(value1, array_one_unique_ptr(30), 40);
 }
 
 TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::allocator")
@@ -263,12 +263,12 @@ TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::allocator")
     SUBCASE("larger into smaller")
     {
         value2 = std::move(value1);
-        test::check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+        check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
     }
     SUBCASE("smaller into larger")
     {
         value1 = std::move(value2);
-        test::check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+        check_equal_using_get(value1, array_one_unique_ptr(40), 50);
     }
 }
 
@@ -284,12 +284,12 @@ TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::polymorphic_
         SUBCASE("larger into smaller")
         {
             value2 = std::move(value1);
-            test::check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+            check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
         }
         SUBCASE("smaller into larger")
         {
             value1 = std::move(value2);
-            test::check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+            check_equal_using_get(value1, array_one_unique_ptr(40), 50);
         }
     }
     SUBCASE("non-equal allocator")
@@ -299,12 +299,12 @@ TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::polymorphic_
         SUBCASE("larger into smaller")
         {
             value2 = std::move(value1);
-            test::check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+            check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
         }
         SUBCASE("smaller into larger")
         {
             value1 = std::move(value2);
-            test::check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+            check_equal_using_get(value1, array_one_unique_ptr(40), 50);
         }
     }
 }
@@ -319,14 +319,14 @@ TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::polymorphic_
         ValueType value1{vector[0], resource.get_allocator()};
         ValueType value2{vector[1], resource.get_allocator()};
         value1 = std::move(value2);
-        test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
+        check_equal_using_get(value1, array_one_unique_ptr(30), 40);
     }
     SUBCASE("non-equal allocator")
     {
         ValueType value1{vector[0], resource.get_allocator()};
         ValueType value2{vector[1]};
         value1 = std::move(value2);
-        test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
+        check_equal_using_get(value1, array_one_unique_ptr(30), 40);
     }
 }
 
@@ -339,8 +339,8 @@ TEST_CASE("ContiguousElement: can be swapped")
     using std::swap;
     swap(value1, value2);
     swap(value1, value1);
-    test::check_equal_using_get(value1, array_one_unique_ptr(30), 40);
-    test::check_equal_using_get(value2, array_one_unique_ptr(10), 20);
+    check_equal_using_get(value1, array_one_unique_ptr(30), 40);
+    check_equal_using_get(value2, array_one_unique_ptr(10), 20);
 }
 
 template <class Value>
@@ -348,8 +348,8 @@ void check_const_and_non_const(Value& value)
 {
     CHECK_EQ(10u, cntgs::get<0>(value));
     CHECK_EQ(10u, cntgs::get<0>(std::as_const(value)));
-    CHECK(test::range_equal(FLOATS1, cntgs::get<1>(value)));
-    CHECK(test::range_equal(FLOATS1, cntgs::get<1>(std::as_const(value))));
+    CHECK(range_equal(FLOATS1, cntgs::get<1>(value)));
+    CHECK(range_equal(FLOATS1, cntgs::get<1>(std::as_const(value))));
 }
 
 template <class Vector>
@@ -392,11 +392,11 @@ TEST_CASE("ContiguousElement: is conditionally nothrow")
     CHECK(std::is_nothrow_move_assignable_v<NoexceptElement<true>>);
 }
 
-using ToValueTypeVarying = test::ToValueType<OneVarying>;
+using ToValueTypeVarying = ToValueType<OneVarying>;
 
 TEST_CASE("ContiguousElement: OneVarying::value_type comparison operators")
 {
-    auto vector = one_varying_vector_for_elements();
+    auto vector = one_varying_vector_four_elements();
     SUBCASE("equal") { check_equality(vector, ToValueTypeVarying{}, ToValueTypeVarying{}); }
     SUBCASE("not equal") { check_inequality(vector, ToValueTypeVarying{}, ToValueTypeVarying{}); }
     SUBCASE("less") { check_less(vector, ToValueTypeVarying{}, ToValueTypeVarying{}); }
@@ -407,24 +407,24 @@ TEST_CASE("ContiguousElement: OneVarying::value_type comparison operators")
 
 TEST_CASE("ContiguousElement: OneVarying::(const_)reference to OneVarying::value_type comparison operators")
 {
-    auto vector = one_varying_vector_for_elements();
-    SUBCASE("equal") { check_equality(vector, test::Identity{}, ToValueTypeVarying{}); }
-    SUBCASE("not equal") { check_inequality(vector, test::Identity{}, ToValueTypeVarying{}); }
-    SUBCASE("less") { check_less(vector, test::Identity{}, ToValueTypeVarying{}); }
-    SUBCASE("less equal") { check_less_equal(vector, test::Identity{}, ToValueTypeVarying{}); }
-    SUBCASE("greater") { check_greater(vector, test::Identity{}, ToValueTypeVarying{}); }
-    SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, ToValueTypeVarying{}); }
+    auto vector = one_varying_vector_four_elements();
+    SUBCASE("equal") { check_equality(vector, Identity{}, ToValueTypeVarying{}); }
+    SUBCASE("not equal") { check_inequality(vector, Identity{}, ToValueTypeVarying{}); }
+    SUBCASE("less") { check_less(vector, Identity{}, ToValueTypeVarying{}); }
+    SUBCASE("less equal") { check_less_equal(vector, Identity{}, ToValueTypeVarying{}); }
+    SUBCASE("greater") { check_greater(vector, Identity{}, ToValueTypeVarying{}); }
+    SUBCASE("greater equal") { check_greater_equal(vector, Identity{}, ToValueTypeVarying{}); }
 }
 
 TEST_CASE("ContiguousElement: OneVarying::value_type to OneVarying::(const_)reference comparison operators")
 {
-    auto vector = one_varying_vector_for_elements();
-    SUBCASE("equal") { check_equality(vector, ToValueTypeVarying{}, test::Identity{}); }
-    SUBCASE("not equal") { check_inequality(vector, ToValueTypeVarying{}, test::Identity{}); }
-    SUBCASE("less") { check_less(vector, ToValueTypeVarying{}, test::Identity{}); }
-    SUBCASE("less equal") { check_less_equal(vector, ToValueTypeVarying{}, test::Identity{}); }
-    SUBCASE("greater") { check_greater(vector, ToValueTypeVarying{}, test::Identity{}); }
-    SUBCASE("greater equal") { check_greater_equal(vector, ToValueTypeVarying{}, test::Identity{}); }
+    auto vector = one_varying_vector_four_elements();
+    SUBCASE("equal") { check_equality(vector, ToValueTypeVarying{}, Identity{}); }
+    SUBCASE("not equal") { check_inequality(vector, ToValueTypeVarying{}, Identity{}); }
+    SUBCASE("less") { check_less(vector, ToValueTypeVarying{}, Identity{}); }
+    SUBCASE("less equal") { check_less_equal(vector, ToValueTypeVarying{}, Identity{}); }
+    SUBCASE("greater") { check_greater(vector, ToValueTypeVarying{}, Identity{}); }
+    SUBCASE("greater equal") { check_greater_equal(vector, ToValueTypeVarying{}, Identity{}); }
 }
 
 TEST_CASE("ContiguousElement: value_type to (const_)reference for memcmp-compatible lexicographical comparisons")
@@ -434,12 +434,12 @@ TEST_CASE("ContiguousElement: value_type to (const_)reference for memcmp-compati
     vector.emplace_back(UInt8{20}, std::array{std::byte{11}, std::byte{22}});
     vector.emplace_back(UInt8{10}, std::array{std::byte{1}, std::byte{2}});
     vector.emplace_back(UInt8{15}, std::array{std::byte{10}, std::byte{20}});
-    SUBCASE("equal") { check_equality(vector, test::Identity{}, test::Identity{}); }
-    SUBCASE("not equal") { check_inequality(vector, test::Identity{}, test::Identity{}); }
-    SUBCASE("less") { check_less(vector, test::Identity{}, test::Identity{}); }
-    SUBCASE("less equal") { check_less_equal(vector, test::Identity{}, test::Identity{}); }
-    SUBCASE("greater") { check_greater(vector, test::Identity{}, test::Identity{}); }
-    SUBCASE("greater equal") { check_greater_equal(vector, test::Identity{}, test::Identity{}); }
+    SUBCASE("equal") { check_equality(vector, Identity{}, Identity{}); }
+    SUBCASE("not equal") { check_inequality(vector, Identity{}, Identity{}); }
+    SUBCASE("less") { check_less(vector, Identity{}, Identity{}); }
+    SUBCASE("less equal") { check_less_equal(vector, Identity{}, Identity{}); }
+    SUBCASE("greater") { check_greater(vector, Identity{}, Identity{}); }
+    SUBCASE("greater equal") { check_greater_equal(vector, Identity{}, Identity{}); }
 }
 
 TEST_CASE("ContiguousElement: one fixed one varying size: correct memory_consumption()")

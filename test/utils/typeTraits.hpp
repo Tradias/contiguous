@@ -8,7 +8,7 @@
 
 #include <type_traits>
 
-namespace cntgs::test
+namespace test
 {
 template <class T>
 struct RemoveCvref
@@ -18,6 +18,6 @@ struct RemoveCvref
 
 template <class T>
 using RemoveCvrefT = typename RemoveCvref<T>::Type;
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_TYPETRAITS_HPP

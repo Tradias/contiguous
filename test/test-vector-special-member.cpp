@@ -13,7 +13,7 @@
 namespace test_vector_special_member
 {
 using namespace cntgs;
-using namespace cntgs::test;
+using namespace test;
 
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr move assign empty vector")
 {
@@ -27,8 +27,8 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr with polymorphic_allocator move
 {
     auto check_expected = [](auto&& vector)
     {
-        test::check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
-        test::check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
+        check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
+        check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
     };
     TestPmrMemoryResource resource;
     auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());
@@ -73,14 +73,14 @@ TEST_CASE("ContiguousVector: OneFixedUniquePtr with polymorphic_allocator move a
         decltype(vector) vector2{0, {}, resource2.get_allocator()};
         vector2 = std::move(vector);
         resource2.check_was_used(vector2.get_allocator());
-        test::check_equal_using_get(vector2[0], array_one_unique_ptr(10), 20);
+        check_equal_using_get(vector2[0], array_one_unique_ptr(10), 20);
     }
     SUBCASE("move into larger vector")
     {
         decltype(vector) vector2{3, {1}, resource2.get_allocator()};
         vector2 = std::move(vector);
         resource2.check_was_used(vector2.get_allocator());
-        test::check_equal_using_get(vector2[0], array_one_unique_ptr(10), 20);
+        check_equal_using_get(vector2[0], array_one_unique_ptr(10), 20);
     }
 }
 

@@ -15,7 +15,7 @@
 namespace test_iterator
 {
 using namespace cntgs;
-using namespace cntgs::test;
+using namespace test;
 
 TEST_CASE("ContiguousIterator: OneVarying sizeof(iterator)")
 {
@@ -45,12 +45,12 @@ void check_iterator(T& vector)
     std::for_each((vector.begin()++)--, --(++(++vector.begin())),
                   [&](auto&& elem)
                   {
-                      test::check_equal_using_get(vector[0], cntgs::get<0>(elem), cntgs::get<1>(elem));
+                      check_equal_using_get(vector[0], cntgs::get<0>(elem), cntgs::get<1>(elem));
                   });
     std::for_each(((vector.begin() + 2) - 1), vector.end(),
                   [&](auto&& elem)
                   {
-                      test::check_equal_using_get(vector[1], cntgs::get<0>(elem), cntgs::get<1>(elem));
+                      check_equal_using_get(vector[1], cntgs::get<0>(elem), cntgs::get<1>(elem));
                   });
 }
 
@@ -79,7 +79,7 @@ TEST_CASE("ContiguousIterator: std::rotate with ContiguousVectorIterator of Fixe
 {
     auto vector = fixed_vector_of_unique_ptrs();
     std::rotate(vector.begin(), ++vector.begin(), vector.end());
-    test::check_equal_using_get(vector[0], array_one_unique_ptr(30), 40);
-    test::check_equal_using_get(vector[1], array_one_unique_ptr(10), 20);
+    check_equal_using_get(vector[0], array_one_unique_ptr(30), 40);
+    check_equal_using_get(vector[1], array_one_unique_ptr(10), 20);
 }
 }  // namespace test_iterator

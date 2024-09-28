@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 
-namespace cntgs::test
+namespace test
 {
 [[maybe_unused]] static constexpr std::array FLOATS1{1.f, 2.f};
 [[maybe_unused]] static constexpr std::array FLOATS1_ALT{11.f, 22.f};
@@ -78,7 +78,7 @@ auto varying_vector_of_strings(Allocator allocator = {})
     return vector;
 }
 
-inline auto one_varying_vector_for_elements()
+inline auto one_varying_vector_four_elements()
 {
     test::OneVarying vector{4, 4 * (FLOATS1.size() * 2 + FLOATS1_ALT.size() + 3) * sizeof(float)};
     vector.emplace_back(10u, FLOATS1);
@@ -87,6 +87,6 @@ inline auto one_varying_vector_for_elements()
     vector.emplace_back(15u, floats1(10.f, 20.f, 30.f));
     return vector;
 }
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_FIXTURES_HPP

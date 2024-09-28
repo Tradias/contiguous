@@ -12,7 +12,7 @@
 #include <array>
 #include <memory_resource>
 
-namespace cntgs::test
+namespace test
 {
 struct TestMemoryResource;
 
@@ -111,6 +111,6 @@ struct TestPmrMemoryResource
                           }));
     }
 };
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_TESTMEMORYRESOURCE_HPP

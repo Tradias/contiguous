@@ -15,7 +15,7 @@
 namespace test_vector_comparison
 {
 using namespace cntgs;
-using namespace cntgs::test;
+using namespace test;
 
 template <class Vector1, class Vector2>
 void check_equality(Vector1& lhs, Vector2& rhs)

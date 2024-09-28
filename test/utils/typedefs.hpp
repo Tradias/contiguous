@@ -11,7 +11,7 @@
 #include <memory>
 #include <memory_resource>
 
-namespace cntgs::test
+namespace test
 {
 using UInt8 = unsigned char;
 
@@ -45,6 +45,6 @@ using TwoFixedAlignedAlt =
     cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 32>>, cntgs::FixedSize<uint32_t>, uint32_t>;
 using OneFixedOneVaryingAligned = cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 16>>, uint32_t,
                                                           cntgs::VaryingSize<cntgs::AlignAs<float, 8>>>;
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_TYPEDEFS_HPP

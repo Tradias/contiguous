@@ -24,7 +24,7 @@
 namespace test_vector_emplace
 {
 using namespace cntgs;
-using namespace cntgs::test;
+using namespace test;
 
 TEST_CASE("ContiguousVector: Plain size() and capacity()")
 {
@@ -78,14 +78,14 @@ TEST_CASE("ContiguousVector: TwoVarying emplace_back with arrays")
 {
     TwoVarying vector{1, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float)};
     vector.emplace_back(10u, FLOATS1, FLOATS2);
-    test::check_equal_using_get(vector[0], 10u, FLOATS1, FLOATS2);
+    check_equal_using_get(vector[0], 10u, FLOATS1, FLOATS2);
 }
 
 TEST_CASE("ContiguousVector: OneVarying emplace_back with lists")
 {
     OneVarying vector{1, FLOATS_LIST.size() * sizeof(float)};
     vector.emplace_back(10u, FLOATS_LIST);
-    test::check_equal_using_get(vector[0], 10u, FLOATS_LIST);
+    check_equal_using_get(vector[0], 10u, FLOATS_LIST);
 }
 
 TEST_CASE("ContiguousVector: TwoFixed emplace_back with lists")
@@ -95,7 +95,7 @@ TEST_CASE("ContiguousVector: TwoFixed emplace_back with lists")
     vector.emplace_back(FLOATS_LIST, 10u, FLOATS1);
     for (auto&& element : vector)
     {
-        test::check_equal_using_get(element, FLOATS_LIST, 10u, FLOATS1);
+        check_equal_using_get(element, FLOATS_LIST, 10u, FLOATS1);
     }
 }
 
@@ -106,10 +106,10 @@ void check_pop_back(Vector&& vector)
     vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
     vector.pop_back();
     CHECK_EQ(1, vector.size());
-    test::check_equal_using_get(vector.back(), array_one_unique_ptr(10), 20);
+    check_equal_using_get(vector.back(), array_one_unique_ptr(10), 20);
     vector.emplace_back(array_one_unique_ptr(50), std::make_unique<int>(60));
     CHECK_EQ(2, vector.size());
-    test::check_equal_using_get(vector.back(), array_one_unique_ptr(50), 60);
+    check_equal_using_get(vector.back(), array_one_unique_ptr(50), 60);
 }
 
 TEST_CASE("ContiguousVector: pop_back")
@@ -123,7 +123,7 @@ TEST_CASE("ContiguousVector: OneVarying emplace_back c-style array")
     float carray[]{0.1f, 0.2f};
     OneVarying vector{1, std::size(carray) * sizeof(float)};
     vector.emplace_back(10, carray);
-    test::check_equal_using_get(vector[0], 10u, carray);
+    check_equal_using_get(vector[0], 10u, carray);
 }
 
 #ifdef __cpp_lib_ranges
@@ -136,7 +136,7 @@ TEST_CASE("ContiguousVector: OneVarying emplace_back std::views::iota")
                                               });
     OneVarying vector{1, std::ranges::size(iota) * sizeof(float)};
     vector.emplace_back(10, iota);
-    test::check_equal_using_get(vector[0], 10u, iota);
+    check_equal_using_get(vector[0], 10u, iota);
 }
 
 TEST_CASE("ContiguousVector: OneFixed emplace_back std::views::iota")
@@ -156,7 +156,7 @@ TEST_CASE("ContiguousVector: OneFixed emplace_back std::views::iota")
     vector.emplace_back(10, unbound_iota.begin());
     for (auto&& i : {0, 1})
     {
-        test::check_equal_using_get(vector[i], 10u, bound_iota);
+        check_equal_using_get(vector[i], 10u, bound_iota);
     }
 }
 #endif
@@ -167,7 +167,7 @@ TEST_CASE("ContiguousVector: OneFixed emplace_back with iterator")
     OneFixed vector{1, {expected_elements.size()}};
     SUBCASE("begin() iterator") { vector.emplace_back(10u, expected_elements.begin()); }
     SUBCASE("data() iterator") { vector.emplace_back(10u, expected_elements.data()); }
-    test::check_equal_using_get(vector[0], 10u, expected_elements);
+    check_equal_using_get(vector[0], 10u, expected_elements);
 }
 
 TEST_CASE("ContiguousVector: std::string emplace_back with iterator")
@@ -187,9 +187,9 @@ template <class Vector, class T2, class U2, class T3, class U3, class T4, class 
 void check_after_emplace(Vector& vector, std::pair<T2, U2> expected_first, std::pair<T3, U3> expected_second,
                          std::pair<T4, U4> expected_third)
 {
-    test::check_equal_using_get(vector[0], std::get<0>(expected_first), std::get<1>(expected_first));
-    test::check_equal_using_get(vector[1], std::get<0>(expected_second), std::get<1>(expected_second));
-    test::check_equal_using_get(vector[2], std::get<0>(expected_third), std::get<1>(expected_third));
+    check_equal_using_get(vector[0], std::get<0>(expected_first), std::get<1>(expected_first));
+    check_equal_using_get(vector[1], std::get<0>(expected_second), std::get<1>(expected_second));
+    check_equal_using_get(vector[2], std::get<0>(expected_third), std::get<1>(expected_third));
 }
 
 template <class Vector, class T1, class U1, class T2, class U2, class T3, class U3, class T4, class U4>
@@ -318,8 +318,8 @@ TEST_CASE("ContiguousVector: std::string OneFixed emplace_back->reserve->emplace
     vector.emplace_back(std::array{STRING1}, STRING1, 42);
     vector.reserve(2);
     vector.emplace_back(std::array{STRING2}, STRING2, 84);
-    test::check_equal_using_get(vector[0], std::array{STRING1}, STRING1, 42);
-    test::check_equal_using_get(vector[1], std::array{STRING2}, STRING2, 84);
+    check_equal_using_get(vector[0], std::array{STRING1}, STRING1, 42);
+    check_equal_using_get(vector[1], std::array{STRING2}, STRING2, 84);
 }
 
 TEST_CASE("ContiguousVector: trivial OneFixed emplace_back->reserve->emplace_back")
@@ -328,8 +328,8 @@ TEST_CASE("ContiguousVector: trivial OneFixed emplace_back->reserve->emplace_bac
     vector.emplace_back(FLOATS1, 42);
     vector.reserve(2);
     vector.emplace_back(FLOATS1, 84);
-    test::check_equal_using_get(vector[0], FLOATS1, 42);
-    test::check_equal_using_get(vector[1], FLOATS1, 84);
+    check_equal_using_get(vector[0], FLOATS1, 42);
+    check_equal_using_get(vector[1], FLOATS1, 84);
 }
 
 TEST_CASE("ContiguousVector: trivial VaryingSize emplace_back->reserve->emplace_back")
@@ -338,8 +338,8 @@ TEST_CASE("ContiguousVector: trivial VaryingSize emplace_back->reserve->emplace_
     vector.emplace_back(FLOATS1, 42);
     vector.reserve(2, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float));
     vector.emplace_back(FLOATS2, 84);
-    test::check_equal_using_get(vector[0], FLOATS1, 42);
-    test::check_equal_using_get(vector[1], FLOATS2, 84);
+    check_equal_using_get(vector[0], FLOATS1, 42);
+    check_equal_using_get(vector[1], FLOATS2, 84);
 }
 
 TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
@@ -347,18 +347,18 @@ TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
     cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{0, 0};
     vector.reserve(1, 3 * sizeof(std::unique_ptr<int>));
     vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    test::check_equal_using_get(vector[0], array_one_unique_ptr(), 20);
+    check_equal_using_get(vector[0], array_one_unique_ptr(), 20);
     vector.reserve(3, 8 * sizeof(std::unique_ptr<int>));
     vector.emplace_back(array_two_unique_ptr(), std::make_unique<int>(50));
     vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    test::check_equal_using_get(vector[1], array_two_unique_ptr(), 50);
-    test::check_equal_using_get(vector[2], array_one_unique_ptr(), 20);
+    check_equal_using_get(vector[1], array_two_unique_ptr(), 50);
+    check_equal_using_get(vector[2], array_one_unique_ptr(), 20);
 }
 
 TEST_CASE("ContiguousVector: trivial OneFixed reserve with polymorphic_allocator")
 {
     TestPmrMemoryResource resource;
-    test::pmr::ContiguousVector<cntgs::FixedSize<float>, int> vector{0, {10}, resource.get_allocator()};
+    pmr::ContiguousVector<cntgs::FixedSize<float>, int> vector{0, {10}, resource.get_allocator()};
     vector.reserve(2);
     CHECK_EQ(2, vector.capacity());
     vector.emplace_back(std::array{1.f}, 10);

@@ -10,10 +10,10 @@
 #include <string>
 #include <vector>
 
-namespace cntgs::test
+namespace test
 {
 std::vector<std::string> get_disassembly_of_functions(const std::filesystem::path& disassembly_file,
                                                       const std::vector<std::string>& function_names);
-}  // namespace cntgs::test
+}  // namespace test
 
 #endif  // CNTGS_UTILS_CODEGENPARSER_HPP
