@@ -37,7 +37,7 @@ using OneVaryingUniquePtr = cntgs::ContiguousVector<cntgs::VaryingSize<std::uniq
 using PlainAligned = cntgs::ContiguousVector<char, cntgs::AlignAs<uint32_t, 8>>;
 using OneVaryingAligned = cntgs::ContiguousVector<cntgs::VaryingSize<cntgs::AlignAs<float, 16>>, uint32_t>;
 using TwoVaryingAligned = cntgs::ContiguousVector<uint32_t, cntgs::VaryingSize<cntgs::AlignAs<float, 8>>,
-                                                  cntgs::VaryingSize<cntgs::AlignAs<float, 8>>>;
+                                                  cntgs::VaryingSize<cntgs::AlignAs<float, 16>>>;
 using OneFixedAligned = cntgs::ContiguousVector<uint32_t, cntgs::FixedSize<cntgs::AlignAs<float, 32>>>;
 using TwoFixedAligned = cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 8>>,
                                                 cntgs::AlignAs<uint32_t, 16>, cntgs::FixedSize<float>>;

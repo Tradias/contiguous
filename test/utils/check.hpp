@@ -140,19 +140,19 @@ void check_conditionally_nothrow_copy_assign()
     CHECK_FALSE(std::is_nothrow_copy_assignable_v<T<false>>);
 }
 
-template <std::size_t Alignment, class T>
-void check_alignment(T* t)
+template <class T>
+void check_alignment(T* ptr, std::size_t alignment)
 {
-    auto* ptr = static_cast<void*>(t);
+    auto* void_ptr = static_cast<void*>(ptr);
     auto size = std::numeric_limits<size_t>::max();
-    std::align(Alignment, sizeof(uint32_t), ptr, size);
-    CHECK_EQ(t, ptr);
+    std::align(alignment, sizeof(T), void_ptr, size);
+    CHECK_EQ(void_ptr, ptr);
 }
 
-template <std::size_t Alignment, class T>
-void check_alignment(T& t)
+template <class T>
+void check_alignment(cntgs::Span<T>& span, std::size_t alignment)
 {
-    check_alignment<Alignment>(std::data(t));
+    check_alignment(std::data(span), alignment);
 }
 
 template <class Vector, class LhsTransformer, class RhsTransformer>

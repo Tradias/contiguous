@@ -9,19 +9,19 @@
 #include <memory>
 #include <vector>
 
-template <std::size_t Alignment, class T>
-void check_alignment(T* ptr)
+template <class T>
+void check_alignment(T* ptr, std::size_t alignment)
 {
     auto* void_ptr = static_cast<void*>(ptr);
     auto size = std::numeric_limits<size_t>::max();
-    std::align(Alignment, 4, void_ptr, size);
+    std::align(alignment, sizeof(T), void_ptr, size);
     assert(void_ptr == ptr);
 }
 
-template <std::size_t Alignment, class T>
-void check_alignment(cntgs::Span<T>& span)
+template <class T>
+void check_alignment(cntgs::Span<T>& span, std::size_t alignment)
 {
-    check_alignment<Alignment>(std::data(span));
+    check_alignment(std::data(span), alignment);
 }
 
 int main()
@@ -38,9 +38,9 @@ int main()
     vector.emplace_back(std::vector{1.f, 2.f}, std::vector{1, 2}, 5);
 
     auto&& [a, b, c] = vector[0];
-    check_alignment<32>(a);
-    check_alignment<8>(b);
-    check_alignment<8>(std::addressof(c));
+    check_alignment(a, 32);
+    check_alignment(b, 8);
+    check_alignment(std::addressof(c), 8);
 
     return 0;
 }

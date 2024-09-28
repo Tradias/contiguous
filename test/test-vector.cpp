@@ -816,7 +816,7 @@ TEST_CASE("ContiguousVector: PlainAligned emplace_back() and subscript operator"
     {
         test::check_equal_using_get(vector[i], 'a', i);
         auto&& [a, b] = vector[i];
-        check_alignment<8>(&b);
+        check_alignment(&b, 8);
     }
 }
 
@@ -831,7 +831,7 @@ TEST_CASE("ContiguousVector: OneVaryingAligned emplace_back() and subscript oper
     {
         test::check_equal_using_get(vector[i], FLOATS1, i);
         auto&& [a, b] = vector[i];
-        check_alignment<16>(a);
+        check_alignment(a, 16);
     }
 }
 
@@ -846,8 +846,8 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript oper
     {
         test::check_equal_using_get(vector[i], i, FLOATS1, FLOATS2);
         auto&& [a, b, c] = vector[i];
-        check_alignment<8>(b);
-        check_alignment<8>(c);
+        check_alignment(b, 8);
+        check_alignment(c, 16);
     }
 }
 
@@ -862,7 +862,7 @@ TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operat
     {
         test::check_equal_using_get(vector[i], i, FLOATS1);
         auto&& [a, b] = vector[i];
-        check_alignment<32>(b);
+        check_alignment(b, 32);
     }
 }
 
@@ -877,8 +877,8 @@ TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operat
     {
         test::check_equal_using_get(vector[i], FLOATS1, i, FLOATS2);
         auto&& [a, b, c] = vector[i];
-        check_alignment<8>(a);
-        check_alignment<16>(&b);
+        check_alignment(a, 8);
+        check_alignment(&b, 16);
     }
 }
 
@@ -894,7 +894,7 @@ TEST_CASE("ContiguousVector: TwoFixedAlignedAlt emplace_back() and subscript ope
     {
         test::check_equal_using_get(vector[i], FLOATS1, uint2, i);
         auto&& [a, b, c] = vector[i];
-        check_alignment<32>(a);
+        check_alignment(a, 32);
     }
 }
 
@@ -909,8 +909,8 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscr
     {
         test::check_equal_using_get(vector[i], FLOATS1, i, FLOATS2);
         auto&& [a, b, c] = vector[i];
-        check_alignment<16>(a);
-        check_alignment<8>(c);
+        check_alignment(a, 16);
+        check_alignment(c, 8);
     }
 }
 
