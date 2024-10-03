@@ -113,29 +113,6 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
                           ParameterTraitsAt<K>::data_begin(cntgs::get<K>(rhs))};
     }
 
-    static constexpr ElementSize calculate_element_size(const FixedSizesArray& fixed_sizes) noexcept
-    {
-        std::size_t size{};
-        std::size_t offset{};
-        std::size_t padding{};
-        (
-            [&]
-            {
-                const auto [next_offset, next_size, next_padding] =
-                    detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
-                        ListTraits::template previous_alignment<I>(), ListTraits::template next_alignment<I>()>(
-                        offset, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
-                size += next_size;
-                offset = next_offset;
-                if constexpr (I == sizeof...(Parameter) - 1)
-                {
-                    padding = next_padding;
-                }
-            }(),
-            ...);
-        return {size, size + padding};
-    }
-
     template <class ParameterT, bool IgnoreAliasing, std::size_t K, class Args>
     static std::byte* store_one(std::byte* address, std::size_t fixed_size, Args&& args) noexcept
     {
@@ -205,16 +182,33 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         return result;
     }
 
-    static constexpr std::size_t calculate_element_stride(const FixedSizesArray& fixed_sizes) noexcept
+    static constexpr ElementSize calculate_element_size(const FixedSizesArray& fixed_sizes) noexcept
     {
-        return calculate_element_size(fixed_sizes).stride;
+        std::size_t size{};
+        std::size_t offset{};
+        std::size_t padding{};
+        (
+            [&]
+            {
+                const auto [next_offset, next_size, next_padding] =
+                    detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
+                        ListTraits::template previous_alignment<I>(), ListTraits::template next_alignment<I>()>(
+                        offset, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
+                size += next_size;
+                offset = next_offset;
+                if constexpr (I == sizeof...(Parameter) - 1)
+                {
+                    padding = next_padding;
+                }
+            }(),
+            ...);
+        return {size, size + padding};
     }
 
     static constexpr std::size_t calculate_needed_memory_size(std::size_t max_element_count,
-                                                              std::size_t varying_size_bytes,
-                                                              const FixedSizesArray& fixed_sizes) noexcept
+                                                              std::size_t varying_size_bytes, ElementSize size) noexcept
     {
-        const auto [element_size, element_stride] = calculate_element_size(fixed_sizes);
+        const auto [element_size, element_stride] = size;
         const auto padding = max_element_count == 0 ? 0 : (element_stride - element_size);
         return varying_size_bytes + element_stride * max_element_count - padding;
     }

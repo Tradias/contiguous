@@ -349,23 +349,20 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     template <bool, class, class...>
     friend class cntgs::ContiguousVectorIterator;
 
-    constexpr BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned,
-                                    size_type max_element_count, const FixedSizes& fixed_sizes,
-                                    const allocator_type& allocator)
-        : max_element_count_(max_element_count),
-          memory_(memory, memory_size, is_memory_owned, allocator),
-          locator_(max_element_count, memory_begin(), FixedSizesArray{fixed_sizes}, allocator)
+    constexpr BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
+                                    const FixedSizes& fixed_sizes, const allocator_type& allocator, int)
+        : BasicContiguousVector(max_element_count, varying_size_bytes, FixedSizesArray{fixed_sizes}, allocator,
+                                ElementTraits::calculate_element_size(FixedSizesArray{fixed_sizes}))
     {
     }
 
     constexpr BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
-                                    const FixedSizes& fixed_sizes, const allocator_type& allocator, int)
+                                    const FixedSizesArray& fixed_sizes, const allocator_type& allocator,
+                                    detail::ElementSize size)
         : max_element_count_(max_element_count),
           memory_(ElementTraits::template allocate_memory<StorageType>(
-              ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes,
-                                                          FixedSizesArray{fixed_sizes}),
-              allocator)),
-          locator_(max_element_count, memory_begin(), FixedSizesArray{fixed_sizes}, allocator)
+              ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes, size), allocator)),
+          locator_(max_element_count, memory_begin(), fixed_sizes, size, allocator)
     {
     }
 

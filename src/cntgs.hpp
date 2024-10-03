@@ -1971,29 +1971,6 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
                           ParameterTraitsAt<K>::data_begin(cntgs::get<K>(rhs))};
     }
 
-    static constexpr ElementSize calculate_element_size(const FixedSizesArray& fixed_sizes) noexcept
-    {
-        std::size_t size{};
-        std::size_t offset{};
-        std::size_t padding{};
-        (
-            [&]
-            {
-                const auto [next_offset, next_size, next_padding] =
-                    detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
-                        ListTraits::template previous_alignment<I>(), ListTraits::template next_alignment<I>()>(
-                        offset, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
-                size += next_size;
-                offset = next_offset;
-                if constexpr (I == sizeof...(Parameter) - 1)
-                {
-                    padding = next_padding;
-                }
-            }(),
-            ...);
-        return {size, size + padding};
-    }
-
     template <class ParameterT, bool IgnoreAliasing, std::size_t K, class Args>
     static std::byte* store_one(std::byte* address, std::size_t fixed_size, Args&& args) noexcept
     {
@@ -2063,16 +2040,33 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         return result;
     }
 
-    static constexpr std::size_t calculate_element_stride(const FixedSizesArray& fixed_sizes) noexcept
+    static constexpr ElementSize calculate_element_size(const FixedSizesArray& fixed_sizes) noexcept
     {
-        return calculate_element_size(fixed_sizes).stride;
+        std::size_t size{};
+        std::size_t offset{};
+        std::size_t padding{};
+        (
+            [&]
+            {
+                const auto [next_offset, next_size, next_padding] =
+                    detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
+                        ListTraits::template previous_alignment<I>(), ListTraits::template next_alignment<I>()>(
+                        offset, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
+                size += next_size;
+                offset = next_offset;
+                if constexpr (I == sizeof...(Parameter) - 1)
+                {
+                    padding = next_padding;
+                }
+            }(),
+            ...);
+        return {size, size + padding};
     }
 
     static constexpr std::size_t calculate_needed_memory_size(std::size_t max_element_count,
-                                                              std::size_t varying_size_bytes,
-                                                              const FixedSizesArray& fixed_sizes) noexcept
+                                                              std::size_t varying_size_bytes, ElementSize size) noexcept
     {
-        const auto [element_size, element_stride] = calculate_element_size(fixed_sizes);
+        const auto [element_size, element_stride] = size;
         const auto padding = max_element_count == 0 ? 0 : (element_stride - element_size);
         return varying_size_bytes + element_stride * max_element_count - padding;
     }
@@ -3052,7 +3046,7 @@ class ElementLocator : public BaseElementLocator<Allocator>
   public:
     ElementLocator() = default;
 
-    ElementLocator(std::size_t max_element_count, std::byte* memory_begin, const FixedSizesArray&,
+    ElementLocator(std::size_t max_element_count, std::byte* memory_begin, ElementSize,
                    const Allocator& allocator) noexcept
         : Base{memory_begin, max_element_count, allocator}
     {
@@ -3101,7 +3095,8 @@ class ElementLocator : public BaseElementLocator<Allocator>
                                                            std::size_t varying_size_bytes,
                                                            const FixedSizesArray& fixed_sizes) noexcept
     {
-        return ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes);
+        return ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes,
+                                                           ElementTraits::calculate_element_size(fixed_sizes));
     }
 
   private:
@@ -3172,9 +3167,9 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
     AllFixedSizeElementLocator() = default;
 
     template <class Allocator>
-    constexpr AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, const FixedSizesArray& fixed_sizes,
+    constexpr AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, ElementSize element_stride,
                                          const Allocator&) noexcept
-        : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_stride(fixed_sizes), memory_begin)
+        : BaseAllFixedSizeElementLocator({}, element_stride.stride, memory_begin)
     {
     }
 
@@ -3244,8 +3239,9 @@ class ElementLocatorAndFixedSizes
     }
 
     constexpr ElementLocatorAndFixedSizes(std::size_t max_element_count, std::byte* memory,
-                                          const FixedSizesArray& fixed_sizes, const Allocator& allocator) noexcept
-        : Base{fixed_sizes}, locator_(max_element_count, memory, fixed_sizes, allocator)
+                                          const FixedSizesArray& fixed_sizes, ElementSize element_size,
+                                          const Allocator& allocator) noexcept
+        : Base{fixed_sizes}, locator_(max_element_count, memory, element_size, allocator)
     {
     }
 
@@ -3913,23 +3909,20 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
     template <bool, class, class...>
     friend class cntgs::ContiguousVectorIterator;
 
-    constexpr BasicContiguousVector(std::byte* memory, size_type memory_size, bool is_memory_owned,
-                                    size_type max_element_count, const FixedSizes& fixed_sizes,
-                                    const allocator_type& allocator)
-        : max_element_count_(max_element_count),
-          memory_(memory, memory_size, is_memory_owned, allocator),
-          locator_(max_element_count, memory_begin(), FixedSizesArray{fixed_sizes}, allocator)
+    constexpr BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
+                                    const FixedSizes& fixed_sizes, const allocator_type& allocator, int)
+        : BasicContiguousVector(max_element_count, varying_size_bytes, FixedSizesArray{fixed_sizes}, allocator,
+                                ElementTraits::calculate_element_size(FixedSizesArray{fixed_sizes}))
     {
     }
 
     constexpr BasicContiguousVector(size_type max_element_count, size_type varying_size_bytes,
-                                    const FixedSizes& fixed_sizes, const allocator_type& allocator, int)
+                                    const FixedSizesArray& fixed_sizes, const allocator_type& allocator,
+                                    detail::ElementSize size)
         : max_element_count_(max_element_count),
           memory_(ElementTraits::template allocate_memory<StorageType>(
-              ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes,
-                                                          FixedSizesArray{fixed_sizes}),
-              allocator)),
-          locator_(max_element_count, memory_begin(), FixedSizesArray{fixed_sizes}, allocator)
+              ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes, size), allocator)),
+          locator_(max_element_count, memory_begin(), fixed_sizes, size, allocator)
     {
     }
 

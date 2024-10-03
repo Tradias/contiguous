@@ -130,7 +130,7 @@ class ElementLocator : public BaseElementLocator<Allocator>
   public:
     ElementLocator() = default;
 
-    ElementLocator(std::size_t max_element_count, std::byte* memory_begin, const FixedSizesArray&,
+    ElementLocator(std::size_t max_element_count, std::byte* memory_begin, ElementSize,
                    const Allocator& allocator) noexcept
         : Base{memory_begin, max_element_count, allocator}
     {
@@ -179,7 +179,8 @@ class ElementLocator : public BaseElementLocator<Allocator>
                                                            std::size_t varying_size_bytes,
                                                            const FixedSizesArray& fixed_sizes) noexcept
     {
-        return ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes);
+        return ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes,
+                                                           ElementTraits::calculate_element_size(fixed_sizes));
     }
 
   private:
@@ -250,9 +251,9 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
     AllFixedSizeElementLocator() = default;
 
     template <class Allocator>
-    constexpr AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, const FixedSizesArray& fixed_sizes,
+    constexpr AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, ElementSize element_stride,
                                          const Allocator&) noexcept
-        : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_stride(fixed_sizes), memory_begin)
+        : BaseAllFixedSizeElementLocator({}, element_stride.stride, memory_begin)
     {
     }
 
@@ -322,8 +323,9 @@ class ElementLocatorAndFixedSizes
     }
 
     constexpr ElementLocatorAndFixedSizes(std::size_t max_element_count, std::byte* memory,
-                                          const FixedSizesArray& fixed_sizes, const Allocator& allocator) noexcept
-        : Base{fixed_sizes}, locator_(max_element_count, memory, fixed_sizes, allocator)
+                                          const FixedSizesArray& fixed_sizes, ElementSize element_size,
+                                          const Allocator& allocator) noexcept
+        : Base{fixed_sizes}, locator_(max_element_count, memory, element_size, allocator)
     {
     }
 
