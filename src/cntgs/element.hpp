@@ -234,8 +234,7 @@ class BasicContiguousElement
         static constexpr auto USE_MOVE = !std::is_const_v<SourceReference> && !SourceReference::IS_CONST;
         std::memcpy(target_memory, source.data_begin(), memory_size);
         auto target =
-            ElementTraits::template load_element_at<detail::IgnoreFirstAlignmentNeeds,
-                                                    detail::ContiguousReferenceSizeGetter>(target_memory, source);
+            ElementTraits::template load_element_at<detail::ContiguousReferenceSizeGetter>(target_memory, source);
         ElementTraits::template construct_if_non_trivial<USE_MOVE>(source, target);
         return Reference{target};
     }

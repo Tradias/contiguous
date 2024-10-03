@@ -271,7 +271,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     [[nodiscard]] constexpr size_type memory_consumption() const noexcept
     {
-        return (memory_.size() + locator_->memory_size()) * alignof(StorageElementType);
+        return memory_.size() * alignof(StorageElementType) + locator_->memory_size();
     }
 
     [[nodiscard]] constexpr iterator begin() noexcept { return iterator{*this}; }
@@ -362,20 +362,14 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
                                     const FixedSizes& fixed_sizes, const allocator_type& allocator, int)
         : max_element_count_(max_element_count),
           memory_(ElementTraits::template allocate_memory<StorageType>(
-              Self::calculate_needed_memory_size(max_element_count, varying_size_bytes, FixedSizesArray{fixed_sizes}),
+              ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes,
+                                                          FixedSizesArray{fixed_sizes}),
               allocator)),
           locator_(max_element_count, memory_begin(), FixedSizesArray{fixed_sizes}, allocator)
     {
     }
 
-    [[nodiscard]] static constexpr auto calculate_needed_memory_size(size_type max_element_count,
-                                                                     size_type varying_size_bytes,
-                                                                     const FixedSizesArray& fixed_sizes) noexcept
-    {
-        return varying_size_bytes + ElementTraits::calculate_element_size(fixed_sizes) * max_element_count;
-    }
-
-    constexpr std::byte* memory_begin() const noexcept { return reinterpret_cast<std::byte*>(memory_.get()); }
+    std::byte* memory_begin() const noexcept { return reinterpret_cast<std::byte*>(memory_.get()); }
 
     template <class... Args>
     auto emplace_back_impl(Args&&... args)
@@ -428,8 +422,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
             for (size_type i{}; i < self.size(); ++i)
             {
                 auto&& source = self[i];
-                auto&& target = ElementTraits::template load_element_at<detail::DefaultAlignmentNeeds,
-                                                                        detail::ContiguousReferenceSizeGetter>(
+                auto&& target = ElementTraits::template load_element_at<detail::ContiguousReferenceSizeGetter>(
                     new_locator.element_address(i, new_memory), source);
                 ElementTraits::template construct_if_non_trivial<UseMove>(source, target);
             }

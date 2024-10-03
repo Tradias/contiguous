@@ -10,8 +10,6 @@
 #include "cntgs/detail/iterator.hpp"
 #include "cntgs/detail/range.hpp"
 #include "cntgs/detail/typeTraits.hpp"
-#include "cntgs/detail/utility.hpp"
-#include "cntgs/span.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -19,7 +17,6 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <version>
 
 namespace cntgs::detail
 {
@@ -78,7 +75,7 @@ constexpr auto uninitialized_copy_n(SourceIterator&& source, DifferenceType coun
 }
 
 template <bool IgnoreAliasing, class TargetType, class Range>
-auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address)
+auto uninitialized_range_construct(Range&& range, TargetType* address)
 {
     using RangeValueType = typename std::iterator_traits<decltype(std::begin(range))>::value_type;
     if constexpr (IgnoreAliasing && detail::HAS_DATA_AND_SIZE<std::decay_t<Range>> &&
@@ -100,14 +97,14 @@ auto uninitialized_range_construct(Range&& CNTGS_RESTRICT range, TargetType* CNT
 }
 
 template <bool IgnoreAliasing, class TargetType, class Range>
-auto uninitialized_construct(Range&& CNTGS_RESTRICT range, TargetType* CNTGS_RESTRICT address,
+auto uninitialized_construct(Range&& range, TargetType* address,
                              std::size_t) -> std::enable_if_t<detail::IS_RANGE<Range>, std::byte*>
 {
     return detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), address);
 }
 
 template <bool IgnoreAliasing, class TargetType, class Iterator>
-auto uninitialized_construct(const Iterator& CNTGS_RESTRICT iterator, TargetType* CNTGS_RESTRICT address,
+auto uninitialized_construct(const Iterator& iterator, TargetType* address,
                              std::size_t size) -> std::enable_if_t<!detail::IS_RANGE<Iterator>, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
@@ -146,6 +143,14 @@ template <std::size_t Alignment, class T>
     return static_cast<T*>(::__builtin_assume_aligned(ptr, Alignment));
 }
 #endif
+
+[[nodiscard]] inline bool is_aligned(void* ptr, size_t alignment) noexcept
+{
+    void* void_ptr = ptr;
+    auto size = std::numeric_limits<size_t>::max();
+    std::align(alignment, 0, void_ptr, size);
+    return void_ptr == ptr;
+}
 
 [[nodiscard]] constexpr auto align(std::uintptr_t position, std::size_t alignment) noexcept
 {
@@ -189,6 +194,29 @@ template <bool NeedsAlignment, std::size_t Alignment, class T>
     }
     return detail::assume_aligned<Alignment>(ptr);
 }
+
+template <bool NeedsAlignment, std::size_t Alignment>
+[[nodiscard]] constexpr auto align_if(std::uintptr_t position) noexcept
+{
+    if constexpr (NeedsAlignment && Alignment > 1)
+    {
+        position = detail::align<Alignment>(position);
+    }
+    return position;
+}
+
+template <class T>
+[[nodiscard]] constexpr T extract_lowest_set_bit(T value) noexcept
+{
+    return value & (~value + T{1});
+}
+
+[[nodiscard]] constexpr std::size_t trailing_alignment(std::size_t byte_size, std::size_t alignment) noexcept
+{
+    return (std::min)(detail::extract_lowest_set_bit(byte_size), alignment);
+}
+
+inline constexpr auto SIZE_T_TRAILING_ALIGNMENT = detail::trailing_alignment(sizeof(std::size_t), alignof(std::size_t));
 }  // namespace cntgs::detail
 
 #endif  // CNTGS_DETAIL_MEMORY_HPP

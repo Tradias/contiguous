@@ -452,9 +452,8 @@ TEST_CASE("ContiguousElement: one fixed one varying size: correct memory_consump
     vector.emplace_back(std::array{0, 1, 2}, 42, std::array{'8'});
     resource.bytes_allocated = {};
     Vector::value_type v{vector.front(), resource.get_allocator()};
-    const auto expected = 3 * sizeof(uint16_t) + sizeof(std::size_t) + sizeof(uint32_t) + varying_byte_count;
-    // there is no easy way to support custom allocators and do exact aligned allocations
-    CHECK_EQ(expected + 1, resource.bytes_allocated);
+    const auto expected = 3 * sizeof(uint16_t) + sizeof(uint32_t) + 6 + sizeof(std::size_t) + varying_byte_count;
+    CHECK_EQ(expected + 8 - expected % 8, resource.bytes_allocated);
     CHECK_EQ('8', cntgs::get<2>(v).front());
 }
 }  // namespace test_element

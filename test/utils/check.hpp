@@ -148,12 +148,11 @@ void check_conditionally_nothrow_copy_assign()
     CHECK_FALSE(std::is_nothrow_copy_assignable_v<T<false>>);
 }
 
-template <class T>
-void check_alignment(T* ptr, std::size_t alignment)
+inline void check_alignment(void* ptr, std::size_t alignment)
 {
-    auto* void_ptr = static_cast<void*>(ptr);
+    auto* void_ptr = ptr;
     auto size = std::numeric_limits<size_t>::max();
-    std::align(alignment, sizeof(T), void_ptr, size);
+    std::align(alignment, 0, void_ptr, size);
     CHECK_EQ(void_ptr, ptr);
 }
 

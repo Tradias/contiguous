@@ -105,11 +105,20 @@ inline constexpr bool
                             std::void_t<decltype(std::declval<const Lhs&>() == std::declval<const Rhs&>()),
                                         decltype(std::declval<const Rhs&>() == std::declval<const Lhs&>())>> = true;
 
-template <class T>
-inline constexpr bool IS_NOTRHOW_EQUALITY_COMPARABLE = noexcept(std::declval<const T&>() == std::declval<const T&>());
+template <class T, class = void>
+inline constexpr bool IS_NOTRHOW_EQUALITY_COMPARABLE = false;
 
 template <class T>
-inline constexpr bool IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE =
+inline constexpr bool
+    IS_NOTRHOW_EQUALITY_COMPARABLE<T, std::void_t<decltype(std::declval<const T&>() == std::declval<const T&>())>> =
+        noexcept(std::declval<const T&>() == std::declval<const T&>());
+
+template <class T, class = void>
+inline constexpr bool IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE = false;
+
+template <class T>
+inline constexpr bool IS_NOTRHOW_LEXICOGRAPHICAL_COMPARABLE<
+    T, std::void_t<decltype(std::declval<const T&>() < std::declval<const T&>())>> =
     noexcept(std::declval<const T&>() < std::declval<const T&>());
 
 template <class T, class U>

@@ -6,6 +6,7 @@
 #include "utils/check.hpp"
 #include "utils/doctest.hpp"
 #include "utils/fixture.hpp"
+#include "utils/testMemoryResource.hpp"
 #include "utils/typedefs.hpp"
 
 #include <cntgs/contiguous.hpp>
@@ -40,19 +41,26 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned size() and capacity()")
 
 TEST_CASE("ContiguousVector: OneFixedAligned size(), capacity() and memory_consumption()")
 {
-    OneFixedAligned v{2, {FLOATS1.size()}};
+    TestMemoryResource resource;
+    OneFixedAligned<TestAllocator<>> v{2, {FLOATS1.size()}, resource.get_allocator()};
     v.emplace_back(10u, FLOATS1);
     check_size1_and_capacity2(v);
-    CHECK_EQ(2 * (32 + FLOATS1.size() * sizeof(float)), v.memory_consumption());
+    const auto size = 32 + FLOATS1.size() * sizeof(float);
+    const auto expected = 2 * (size + 32 - size % 32);
+    CHECK_EQ(expected, v.memory_consumption());
+    CHECK_EQ(expected, resource.bytes_allocated);
 }
 
 TEST_CASE("ContiguousVector: TwoFixedAligned size() and capacity()")
 {
-    TwoFixedAligned v{2, {FLOATS1.size(), FLOATS2.size()}};
+    TestMemoryResource resource;
+    TwoFixedAligned<TestAllocator<>> v{2, {FLOATS1.size(), FLOATS2.size()}, resource.get_allocator()};
     v.emplace_back(FLOATS1, 10u, FLOATS2);
     check_size1_and_capacity2(v);
-    const auto size = (FLOATS1.size() * sizeof(float) + 8 + sizeof(uint32_t) + FLOATS2.size() * sizeof(float));
-    CHECK_EQ(2 * (size + size % 8), v.memory_consumption());
+    const auto size = (FLOATS1.size() * sizeof(float) + 7 + sizeof(uint32_t) + FLOATS2.size() * sizeof(float));
+    const auto expected = 2 * (size + 8 - size % 8);
+    CHECK_EQ(expected, v.memory_consumption());
+    CHECK_EQ(expected, resource.bytes_allocated);
 }
 
 TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned size() and capacity()")
@@ -110,7 +118,7 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript oper
 
 TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operator")
 {
-    OneFixedAligned vector{5, {FLOATS1.size()}};
+    OneFixedAligned<> vector{5, {FLOATS1.size()}};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(i, FLOATS1);
@@ -125,7 +133,7 @@ TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operat
 
 TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operator")
 {
-    TwoFixedAligned vector{5, {FLOATS1.size(), FLOATS2.size()}};
+    TwoFixedAligned<> vector{5, {FLOATS1.size(), FLOATS2.size()}};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(FLOATS1, i, FLOATS2);
@@ -168,6 +176,32 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscr
         auto&& [a, b, c] = vector[i];
         check_alignment(a, 16);
         check_alignment(c, 8);
+    }
+}
+
+TEST_CASE(
+    "ContiguousVector: OneFixedOneVaryingAligned with matching leading/trailing alignment emplace_back() and subscript "
+    "operator")
+{
+    struct D
+    {
+        double a, b;
+    };
+    using V = cntgs::ContiguousVector<cntgs::VaryingSize<cntgs::AlignAs<float, 16>>, uint32_t,
+                                      cntgs::FixedSize<cntgs::AlignAs<D, 16>>>;
+    V vector{5, 5 * sizeof(D), {FLOATS1.size()}};
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        vector.emplace_back(FLOATS1, i, std::array{D{1, 2}});
+    }
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        check_equal_using_get(vector[i], FLOATS1, i);
+        auto&& [a, b, c] = vector[i];
+        CHECK_EQ(1, c.front().a);
+        CHECK_EQ(2, c.front().b);
+        check_alignment(a, 16);
+        check_alignment(c, 16);
     }
 }
 }  // namespace test_vector_alignment

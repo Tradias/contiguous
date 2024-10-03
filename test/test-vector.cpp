@@ -37,11 +37,12 @@ TEST_CASE("ContiguousVector: one fixed one varying size: correct memory_consumpt
         ContiguousVectorWithAllocator<TestAllocator<>, cntgs::FixedSize<uint16_t>, uint32_t, cntgs::VaryingSize<float>>;
     const auto varying_byte_count = 6 * sizeof(float);
     TestMemoryResource resource;
-    Vector vector{2, varying_byte_count, {3}, resource.get_allocator()};
+    const auto element_count = 2;
+    Vector vector{element_count, varying_byte_count, {3}, resource.get_allocator()};
     vector.emplace_back(std::initializer_list<uint16_t>{1, 2, 3}, 10, std::array{0.f, 0.1f, 0.2f});
     vector.emplace_back(std::initializer_list<uint16_t>{4, 5, 6}, 11, std::array{0.3f, 0.4f, 0.5f});
-    const auto expected =
-        2 * (3 * sizeof(uint16_t) + sizeof(uint32_t) + sizeof(std::size_t) + sizeof(std::size_t)) + varying_byte_count;
+    const auto size = 3 * sizeof(uint16_t) + sizeof(uint32_t) + 6 + sizeof(std::size_t);
+    const auto expected = element_count * (size + 4) + varying_byte_count + element_count * sizeof(std::size_t);
     CHECK_EQ(expected, vector.memory_consumption());
 #ifdef NDEBUG
     CHECK_EQ(expected, resource.bytes_allocated);

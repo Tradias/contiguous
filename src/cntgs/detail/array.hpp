@@ -47,7 +47,7 @@ constexpr auto convert_array_to_size(const detail::Array<T, K>& array, std::inde
 template <std::size_t N, class T, std::size_t K>
 constexpr auto convert_array_to_size(const detail::Array<T, K>& array)
 {
-    return detail::convert_array_to_size<N>(array, std::make_index_sequence<std::min(N, K)>{});
+    return detail::convert_array_to_size<N>(array, std::make_index_sequence<(std::min)(N, K)>{});
 }
 }  // namespace cntgs::detail
 

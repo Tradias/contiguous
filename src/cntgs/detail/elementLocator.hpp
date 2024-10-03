@@ -7,7 +7,6 @@
 #define CNTGS_DETAIL_ELEMENTLOCATOR_HPP
 
 #include "cntgs/detail/elementTraits.hpp"
-#include "cntgs/detail/memory.hpp"
 #include "cntgs/detail/parameterListTraits.hpp"
 #include "cntgs/detail/typeTraits.hpp"
 #include "cntgs/detail/utility.hpp"
@@ -176,10 +175,11 @@ class ElementLocator : public BaseElementLocator<Allocator>
         trivially_copy_into(this->last_element_, old_memory_begin, new_memory_begin);
     }
 
-    static constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
-                                                    const FixedSizesArray& fixed_sizes) noexcept
+    static constexpr std::size_t calculate_new_memory_size(std::size_t max_element_count,
+                                                           std::size_t varying_size_bytes,
+                                                           const FixedSizesArray& fixed_sizes) noexcept
     {
-        return varying_size_bytes + ElementTraits::calculate_element_size(fixed_sizes) * max_element_count;
+        return ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes, fixed_sizes);
     }
 
   private:
@@ -252,8 +252,7 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
     template <class Allocator>
     constexpr AllFixedSizeElementLocator(std::size_t, std::byte* memory_begin, const FixedSizesArray& fixed_sizes,
                                          const Allocator&) noexcept
-        : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_size(fixed_sizes),
-                                         AllFixedSizeElementLocator::calculate_element_start(memory_begin))
+        : BaseAllFixedSizeElementLocator({}, ElementTraits::calculate_element_stride(fixed_sizes), memory_begin)
     {
     }
 
@@ -284,8 +283,8 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
         trivially_copy_into(*this, new_memory_begin);
     }
 
-    constexpr auto calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
-                                             const FixedSizesArray&) noexcept
+    constexpr std::size_t calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
+                                                    const FixedSizesArray&) noexcept
     {
         return varying_size_bytes + stride_ * max_element_count;
     }
@@ -293,14 +292,8 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
   private:
     void trivially_copy_into(const AllFixedSizeElementLocator& old_locator, std::byte* new_memory_begin) noexcept
     {
-        const auto new_start = AllFixedSizeElementLocator::calculate_element_start(new_memory_begin);
-        std::memcpy(new_start, old_locator.start_, old_locator.element_count_ * old_locator.stride_);
-        start_ = new_start;
-    }
-
-    static constexpr auto calculate_element_start(std::byte* memory_begin) noexcept
-    {
-        return detail::align<ElementTraits::template ParameterTraitsAt<0>::ALIGNMENT>(memory_begin);
+        std::memcpy(new_memory_begin, old_locator.start_, old_locator.element_count_ * old_locator.stride_);
+        start_ = new_memory_begin;
     }
 };
 
