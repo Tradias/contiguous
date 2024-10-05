@@ -9,9 +9,6 @@
 #include "cntgs/detail/memory.hpp"
 
 #include <algorithm>
-#include <array>
-#include <cstddef>
-#include <utility>
 
 namespace cntgs::detail
 {
@@ -39,6 +36,15 @@ constexpr auto trivial_lexicographical_compare(const T* begin, const T* end, con
     return std::lexicographical_compare(
         reinterpret_cast<const detail::Byte*>(begin), reinterpret_cast<const detail::Byte*>(end),
         reinterpret_cast<const detail::Byte*>(begin2), reinterpret_cast<const detail::Byte*>(end2));
+}
+
+template <class T>
+constexpr void fill(T* first, T* last, const T& value)
+{
+    for (; first != last; ++first)
+    {
+        *first = value;
+    }
 }
 }  // namespace cntgs::detail
 

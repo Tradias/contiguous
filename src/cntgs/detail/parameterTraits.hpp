@@ -49,6 +49,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
 
     static constexpr auto TYPE = detail::ParameterType::PLAIN;
     static constexpr auto ALIGNMENT = Alignment;
+    static constexpr auto VALUE_ALIGNMENT = Alignment;
     static constexpr auto VALUE_BYTES = sizeof(T);
     static constexpr auto TRAILING_ALIGNMENT = detail::trailing_alignment(VALUE_BYTES, ALIGNMENT);
 
@@ -246,8 +247,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
 
     static constexpr auto TYPE = detail::ParameterType::VARYING_SIZE;
     static constexpr auto ALIGNMENT = alignof(std::size_t);
-    static constexpr auto VALUE_ALIGNMENT = Alignment;
-    static constexpr auto TRAILING_ALIGNMENT = detail::trailing_alignment(sizeof(T), ALIGNMENT);
+    static constexpr auto VALUE_ALIGNMENT = (std::max)(detail::SIZE_T_TRAILING_ALIGNMENT, Alignment);
 
     template <std::size_t PreviousAlignment, bool IsSizeProvided>
     static auto load(std::byte* address, std::size_t size) noexcept
@@ -326,6 +326,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
 
     static constexpr auto TYPE = detail::ParameterType::FIXED_SIZE;
     static constexpr auto ALIGNMENT = Alignment;
+    static constexpr auto VALUE_ALIGNMENT = Alignment;
     using ParameterTraits::BaseContiguousParameterTraits::VALUE_BYTES;
     static constexpr auto TRAILING_ALIGNMENT = detail::trailing_alignment(VALUE_BYTES, ALIGNMENT);
 

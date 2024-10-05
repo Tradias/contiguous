@@ -9,6 +9,7 @@
 #include "utils/doctest.hpp"
 #include "utils/range.hpp"
 #include "utils/typeTraits.hpp"
+#include "utils/typedefs.hpp"
 
 #include <cntgs/contiguous.hpp>
 
@@ -148,6 +149,14 @@ void check_conditionally_nothrow_copy_assign()
     CHECK_FALSE(std::is_nothrow_copy_assignable_v<T<false>>);
 }
 
+inline std::uintptr_t align(std::uintptr_t ptr, std::size_t alignment)
+{
+    auto* void_ptr = reinterpret_cast<void*>(ptr);
+    auto size = std::numeric_limits<size_t>::max();
+    std::align(alignment, 0, void_ptr, size);
+    return reinterpret_cast<std::uintptr_t>(void_ptr);
+}
+
 inline void check_alignment(void* ptr, std::size_t alignment)
 {
     auto* void_ptr = ptr;
@@ -214,6 +223,17 @@ void check_greater_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTran
     CHECK_GE(lhs_transformer(std::as_const(vector)[0]), rhs_transformer(vector[2]));
     CHECK_FALSE(lhs_transformer(vector[0]) >= rhs_transformer(std::as_const(vector)[1]));
     CHECK_GE(lhs_transformer(std::as_const(vector)[3]), rhs_transformer(std::as_const(vector)[2]));
+}
+
+template <class Options, class... Parameter>
+void check_size(cntgs::BasicContiguousVector<Options, Parameter...>& vector, std::size_t alignment)
+{
+    auto mem = vector.memory_consumption();
+    if constexpr ((test::IS_VARYING_SIZE<Parameter> || ...))
+    {
+        mem -= vector.size() * sizeof(std::size_t);
+    }
+    CHECK_EQ(mem, test::align(vector.data_end() - vector.data_begin(), alignment));
 }
 }  // namespace test
 

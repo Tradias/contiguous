@@ -83,6 +83,7 @@ TEST_CASE("ContiguousVector: PlainAligned emplace_back() and subscript operator"
         auto&& [a, b] = vector[i];
         check_alignment(&b, 8);
     }
+    check_size(vector, 8);
 }
 
 TEST_CASE("ContiguousVector: OneVaryingAligned emplace_back() and subscript operator")
@@ -98,6 +99,7 @@ TEST_CASE("ContiguousVector: OneVaryingAligned emplace_back() and subscript oper
         auto&& [a, b] = vector[i];
         check_alignment(a, 16);
     }
+    check_size(vector, 16);
 }
 
 TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript operator")
@@ -114,6 +116,7 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript oper
         check_alignment(b, 8);
         check_alignment(c, 16);
     }
+    check_size(vector, 16);
 }
 
 TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operator")
@@ -129,6 +132,7 @@ TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operat
         auto&& [a, b] = vector[i];
         check_alignment(b, 32);
     }
+    check_size(vector, 32);
 }
 
 TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operator")
@@ -145,6 +149,7 @@ TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operat
         check_alignment(a, 8);
         check_alignment(&b, 16);
     }
+    check_size(vector, 16);
 }
 
 TEST_CASE("ContiguousVector: TwoFixedAlignedAlt emplace_back() and subscript operator")
@@ -161,6 +166,7 @@ TEST_CASE("ContiguousVector: TwoFixedAlignedAlt emplace_back() and subscript ope
         auto&& [a, b, c] = vector[i];
         check_alignment(a, 32);
     }
+    check_size(vector, 32);
 }
 
 TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscript operator")
@@ -177,11 +183,10 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscr
         check_alignment(a, 16);
         check_alignment(c, 8);
     }
+    check_size(vector, 16);
 }
 
-TEST_CASE(
-    "ContiguousVector: OneFixedOneVaryingAligned with matching leading/trailing alignment emplace_back() and subscript "
-    "operator")
+TEST_CASE("ContiguousVector: Aligned with matching leading/trailing alignment emplace_back() and subscript operator")
 {
     struct D
     {
@@ -189,7 +194,7 @@ TEST_CASE(
     };
     using V = cntgs::ContiguousVector<cntgs::VaryingSize<cntgs::AlignAs<float, 16>>, uint32_t,
                                       cntgs::FixedSize<cntgs::AlignAs<D, 16>>>;
-    V vector{5, 5 * sizeof(D), {FLOATS1.size()}};
+    V vector{5, 5 * 2 * sizeof(float), {1}};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(FLOATS1, i, std::array{D{1, 2}});
@@ -203,5 +208,55 @@ TEST_CASE(
         check_alignment(a, 16);
         check_alignment(c, 16);
     }
+    check_size(vector, 16);
+}
+
+struct Sixteen
+{
+    double a, b;
+};
+
+struct Twelve
+{
+    uint32_t a{}, b{}, c{};
+};
+
+TEST_CASE("ContiguousVector: Larger alignment after VaryingSize")
+{
+    using V = cntgs::ContiguousVector<cntgs::VaryingSize<cntgs::AlignAs<double, 8>>, Twelve, cntgs::AlignAs<float, 16>>;
+    V vector{5, 5 * sizeof(double)};
+    const auto doubles = std::array{1.};
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        vector.emplace_back(doubles, Twelve{i}, 42.f);
+    }
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        check_equal_using_get(vector[i], doubles);
+        auto&& [a, b, c] = vector[i];
+        check_alignment(a, 8);
+        check_alignment(&c, 16);
+    }
+    check_size(vector, 16);
+}
+
+TEST_CASE("ContiguousVector: Larger alignment after VaryingSize with matching trailing alignment")
+{
+    using V = cntgs::ContiguousVector<double, cntgs::VaryingSize<cntgs::AlignAs<Sixteen, 8>>, Twelve,
+                                      cntgs::AlignAs<float, 16>>;
+    V vector{5, 5 * sizeof(Sixteen)};
+    const auto doubles = std::array{Sixteen{1., 2.}};
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        vector.emplace_back(i, doubles, Twelve{i}, 42.f);
+    }
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        check_equal_using_get(vector[i], i);
+        auto&& [a, b, c, d] = vector[i];
+        check_alignment(b, 8);
+        check_alignment(&d, 16);
+    }
+    check_size(vector, 16);
 }
 }  // namespace test_vector_alignment

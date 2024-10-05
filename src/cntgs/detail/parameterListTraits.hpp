@@ -75,25 +75,6 @@ struct ParameterListTraits
     static constexpr bool IS_ALL_PLAIN = CONTIGUOUS_COUNT == 0;
     static constexpr bool IS_FIXED_SIZE_OR_PLAIN = IS_ALL_FIXED_SIZE || IS_ALL_PLAIN;
 
-    static constexpr std::size_t LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE = []
-    {
-        bool stop{};
-        std::size_t alignment{};
-        (
-            [&]
-            {
-                if constexpr (detail::ParameterTraits<Parameter>::TYPE == ParameterType::VARYING_SIZE)
-                {
-                    alignment = (std::max)(alignment, detail::ParameterTraits<Parameter>::VALUE_ALIGNMENT);
-                    stop = true;
-                }
-                alignment = (std::max)(alignment, detail::ParameterTraits<Parameter>::ALIGNMENT);
-                return stop;
-            }() ||
-            ...);
-        return alignment;
-    }();
-
     using FixedSizes = std::array<std::size_t, CONTIGUOUS_FIXED_SIZE_COUNT>;
     using FixedSizesArray = detail::Array<std::size_t, CONTIGUOUS_FIXED_SIZE_COUNT>;
 
@@ -102,38 +83,6 @@ struct ParameterListTraits
                   "to a higher limit.");
 
     static constexpr auto make_index_sequence() noexcept { return std::make_index_sequence<sizeof...(Parameter)>{}; }
-
-    template <std::size_t I>
-    static constexpr std::size_t trailing_alignment() noexcept
-    {
-        return detail::trailing_alignment(ParameterTraitsAt<(I)>::VALUE_BYTES, ParameterTraitsAt<(I)>::ALIGNMENT);
-    }
-
-    template <std::size_t I>
-    static constexpr std::size_t next_alignment() noexcept
-    {
-        if constexpr (sizeof...(Parameter) - 1 == I)
-        {
-            return LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE;
-        }
-        else
-        {
-            return ParameterTraitsAt<(I + 1)>::ALIGNMENT;
-        }
-    }
-
-    template <std::size_t I>
-    static constexpr std::size_t previous_alignment() noexcept
-    {
-        if constexpr (I == 0)
-        {
-            return LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE;
-        }
-        else
-        {
-            return trailing_alignment<(I - 1)>();
-        }
-    }
 };
 }  // namespace cntgs::detail
 

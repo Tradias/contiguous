@@ -47,6 +47,12 @@ using TwoFixedAlignedAlt =
     cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 32>>, cntgs::FixedSize<uint32_t>, uint32_t>;
 using OneFixedOneVaryingAligned = cntgs::ContiguousVector<cntgs::FixedSize<cntgs::AlignAs<float, 16>>, uint32_t,
                                                           cntgs::VaryingSize<cntgs::AlignAs<float, 8>>>;
+
+template <class Parameter>
+inline constexpr bool IS_VARYING_SIZE = false;
+
+template <class T>
+inline constexpr bool IS_VARYING_SIZE<cntgs::VaryingSize<T>> = true;
 }  // namespace test
 
 #endif  // CNTGS_UTILS_TYPEDEFS_HPP

@@ -63,8 +63,36 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     using ContiguousReference = typename detail::ContiguousVectorTraits<Parameter...>::ReferenceType;
     using FixedSizeGetter = detail::FixedSizeGetter<Parameter...>;
 
-    static constexpr std::size_t LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE =
-        ListTraits::LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE;
+    static constexpr auto LARGEST_ALIGNMENT_BETWEEN_VARYING_SIZES = []
+    {
+        std::size_t alignment{};
+        std::array<std::size_t, sizeof...(Parameter)> result{};
+        auto begin = result.data();
+        auto it = begin;
+        (
+            [&]
+            {
+                alignment = (std::max)(alignment, detail::ParameterTraits<Parameter>::ALIGNMENT);
+                if constexpr (detail::ParameterTraits<Parameter>::TYPE == ParameterType::VARYING_SIZE)
+                {
+                    alignment = (std::max)(alignment, detail::ParameterTraits<Parameter>::VALUE_ALIGNMENT);
+                    ++it;
+                    detail::fill(begin, it, alignment);
+                    begin = it;
+                    alignment = {};
+                }
+                else
+                {
+                    ++it;
+                }
+            }(),
+            ...);
+        detail::fill(begin, it, alignment);
+        return result;
+    }();
+
+    static constexpr std::size_t STORAGE_ELEMENT_ALIGNMENT =
+        (std::max)({std::get<I>(LARGEST_ALIGNMENT_BETWEEN_VARYING_SIZES)...});
     static constexpr std::size_t SKIP = std::numeric_limits<std::size_t>::max();
     static constexpr std::size_t MANUAL = SKIP - 1;
 
@@ -113,11 +141,42 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
                           ParameterTraitsAt<K>::data_begin(cntgs::get<K>(rhs))};
     }
 
+    template <std::size_t K>
+    static constexpr std::size_t trailing_alignment() noexcept
+    {
+        return detail::trailing_alignment(ParameterTraitsAt<(K)>::VALUE_BYTES, ParameterTraitsAt<(K)>::VALUE_ALIGNMENT);
+    }
+
+    template <std::size_t K>
+    static constexpr std::size_t next_alignment() noexcept
+    {
+        if constexpr (sizeof...(Parameter) - 1 == K)
+        {
+            return STORAGE_ELEMENT_ALIGNMENT;
+        }
+        else
+        {
+            return std::get<(K + 1)>(LARGEST_ALIGNMENT_BETWEEN_VARYING_SIZES);
+        }
+    }
+
+    template <std::size_t K>
+    static constexpr std::size_t previous_trailing_alignment() noexcept
+    {
+        if constexpr (K == 0)
+        {
+            return STORAGE_ELEMENT_ALIGNMENT;
+        }
+        else
+        {
+            return trailing_alignment<(K - 1)>();
+        }
+    }
+
     template <class ParameterT, bool IgnoreAliasing, std::size_t K, class Args>
     static std::byte* store_one(std::byte* address, std::size_t fixed_size, Args&& args) noexcept
     {
-        static constexpr auto PREVIOUS_ALIGNMENT = ListTraits::template previous_alignment<K>();
-        return detail::ParameterTraits<ParameterT>::template store<PREVIOUS_ALIGNMENT, IgnoreAliasing>(
+        return detail::ParameterTraits<ParameterT>::template store<previous_trailing_alignment<K>(), IgnoreAliasing>(
             std::forward<Args>(args), address, fixed_size);
     }
 
@@ -133,29 +192,27 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     template <class ParameterT, std::size_t K, class FixedSizeGetterType, class FixedSizesType>
     static auto load_one(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
     {
-        static constexpr auto PREVIOUS_ALIGNMENT = ListTraits::template previous_alignment<K>();
         static constexpr auto IS_SIZE_PROVIDED = FixedSizeGetterType::template CAN_PROVIDE_SIZE<ParameterT>;
-        return detail::ParameterTraits<ParameterT>::template load<PREVIOUS_ALIGNMENT, IS_SIZE_PROVIDED>(
+        return detail::ParameterTraits<ParameterT>::template load<previous_trailing_alignment<K>(), IS_SIZE_PROVIDED>(
             address, FixedSizeGetterType::template get<ParameterT, K>(fixed_sizes));
     }
 
   public:
-    using StorageElementType = detail::Aligned<LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE>;
+    using StorageElementType = detail::Aligned<STORAGE_ELEMENT_ALIGNMENT>;
 
     template <class StorageType, class Allocator>
     static constexpr StorageType allocate_memory(std::size_t size_in_bytes, const Allocator& allocator)
     {
-        const auto remainder = size_in_bytes % LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE;
-        auto count = size_in_bytes / LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE;
+        const auto remainder = size_in_bytes % STORAGE_ELEMENT_ALIGNMENT;
+        auto count = size_in_bytes / STORAGE_ELEMENT_ALIGNMENT;
         count += remainder == 0 ? 0 : 1;
         return StorageType(count, allocator);
     }
 
     static constexpr std::byte* align_for_first_parameter(std::byte* address) noexcept
     {
-        return detail::align_if<(ListTraits::template trailing_alignment<(sizeof...(I) - 1)>()) <
-                                    LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE,
-                                LARGEST_LEADING_ALIGNMENT_UNTIL_VARYING_SIZE>(address);
+        return detail::align_if<(trailing_alignment<(sizeof...(I) - 1)>()) < STORAGE_ELEMENT_ALIGNMENT,
+                                STORAGE_ELEMENT_ALIGNMENT>(address);
     }
 
     template <class... Args>
@@ -192,7 +249,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
             {
                 const auto [next_offset, next_size, next_padding] =
                     detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
-                        ListTraits::template previous_alignment<I>(), ListTraits::template next_alignment<I>()>(
+                        previous_trailing_alignment<I>(), next_alignment<I>()>(
                         offset, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
                 size += next_size;
                 offset = next_offset;
