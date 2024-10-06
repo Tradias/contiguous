@@ -69,6 +69,10 @@ function(cntgs_add_test _cntgs_name _cntgs_disassembly_file)
                                                      $<INSTALL_INTERFACE:include>)
 
     target_precompile_headers(${_cntgs_name} PRIVATE "utils/precompiledHeader.hpp")
+
+    if(CNTGS_DISCOVER_TESTS)
+        doctest_discover_tests(${_cntgs_name})
+    endif()
 endfunction()
 
 set(CNTGS_TEST_SOURCE_FILES
