@@ -45,10 +45,13 @@ TEST_CASE("ContiguousVector: OneFixedAligned size(), capacity() and memory_consu
     OneFixedAligned<TestAllocator<>> v{2, {FLOATS1.size()}, resource.get_allocator()};
     v.emplace_back(10u, FLOATS1);
     check_size1_and_capacity2(v);
+    v.emplace_back(10u, FLOATS1);
+    CHECK_EQ(v[0], v[1]);
     const auto size = 32 + FLOATS1.size() * sizeof(float);
-    const auto expected = 2 * (size + 32 - size % 32);
+    const auto expected = 2 * test::align(size, 32);
     CHECK_EQ(expected, v.memory_consumption());
     CHECK_EQ(expected, resource.bytes_allocated);
+    check_all_memory_is_used(v, 32);
 }
 
 TEST_CASE("ContiguousVector: TwoFixedAligned size() and capacity()")
@@ -58,7 +61,7 @@ TEST_CASE("ContiguousVector: TwoFixedAligned size() and capacity()")
     v.emplace_back(FLOATS1, 10u, FLOATS2);
     check_size1_and_capacity2(v);
     const auto size = (FLOATS1.size() * sizeof(float) + 7 + sizeof(uint32_t) + FLOATS2.size() * sizeof(float));
-    const auto expected = 2 * (size + 8 - size % 8);
+    const auto expected = 2 * test::align(size, 8);
     CHECK_EQ(expected, v.memory_consumption());
     CHECK_EQ(expected, resource.bytes_allocated);
 }
@@ -72,7 +75,7 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned size() and capacity()")
 
 TEST_CASE("ContiguousVector: PlainAligned emplace_back() and subscript operator")
 {
-    PlainAligned vector{5};
+    Checked<PlainAligned, 8> vector{5};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back('a', i);
@@ -83,12 +86,11 @@ TEST_CASE("ContiguousVector: PlainAligned emplace_back() and subscript operator"
         auto&& [a, b] = vector[i];
         check_alignment(&b, 8);
     }
-    check_size(vector, 8);
 }
 
 TEST_CASE("ContiguousVector: OneVaryingAligned emplace_back() and subscript operator")
 {
-    OneVaryingAligned vector{5, 5 * FLOATS1.size() * sizeof(float)};
+    Checked<OneVaryingAligned, 16> vector{5, 5 * FLOATS1.size() * sizeof(float)};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(FLOATS1, i);
@@ -99,12 +101,11 @@ TEST_CASE("ContiguousVector: OneVaryingAligned emplace_back() and subscript oper
         auto&& [a, b] = vector[i];
         check_alignment(a, 16);
     }
-    check_size(vector, 16);
 }
 
 TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript operator")
 {
-    TwoVaryingAligned vector{5, 5 * (FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float))};
+    CheckedSoft<TwoVaryingAligned, 16> vector{5, 5 * (FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float))};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(i, FLOATS1, FLOATS2);
@@ -116,12 +117,12 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript oper
         check_alignment(b, 8);
         check_alignment(c, 16);
     }
-    check_size(vector, 16);
+    CHECK_EQ(352, test::contiguous_memory_consumption(vector));
 }
 
 TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operator")
 {
-    OneFixedAligned<> vector{5, {FLOATS1.size()}};
+    Checked<OneFixedAligned<>, 32> vector{5, {FLOATS1.size()}};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(i, FLOATS1);
@@ -132,12 +133,11 @@ TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operat
         auto&& [a, b] = vector[i];
         check_alignment(b, 32);
     }
-    check_size(vector, 32);
 }
 
 TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operator")
 {
-    TwoFixedAligned<> vector{5, {FLOATS1.size(), FLOATS2.size()}};
+    Checked<TwoFixedAligned<>, 16> vector{5, {FLOATS1.size(), FLOATS2.size()}};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(FLOATS1, i, FLOATS2);
@@ -149,13 +149,12 @@ TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operat
         check_alignment(a, 8);
         check_alignment(&b, 16);
     }
-    check_size(vector, 16);
 }
 
 TEST_CASE("ContiguousVector: TwoFixedAlignedAlt emplace_back() and subscript operator")
 {
     std::array uint2{50u, 100u, 150u};
-    TwoFixedAlignedAlt vector{5, {FLOATS1.size(), uint2.size()}};
+    Checked<TwoFixedAlignedAlt, 32> vector{5, {FLOATS1.size(), uint2.size()}};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(FLOATS1, uint2, i);
@@ -166,12 +165,11 @@ TEST_CASE("ContiguousVector: TwoFixedAlignedAlt emplace_back() and subscript ope
         auto&& [a, b, c] = vector[i];
         check_alignment(a, 32);
     }
-    check_size(vector, 32);
 }
 
 TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscript operator")
 {
-    OneFixedOneVaryingAligned vector{5, 5 * FLOATS2.size() * sizeof(float), {FLOATS1.size()}};
+    Checked<OneFixedOneVaryingAligned, 16> vector{5, 5 * FLOATS2.size() * sizeof(float), {FLOATS1.size()}};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(FLOATS1, i, FLOATS2);
@@ -183,7 +181,6 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned emplace_back() and subscr
         check_alignment(a, 16);
         check_alignment(c, 8);
     }
-    check_size(vector, 16);
 }
 
 TEST_CASE("ContiguousVector: Aligned with matching leading/trailing alignment emplace_back() and subscript operator")
@@ -194,7 +191,7 @@ TEST_CASE("ContiguousVector: Aligned with matching leading/trailing alignment em
     };
     using V = cntgs::ContiguousVector<cntgs::VaryingSize<cntgs::AlignAs<float, 16>>, uint32_t,
                                       cntgs::FixedSize<cntgs::AlignAs<D, 16>>>;
-    V vector{5, 5 * 2 * sizeof(float), {1}};
+    Checked<V, 16> vector{5, 5 * 2 * sizeof(float), {1}};
     for (uint32_t i = 0; i < 5; ++i)
     {
         vector.emplace_back(FLOATS1, i, std::array{D{1, 2}});
@@ -208,7 +205,6 @@ TEST_CASE("ContiguousVector: Aligned with matching leading/trailing alignment em
         check_alignment(a, 16);
         check_alignment(c, 16);
     }
-    check_size(vector, 16);
 }
 
 struct Sixteen
@@ -224,7 +220,7 @@ struct Twelve
 TEST_CASE("ContiguousVector: Larger alignment after VaryingSize")
 {
     using V = cntgs::ContiguousVector<cntgs::VaryingSize<cntgs::AlignAs<double, 8>>, Twelve, cntgs::AlignAs<float, 16>>;
-    V vector{5, 5 * sizeof(double)};
+    CheckedSoft<V, 16> vector{5, 5 * sizeof(double)};
     const auto doubles = std::array{1.};
     for (uint32_t i = 0; i < 5; ++i)
     {
@@ -237,14 +233,14 @@ TEST_CASE("ContiguousVector: Larger alignment after VaryingSize")
         check_alignment(a, 8);
         check_alignment(&c, 16);
     }
-    check_size(vector, 16);
+    CHECK_EQ(272, test::contiguous_memory_consumption(vector));
 }
 
 TEST_CASE("ContiguousVector: Larger alignment after VaryingSize with matching trailing alignment")
 {
     using V = cntgs::ContiguousVector<double, cntgs::VaryingSize<cntgs::AlignAs<Sixteen, 8>>, Twelve,
                                       cntgs::AlignAs<float, 16>>;
-    V vector{5, 5 * sizeof(Sixteen)};
+    Checked<V, 16> vector{5, 5 * sizeof(Sixteen)};
     const auto doubles = std::array{Sixteen{1., 2.}};
     for (uint32_t i = 0; i < 5; ++i)
     {
@@ -257,6 +253,41 @@ TEST_CASE("ContiguousVector: Larger alignment after VaryingSize with matching tr
         check_alignment(b, 8);
         check_alignment(&d, 16);
     }
-    check_size(vector, 16);
+}
+
+TEST_CASE("ContiguousVector: Even larger alignment after VaryingSize with matching trailing alignment")
+{
+    using V = cntgs::ContiguousVector<Bytes<16>, cntgs::VaryingSize<cntgs::AlignAs<Bytes<32>, 16>>,
+                                      cntgs::AlignAs<float, 32>>;
+    CheckedSoft<V, 16> vector{5, 5 * sizeof(Bytes<32>)};
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        vector.emplace_back(Bytes<16>{}, std::array{Bytes<32>{}}, 42.f);
+    }
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        test::check_equal(42.f, cntgs::get<2>(vector[1]));
+        auto&& [a, b, c] = vector[i];
+        check_alignment(b, 16);
+        check_alignment(&c, 32);
+    }
+}
+
+TEST_CASE("ContiguousVector: Matching trailing alignment after VaryingSize is not mistaken for actual alignment")
+{
+    using V = cntgs::ContiguousVector<cntgs::VaryingSize<Bytes<4>>, Bytes<12>,
+                                      cntgs::VaryingSize<cntgs::AlignAs<Bytes<32>, 16>>, cntgs::AlignAs<float, 32>>;
+    CheckedSoft<V, 16> vector{5, 5 * (sizeof(Bytes<4>) + sizeof(Bytes<32>))};
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        vector.emplace_back(std::array{Bytes<4>{}}, Bytes<12>{}, std::array{Bytes<32>{}}, 42.f);
+    }
+    for (uint32_t i = 0; i < 5; ++i)
+    {
+        test::check_equal(42.f, cntgs::get<3>(vector[1]));
+        auto&& [a, b, c, d] = vector[i];
+        check_alignment(c, 16);
+        check_alignment(&d, 32);
+    }
 }
 }  // namespace test_vector_alignment

@@ -9,8 +9,6 @@
 #include "cntgs/detail/forward.hpp"
 #include "cntgs/detail/tuple.hpp"
 
-#include <tuple>
-
 namespace cntgs::detail
 {
 template <class... Parameter>

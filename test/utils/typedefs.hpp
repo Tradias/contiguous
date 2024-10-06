@@ -15,6 +15,12 @@ namespace test
 {
 using UInt8 = unsigned char;
 
+template <std::size_t N, std::size_t Alignment = 1>
+struct Bytes
+{
+    alignas(Alignment) std::byte v[N];
+};
+
 template <class Allocator, class... Parameter>
 using ContiguousVectorWithAllocator =
     cntgs::BasicContiguousVector<cntgs::Options<cntgs::Allocator<Allocator>>, Parameter...>;

@@ -20,6 +20,9 @@
 
 namespace test
 {
+template <class Lhs, class Rhs>
+bool check_equal(const Lhs& lhs, const Rhs& rhs);
+
 namespace detail
 {
 template <class>
@@ -27,9 +30,6 @@ inline constexpr bool IS_UNIQUE_PTR = false;
 
 template <class T>
 inline constexpr bool IS_UNIQUE_PTR<std::unique_ptr<T>> = true;
-
-template <class Lhs, class Rhs>
-bool check_equal(const Lhs& lhs, const Rhs& rhs);
 
 template <class T>
 bool check_unique_ptr_equal_to(const std::unique_ptr<T>& lhs, const T& rhs)
@@ -39,7 +39,7 @@ bool check_unique_ptr_equal_to(const std::unique_ptr<T>& lhs, const T& rhs)
         CHECK(lhs);
         return false;
     }
-    return detail::check_equal(rhs, *lhs);
+    return test::check_equal(rhs, *lhs);
 }
 
 template <class T>
@@ -48,6 +48,13 @@ bool check_unique_ptr_equal_to(const std::unique_ptr<T>& lhs, std::nullptr_t rhs
     CHECK_EQ(lhs, rhs);
     return lhs == rhs;
 }
+
+template <class T, std::size_t... I, class... Args>
+bool check_equal_using_get(T&& t, std::index_sequence<I...>, Args&&... args)
+{
+    return (test::check_equal(cntgs::get<I>(std::forward<T>(t)), args) && ...);
+}
+}  // namespace detail
 
 template <class Lhs, class Rhs>
 bool check_equal(const Lhs& lhs, const Rhs& rhs)
@@ -62,26 +69,26 @@ bool check_equal(const Lhs& lhs, const Rhs& rhs)
         auto result = test::range_equal(lhs, rhs,
                                         [](auto&& lhs_value, auto&& rhs_value)
                                         {
-                                            return detail::check_equal(lhs_value, rhs_value);
+                                            return test::check_equal(lhs_value, rhs_value);
                                         });
         CHECK(result);
         return result;
     }
-    else if constexpr (IS_UNIQUE_PTR<Lhs> && !IS_UNIQUE_PTR<Rhs>)
+    else if constexpr (detail::IS_UNIQUE_PTR<Lhs> && !detail::IS_UNIQUE_PTR<Rhs>)
     {
         return detail::check_unique_ptr_equal_to(lhs, rhs);
     }
-    else if constexpr (!IS_UNIQUE_PTR<Lhs> && IS_UNIQUE_PTR<Rhs>)
+    else if constexpr (!detail::IS_UNIQUE_PTR<Lhs> && detail::IS_UNIQUE_PTR<Rhs>)
     {
         return detail::check_unique_ptr_equal_to(rhs, lhs);
     }
-    else if constexpr (IS_UNIQUE_PTR<Lhs> && IS_UNIQUE_PTR<Rhs>)
+    else if constexpr (detail::IS_UNIQUE_PTR<Lhs> && detail::IS_UNIQUE_PTR<Rhs>)
     {
         if (bool{lhs} == bool{rhs})
         {
             if (bool{lhs} && bool{rhs})
             {
-                return check_equal(*lhs, *rhs);
+                return test::check_equal(*lhs, *rhs);
             }
             return true;
         }
@@ -97,13 +104,6 @@ bool check_equal(const Lhs& lhs, const Rhs& rhs)
         return lhs == rhs;
     }
 }
-
-template <class T, std::size_t... I, class... Args>
-bool check_equal_using_get(T&& t, std::index_sequence<I...>, Args&&... args)
-{
-    return (detail::check_equal(cntgs::get<I>(std::forward<T>(t)), args) && ...);
-}
-}  // namespace detail
 
 template <class T, class... Args>
 bool check_equal_using_get(T&& t, Args&&... args)
@@ -226,15 +226,52 @@ void check_greater_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTran
 }
 
 template <class Options, class... Parameter>
-void check_size(cntgs::BasicContiguousVector<Options, Parameter...>& vector, std::size_t alignment)
+std::size_t contiguous_memory_consumption(const cntgs::BasicContiguousVector<Options, Parameter...>& vector)
 {
     auto mem = vector.memory_consumption();
     if constexpr ((test::IS_VARYING_SIZE<Parameter> || ...))
     {
         mem -= vector.size() * sizeof(std::size_t);
     }
-    CHECK_EQ(mem, test::align(vector.data_end() - vector.data_begin(), alignment));
+    return mem;
 }
+
+template <class Options, class... Parameter>
+std::size_t used_memory_size(const cntgs::BasicContiguousVector<Options, Parameter...>& vector,
+                             std::size_t alignment = 1)
+{
+    return test::align(vector.data_end() - vector.data_begin(), alignment);
+}
+
+template <class Options, class... Parameter>
+void check_all_memory_is_used(const cntgs::BasicContiguousVector<Options, Parameter...>& vector, std::size_t alignment)
+{
+    CHECK_EQ(test::used_memory_size(vector, alignment), test::contiguous_memory_consumption(vector));
+}
+
+template <class Vector, std::size_t Alignment, bool IsSoft>
+struct BasicChecked : Vector
+{
+    using Vector::Vector;
+
+    ~BasicChecked() noexcept
+    {
+        if constexpr (IsSoft)
+        {
+            CHECK_LE(test::used_memory_size(*this, Alignment), test::contiguous_memory_consumption(*this));
+        }
+        else
+        {
+            CHECK_EQ(test::used_memory_size(*this, Alignment), test::contiguous_memory_consumption(*this));
+        }
+    }
+};
+
+template <class Vector, std::size_t Alignment = 1>
+using Checked = BasicChecked<Vector, Alignment, false>;
+
+template <class Vector, std::size_t Alignment = 1>
+using CheckedSoft = BasicChecked<Vector, Alignment, true>;
 }  // namespace test
 
 #endif  // CNTGS_UTILS_CHECK_HPP

@@ -73,7 +73,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
             [&]
             {
                 alignment = (std::max)(alignment, detail::ParameterTraits<Parameter>::ALIGNMENT);
-                if constexpr (detail::ParameterTraits<Parameter>::TYPE == ParameterType::VARYING_SIZE)
+                if constexpr (detail::ParameterTraits<Parameter>::TYPE == detail::ParameterType::VARYING_SIZE)
                 {
                     alignment = (std::max)(alignment, detail::ParameterTraits<Parameter>::VALUE_ALIGNMENT);
                     ++it;
@@ -244,15 +244,17 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         std::size_t size{};
         std::size_t offset{};
         std::size_t padding{};
+        std::size_t alignment{STORAGE_ELEMENT_ALIGNMENT};
         (
             [&]
             {
-                const auto [next_offset, next_size, next_padding] =
+                const auto [next_offset, next_size, next_padding, next_align] =
                     detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
                         previous_trailing_alignment<I>(), next_alignment<I>()>(
-                        offset, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
+                        offset, alignment, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
                 size += next_size;
                 offset = next_offset;
+                alignment = next_align;
                 if constexpr (I == sizeof...(Parameter) - 1)
                 {
                     padding = next_padding;

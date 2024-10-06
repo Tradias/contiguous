@@ -12,7 +12,7 @@
 #include "cntgs/detail/parameterListTraits.hpp"
 #include "cntgs/detail/reference.hpp"
 #include "cntgs/detail/tuple.hpp"
-#include "cntgs/detail/typeTraits.hpp"
+#include "cntgs/detail/utility.hpp"
 
 #include <cstddef>
 #include <cstring>

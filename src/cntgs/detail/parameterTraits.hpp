@@ -25,6 +25,7 @@ struct AlignedSizeInMemory
     std::size_t offset;
     std::size_t size;
     std::size_t padding;
+    std::size_t alignment;
 };
 
 template <class T>
@@ -53,32 +54,46 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr auto VALUE_BYTES = sizeof(T);
     static constexpr auto TRAILING_ALIGNMENT = detail::trailing_alignment(VALUE_BYTES, ALIGNMENT);
 
-    template <std::size_t PreviousAlignment, bool>
+    template <std::size_t PreviousTrailingAlignment, bool>
     static auto load(std::byte* address, std::size_t) noexcept
     {
-        address = detail::align_if<(PreviousAlignment < ALIGNMENT), ALIGNMENT>(address);
+        address = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address);
         assert(detail::is_aligned(address, ALIGNMENT));
         auto result = std::launder(reinterpret_cast<PointerType>(address));
         return std::pair{result, address + VALUE_BYTES};
     }
 
-    template <std::size_t PreviousAlignment, bool, class Arg>
+    template <std::size_t PreviousTrailingAlignment, bool, class Arg>
     static std::byte* store(Arg&& arg, std::byte* address, std::size_t)
     {
-        address = detail::align_if<(PreviousAlignment < ALIGNMENT), ALIGNMENT>(address);
+        address = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address);
         assert(detail::is_aligned(address, ALIGNMENT));
         detail::construct_at(reinterpret_cast<T*>(address), std::forward<Arg>(arg));
         return address + VALUE_BYTES;
     }
 
-    template <std::size_t PreviousAlignment, std::size_t NextAlignment>
-    static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t) noexcept
+    template <std::size_t PreviousTrailingAlignment, std::size_t NextAlignment>
+    static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t alignment,
+                                                                std::size_t) noexcept
     {
-        const auto alignment_offset = detail::align_if<(PreviousAlignment < ALIGNMENT), ALIGNMENT>(offset);
-        const auto size = alignment_offset - offset + VALUE_BYTES;
-        const auto new_offset = offset + size;
+        const auto [new_offset, size] = [&]
+        {
+            if (alignment < ALIGNMENT)
+            {
+                auto alignment_offset = detail::align(offset, alignment);
+                alignment_offset += ALIGNMENT - alignment;
+                const auto size = alignment_offset - offset + VALUE_BYTES;
+                offset = {};
+                const auto new_offset = offset + VALUE_BYTES;
+                return std::pair{new_offset, size};
+            }
+            const auto alignment_offset = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(offset);
+            const auto size = alignment_offset - offset + VALUE_BYTES;
+            const auto new_offset = offset + size;
+            return std::pair{new_offset, size};
+        }();
         const auto padding_offset = detail::align_if<(TRAILING_ALIGNMENT < NextAlignment), NextAlignment>(new_offset);
-        return {new_offset, size, padding_offset - new_offset};
+        return {new_offset, size, padding_offset - new_offset, (std::max)(alignment, ALIGNMENT)};
     }
 
     static auto data_begin(ConstReferenceType reference) noexcept
@@ -249,41 +264,61 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     static constexpr auto ALIGNMENT = alignof(std::size_t);
     static constexpr auto VALUE_ALIGNMENT = (std::max)(detail::SIZE_T_TRAILING_ALIGNMENT, Alignment);
 
-    template <std::size_t PreviousAlignment, bool IsSizeProvided>
+    template <std::size_t PreviousTrailingAlignment, bool IsSizeProvided>
     static auto load(std::byte* address, std::size_t size) noexcept
     {
-        const auto [value_address, size_address] = get_addresses<PreviousAlignment>(address);
+        const auto [value_address, size_address] = get_addresses<PreviousTrailingAlignment>(address);
         if constexpr (!IsSizeProvided)
         {
             size = *size_address;
         }
         const auto first = std::launder(reinterpret_cast<IteratorType>(value_address));
-        const auto last = std::launder(reinterpret_cast<IteratorType>(value_address) + size);
+        const auto last = first + size;
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
-    template <std::size_t PreviousAlignment, bool IgnoreAliasing, class Range>
+    template <std::size_t PreviousTrailingAlignment, bool IgnoreAliasing, class Range>
     static std::byte* store(Range&& range, std::byte* address, std::size_t)
     {
-        const auto [value_address, size_address] = get_addresses<PreviousAlignment>(address);
+        const auto [value_address, size_address] = get_addresses<PreviousTrailingAlignment>(address);
         auto* new_address =
             detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), value_address);
         *size_address = reinterpret_cast<IteratorType>(new_address) - value_address;
         return new_address;
     }
 
-    template <std::size_t PreviousAlignment, std::size_t NextAlignment>
-    static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t) noexcept
+    template <std::size_t PreviousTrailingAlignment, std::size_t NextAlignment>
+    static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t alignment,
+                                                                std::size_t) noexcept
     {
-        const auto size_t_alignment_offset = detail::align_if<(PreviousAlignment < ALIGNMENT), ALIGNMENT>(offset);
-        const auto value_alignment_offset =
-            detail::align_if<(detail::SIZE_T_TRAILING_ALIGNMENT < VALUE_ALIGNMENT), VALUE_ALIGNMENT>(
-                size_t_alignment_offset + sizeof(std::size_t));
-        const auto trailing_alignment =
-            detail::trailing_alignment(sizeof(T), detail::extract_lowest_set_bit(value_alignment_offset));
+        const auto size_t_alignment_offset = [&]
+        {
+            if (alignment < ALIGNMENT)
+            {
+                auto alignment_offset = detail::align(offset, alignment);
+                alignment_offset += ALIGNMENT - alignment;
+                alignment = ALIGNMENT;
+                return alignment_offset;
+            }
+            return detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(offset);
+        }();
+        const auto value_offset = size_t_alignment_offset + sizeof(std::size_t);
+        const auto value_alignment_offset = [&]
+        {
+            if (alignment < VALUE_ALIGNMENT)
+            {
+                auto alignment_offset = detail::align(value_offset, alignment);
+                alignment_offset += VALUE_ALIGNMENT - alignment;
+                alignment = VALUE_ALIGNMENT;
+                return alignment_offset;
+            }
+            return detail::align_if<(PreviousTrailingAlignment < VALUE_ALIGNMENT), VALUE_ALIGNMENT>(value_offset);
+        }();
+        const auto trailing_alignment = (std::min)(
+            alignment, detail::trailing_alignment(sizeof(T), detail::extract_lowest_set_bit(value_alignment_offset)));
         const auto next_alignment_difference =
             trailing_alignment < NextAlignment ? NextAlignment - trailing_alignment : 0;
-        return {0, value_alignment_offset - offset + next_alignment_difference, 0};
+        return {0, value_alignment_offset - offset, next_alignment_difference, trailing_alignment};
     }
 
     static auto data_begin(const cntgs::Span<std::add_const_t<T>>& value) noexcept
@@ -296,10 +331,10 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
         return reinterpret_cast<std::byte*>(ParameterTraits::begin(value)) - sizeof(std::size_t);
     }
 
-    template <std::size_t PreviousAlignment>
+    template <std::size_t PreviousTrailingAlignment>
     static VaryingSizeAddresses<T> get_addresses(std::byte* address) noexcept
     {
-        address = detail::align_if<(PreviousAlignment < ALIGNMENT), ALIGNMENT>(address);
+        address = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address);
         assert(detail::is_aligned(address, ALIGNMENT));
         auto size = reinterpret_cast<std::size_t*>(address);
         address += sizeof(std::size_t);
@@ -330,34 +365,48 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     using ParameterTraits::BaseContiguousParameterTraits::VALUE_BYTES;
     static constexpr auto TRAILING_ALIGNMENT = detail::trailing_alignment(VALUE_BYTES, ALIGNMENT);
 
-    template <std::size_t PreviousAlignment, bool>
+    template <std::size_t PreviousTrailingAlignment, bool>
     static auto load(std::byte* address, std::size_t size) noexcept
     {
-        const auto first = std::launder(
-            reinterpret_cast<IteratorType>(detail::align_if<(PreviousAlignment < ALIGNMENT), ALIGNMENT>(address)));
+        const auto first = std::launder(reinterpret_cast<IteratorType>(
+            detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address)));
         assert(detail::is_aligned(first, ALIGNMENT));
         const auto last = first + size;
         return std::pair{PointerType{first, last}, reinterpret_cast<std::byte*>(last)};
     }
 
-    template <std::size_t PreviousAlignment, bool IgnoreAliasing, class RangeOrIterator>
+    template <std::size_t PreviousTrailingAlignment, bool IgnoreAliasing, class RangeOrIterator>
     static std::byte* store(RangeOrIterator&& range_or_iterator, std::byte* address, std::size_t size)
     {
-        const auto aligned_address =
-            reinterpret_cast<IteratorType>(detail::align_if<(PreviousAlignment < ALIGNMENT), ALIGNMENT>(address));
+        const auto aligned_address = reinterpret_cast<IteratorType>(
+            detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address));
         assert(detail::is_aligned(aligned_address, ALIGNMENT));
         return detail::uninitialized_construct<IgnoreAliasing>(std::forward<RangeOrIterator>(range_or_iterator),
                                                                aligned_address, size);
     }
 
-    template <std::size_t PreviousAlignment, std::size_t NextAlignment>
-    static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t fixed_size) noexcept
+    template <std::size_t PreviousTrailingAlignment, std::size_t NextAlignment>
+    static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t alignment,
+                                                                std::size_t fixed_size) noexcept
     {
-        const auto alignment_offset = detail::align_if<(PreviousAlignment < ALIGNMENT), ALIGNMENT>(offset);
-        const auto size = alignment_offset - offset + VALUE_BYTES * fixed_size;
-        const auto new_offset = offset + size;
+        const auto [new_offset, size] = [&]
+        {
+            if (alignment < ALIGNMENT)
+            {
+                auto alignment_offset = detail::align(offset, alignment);
+                alignment_offset += ALIGNMENT - alignment;
+                const auto size = alignment_offset - offset + VALUE_BYTES * fixed_size;
+                offset = {};
+                const auto new_offset = offset + VALUE_BYTES * fixed_size;
+                return std::pair{new_offset, size};
+            }
+            const auto alignment_offset = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(offset);
+            const auto size = alignment_offset - offset + VALUE_BYTES * fixed_size;
+            const auto new_offset = offset + size;
+            return std::pair{new_offset, size};
+        }();
         const auto padding_offset = detail::align_if<(TRAILING_ALIGNMENT < NextAlignment), NextAlignment>(new_offset);
-        return {new_offset, size, padding_offset - new_offset};
+        return {new_offset, size, padding_offset - new_offset, (std::max)(alignment, ALIGNMENT)};
     }
 
     static auto data_begin(const cntgs::Span<std::add_const_t<T>>& value) noexcept
