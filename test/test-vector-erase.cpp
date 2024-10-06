@@ -62,14 +62,14 @@ TEST_CASE("ContiguousVector: TwoVarying erase(Iterator)")
     vector.emplace_back(20u, FLOATS2_ALT, FLOATS1);
     vector.emplace_back(30u, FLOATS1, FLOATS2_ALT);
     vector.emplace_back(40u, FLOATS2, FLOATS2_ALT);
-    CHECK_EQ(224, test::contiguous_memory_consumption(vector));
+    CHECK_EQ(224, vector.memory_consumption());
     auto it = vector.erase(++vector.begin());
     CHECK_EQ(++vector.begin(), it);
     CheckedSoft<TwoVarying> vector2{3, 16 * sizeof(float)};
     vector2.emplace_back(10u, FLOATS1, FLOATS2);
     vector2.emplace_back(30u, FLOATS1, FLOATS2_ALT);
     vector2.emplace_back(40u, FLOATS2, FLOATS2_ALT);
-    CHECK_EQ(168, test::contiguous_memory_consumption(vector2));
+    CHECK_EQ(168, vector2.memory_consumption());
     CHECK_EQ(vector2, vector);
 }
 

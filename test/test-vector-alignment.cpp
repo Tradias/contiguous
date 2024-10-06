@@ -117,7 +117,7 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned emplace_back() and subscript oper
         check_alignment(b, 8);
         check_alignment(c, 16);
     }
-    CHECK_EQ(352, test::contiguous_memory_consumption(vector));
+    CHECK_EQ(352, vector.memory_consumption());
 }
 
 TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operator")
@@ -233,7 +233,7 @@ TEST_CASE("ContiguousVector: Larger alignment after VaryingSize")
         check_alignment(a, 8);
         check_alignment(&c, 16);
     }
-    CHECK_EQ(272, test::contiguous_memory_consumption(vector));
+    CHECK_EQ(272, vector.memory_consumption());
 }
 
 TEST_CASE("ContiguousVector: Larger alignment after VaryingSize with matching trailing alignment")

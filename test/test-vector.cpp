@@ -42,10 +42,10 @@ TEST_CASE("ContiguousVector: one fixed one varying size: correct memory_consumpt
     vector.emplace_back(std::initializer_list<uint16_t>{1, 2, 3}, 10, std::array{0.f, 0.1f, 0.2f});
     vector.emplace_back(std::initializer_list<uint16_t>{4, 5, 6}, 11, std::array{0.3f, 0.4f, 0.5f});
     const auto size = 3 * sizeof(uint16_t) + sizeof(uint32_t) + 6 + sizeof(std::size_t);
-    const auto expected = element_count * (size + 4) + varying_byte_count + element_count * sizeof(std::size_t);
+    const auto expected = element_count * (size + 4) + varying_byte_count;
     CHECK_EQ(expected, vector.memory_consumption());
 #ifdef NDEBUG
-    CHECK_EQ(expected, resource.bytes_allocated);
+    CHECK_EQ(expected + element_count * sizeof(std::size_t), resource.bytes_allocated);
 #endif
 }
 

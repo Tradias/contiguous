@@ -226,17 +226,6 @@ void check_greater_equal(Vector& vector, LhsTransformer lhs_transformer, RhsTran
 }
 
 template <class Options, class... Parameter>
-std::size_t contiguous_memory_consumption(const cntgs::BasicContiguousVector<Options, Parameter...>& vector)
-{
-    auto mem = vector.memory_consumption();
-    if constexpr ((test::IS_VARYING_SIZE<Parameter> || ...))
-    {
-        mem -= vector.size() * sizeof(std::size_t);
-    }
-    return mem;
-}
-
-template <class Options, class... Parameter>
 std::size_t used_memory_size(const cntgs::BasicContiguousVector<Options, Parameter...>& vector,
                              std::size_t alignment = 1)
 {
@@ -246,7 +235,7 @@ std::size_t used_memory_size(const cntgs::BasicContiguousVector<Options, Paramet
 template <class Options, class... Parameter>
 void check_all_memory_is_used(const cntgs::BasicContiguousVector<Options, Parameter...>& vector, std::size_t alignment)
 {
-    CHECK_EQ(test::used_memory_size(vector, alignment), test::contiguous_memory_consumption(vector));
+    CHECK_EQ(test::used_memory_size(vector, alignment), vector.memory_consumption());
 }
 
 template <class Vector, std::size_t Alignment, bool IsSoft>
@@ -258,11 +247,11 @@ struct BasicChecked : Vector
     {
         if constexpr (IsSoft)
         {
-            CHECK_LE(test::used_memory_size(*this, Alignment), test::contiguous_memory_consumption(*this));
+            CHECK_LE(test::used_memory_size(*this, Alignment), this->memory_consumption());
         }
         else
         {
-            CHECK_EQ(test::used_memory_size(*this, Alignment), test::contiguous_memory_consumption(*this));
+            CHECK_EQ(test::used_memory_size(*this, Alignment), this->memory_consumption());
         }
     }
 };

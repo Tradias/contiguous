@@ -271,7 +271,7 @@ class BasicContiguousVector<cntgs::Options<Option...>, Parameter...>
 
     [[nodiscard]] constexpr size_type memory_consumption() const noexcept
     {
-        return memory_.size() * alignof(StorageElementType) + locator_->memory_size();
+        return memory_.size() * alignof(StorageElementType);
     }
 
     [[nodiscard]] constexpr iterator begin() noexcept { return iterator{*this}; }
