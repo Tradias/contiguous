@@ -324,7 +324,7 @@ TEST_CASE("ContiguousVector: std::string OneFixed emplace_back->reserve->emplace
 
 TEST_CASE("ContiguousVector: trivial OneFixed emplace_back->reserve->emplace_back")
 {
-    cntgs::ContiguousVector<cntgs::FixedSize<float>, int> vector{1, {FLOATS1.size()}};
+    Checked<cntgs::ContiguousVector<cntgs::FixedSize<float>, int>> vector{1, {FLOATS1.size()}};
     vector.emplace_back(FLOATS1, 42);
     vector.reserve(2);
     vector.emplace_back(FLOATS1, 84);

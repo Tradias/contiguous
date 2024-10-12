@@ -20,7 +20,10 @@
 
 namespace cntgs::detail
 {
-using Byte = std::underlying_type_t<std::byte>;
+using Byte = unsigned char;
+
+template <class Allocator, class T>
+using RebindTraits = typename std::allocator_traits<Allocator>::template rebind_traits<T>;
 
 template <std::size_t N>
 struct Aligned

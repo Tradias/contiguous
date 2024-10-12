@@ -76,22 +76,20 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t alignment,
                                                                 std::size_t) noexcept
     {
-        const auto [new_offset, size] = [&]
+        std::size_t new_offset{};
+        std::size_t size{};
+        if (alignment < ALIGNMENT)
         {
-            if (alignment < ALIGNMENT)
-            {
-                auto alignment_offset = detail::align(offset, alignment);
-                alignment_offset += ALIGNMENT - alignment;
-                const auto size = alignment_offset - offset + VALUE_BYTES;
-                offset = {};
-                const auto new_offset = offset + VALUE_BYTES;
-                return std::pair{new_offset, size};
-            }
+            const auto alignment_offset = detail::align(offset, alignment) + ALIGNMENT - alignment;
+            size = alignment_offset - offset + VALUE_BYTES;
+            new_offset = VALUE_BYTES;
+        }
+        else
+        {
             const auto alignment_offset = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(offset);
-            const auto size = alignment_offset - offset + VALUE_BYTES;
-            const auto new_offset = offset + size;
-            return std::pair{new_offset, size};
-        }();
+            size = alignment_offset - offset + VALUE_BYTES;
+            new_offset = offset + size;
+        }
         const auto padding_offset = detail::align_if<(TRAILING_ALIGNMENT < NextAlignment), NextAlignment>(new_offset);
         return {new_offset, size, padding_offset - new_offset, (std::max)(alignment, ALIGNMENT)};
     }
@@ -389,22 +387,21 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
     static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t alignment,
                                                                 std::size_t fixed_size) noexcept
     {
-        const auto [new_offset, size] = [&]
+        const auto value_size = VALUE_BYTES * fixed_size;
+        std::size_t new_offset{};
+        std::size_t size{};
+        if (alignment < ALIGNMENT)
         {
-            if (alignment < ALIGNMENT)
-            {
-                auto alignment_offset = detail::align(offset, alignment);
-                alignment_offset += ALIGNMENT - alignment;
-                const auto size = alignment_offset - offset + VALUE_BYTES * fixed_size;
-                offset = {};
-                const auto new_offset = offset + VALUE_BYTES * fixed_size;
-                return std::pair{new_offset, size};
-            }
+            const auto alignment_offset = detail::align(offset, alignment) + ALIGNMENT - alignment;
+            size = alignment_offset - offset + value_size;
+            new_offset = value_size;
+        }
+        else
+        {
             const auto alignment_offset = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(offset);
-            const auto size = alignment_offset - offset + VALUE_BYTES * fixed_size;
-            const auto new_offset = offset + size;
-            return std::pair{new_offset, size};
-        }();
+            size = alignment_offset - offset + value_size;
+            new_offset = offset + size;
+        }
         const auto padding_offset = detail::align_if<(TRAILING_ALIGNMENT < NextAlignment), NextAlignment>(new_offset);
         return {new_offset, size, padding_offset - new_offset, (std::max)(alignment, ALIGNMENT)};
     }

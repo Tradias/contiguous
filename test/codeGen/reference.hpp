@@ -54,10 +54,12 @@ struct ReferenceFixedSizeVector
         {
             return;
         }
+        using Traits = std::allocator_traits<std::allocator<char>>;
+        Traits::allocator_type alloc{};
         const auto new_capacity = new_max_element_count * byte_size_per_node;
-        auto new_memory = std::allocator<char>{}.allocate(new_capacity);
+        auto new_memory = Traits::allocate(alloc, new_capacity);
         std::memcpy(new_memory, memory, capacity * byte_size_per_node);
-        std::allocator<char>{}.deallocate(memory, capacity);
+        Traits::deallocate(alloc, memory, capacity);
         capacity = new_capacity;
         memory = new_memory;
     }

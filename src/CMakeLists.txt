@@ -30,6 +30,7 @@ list(
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/sizeGetter.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/tuple.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/typeTraits.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/unmanagedVector.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/utility.hpp"
     "${CMAKE_CURRENT_LIST_DIR}/cntgs/detail/vectorTraits.hpp")
 set_target_properties(cntgs PROPERTIES CNTGS_SOURCE_FILES "${CNTGS_SOURCE_FILES}")

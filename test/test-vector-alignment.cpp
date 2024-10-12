@@ -42,7 +42,7 @@ TEST_CASE("ContiguousVector: TwoVaryingAligned size() and capacity()")
 TEST_CASE("ContiguousVector: OneFixedAligned size(), capacity() and memory_consumption()")
 {
     TestMemoryResource resource;
-    OneFixedAligned<TestAllocator<>> v{2, {FLOATS1.size()}, resource.get_allocator()};
+    Checked<OneFixedAligned<TestAllocator<>>, 32> v{2, {FLOATS1.size()}, resource.get_allocator()};
     v.emplace_back(10u, FLOATS1);
     check_size1_and_capacity2(v);
     v.emplace_back(10u, FLOATS1);
@@ -51,7 +51,6 @@ TEST_CASE("ContiguousVector: OneFixedAligned size(), capacity() and memory_consu
     const auto expected = 2 * test::align(size, 32);
     CHECK_EQ(expected, v.memory_consumption());
     CHECK_EQ(expected, resource.bytes_allocated);
-    check_all_memory_is_used(v, 32);
 }
 
 TEST_CASE("ContiguousVector: TwoFixedAligned size() and capacity()")
@@ -71,6 +70,16 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned size() and capacity()")
     OneFixedOneVaryingAligned v{2, FLOATS2.size() * sizeof(float), {FLOATS1.size()}};
     v.emplace_back(FLOATS1, 10u, FLOATS2);
     check_size1_and_capacity2(v);
+}
+
+TEST_CASE("ContiguousVector: OneFixedAligned emplace_back->reserve->emplace_back")
+{
+    Checked<OneFixedAligned<>> v{1, {FLOATS1.size()}};
+    v.emplace_back(1u, FLOATS1);
+    v.reserve(2);
+    v.emplace_back(2u, FLOATS1);
+    check_equal_using_get(v[0], 1u, FLOATS1);
+    check_equal_using_get(v[1], 2u, FLOATS1);
 }
 
 TEST_CASE("ContiguousVector: PlainAligned emplace_back() and subscript operator")
