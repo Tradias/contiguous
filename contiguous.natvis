@@ -1,5 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="cntgs::Span&lt;*&gt;">
+        <DisplayString>{{ size={last_ - first_} }}</DisplayString>
+        <Expand>
+            <ArrayItems>
+                <Size>last_ - first_</Size>
+                <ValuePointer>first_</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+    <Type Name="cntgs::detail::Array&lt;*,*&gt;">
+        <DisplayString>{{ size={$T2} }}</DisplayString>
+        <Expand>
+            <ExpandedItem Optional="true">array_</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="cntgs::detail::EmptyBaseOptimization&lt;*,1&gt;" Inheritable="false">
+        <DisplayString>{*($T1 *)this} ({"$T1",sb})</DisplayString>
+        <Expand>
+            <ExpandedItem>*($T1 *)this</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="cntgs::detail::EmptyBaseOptimization&lt;*,0&gt;" Inheritable="false">
+        <DisplayString>{value_} ({"$T1",sb})</DisplayString>
+        <Expand>
+            <ExpandedItem>value_</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="cntgs::detail::AllocatorAwarePointer&lt;*&gt;::Impl">
+        <DisplayString>{{ size={size_} mem={size_ * ptr_-&gt;ALIGNMENT} }}</DisplayString>
+    </Type>
     <Type Name="cntgs::detail::UnmanagedVector&lt;*&gt;">
         <DisplayString>{{ size={size_} }}</DisplayString>
         <Expand>
@@ -7,6 +37,20 @@
                 <Size>size_</Size>
                 <ValuePointer>data_</ValuePointer>
             </ArrayItems>
+        </Expand>
+    </Type>
+    <Type Name="cntgs::detail::BaseElementLocator">
+        <DisplayString>{element_addresses_}</DisplayString>
+        <Expand>
+            <Item Name="[element addresses]">element_addresses_</Item>
+            <Item Name="[last element]">last_element_</Item>
+        </Expand>
+    </Type>
+    <Type Name="cntgs::detail::BaseAllFixedSizeElementLocator">
+        <DisplayString>{{ size={element_count_} stride={stride_} }}</DisplayString>
+        <Expand>
+            <Item Name="[size]">element_count_</Item>
+            <Item Name="[stride]">stride_</Item>
         </Expand>
     </Type>
 </AutoVisualizer>

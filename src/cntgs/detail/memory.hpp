@@ -28,6 +28,8 @@ using RebindTraits = typename std::allocator_traits<Allocator>::template rebind_
 template <std::size_t N>
 struct Aligned
 {
+    static constexpr auto ALIGNMENT = N;
+
     alignas(N) std::byte v[N];
 };
 
