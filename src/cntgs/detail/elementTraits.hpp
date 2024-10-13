@@ -96,6 +96,22 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static constexpr std::size_t SKIP = std::numeric_limits<std::size_t>::max();
     static constexpr std::size_t MANUAL = SKIP - 1;
 
+    static constexpr auto calculate_trailing_alignments() noexcept
+    {
+        std::size_t offset{};
+        std::size_t alignment{STORAGE_ELEMENT_ALIGNMENT};
+        return std::array{[&]
+                          {
+                              const auto [next_offset, next_align, next_trailing_alignment] =
+                                  detail::ParameterTraits<Parameter>::trailing_alignment(offset, alignment);
+                              offset = next_offset;
+                              alignment = next_align;
+                              return next_trailing_alignment;
+                          }()...};
+    }
+
+    static constexpr auto TRAILING_ALIGNMENTS = calculate_trailing_alignments();
+
     template <template <class> class Predicate>
     static constexpr auto calculate_consecutive_indices() noexcept
     {
@@ -131,16 +147,6 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static constexpr auto CONSECUTIVE_LEXICOGRAPHICAL_MEMCMPABLE_INDICES{
         calculate_consecutive_indices<detail::LexicographicalMemcmpCompatible>()};
 
-    template <std::size_t K, std::size_t L, bool IsLhsConst, bool IsRhsConst>
-    static constexpr auto get_data_begin_and_end(
-        const cntgs::BasicContiguousReference<IsLhsConst, Parameter...>& lhs,
-        const cntgs::BasicContiguousReference<IsRhsConst, Parameter...>& rhs) noexcept
-    {
-        return std::tuple{ParameterTraitsAt<K>::data_begin(cntgs::get<K>(lhs)),
-                          ParameterTraitsAt<L>::data_end(cntgs::get<L>(lhs)),
-                          ParameterTraitsAt<K>::data_begin(cntgs::get<K>(rhs))};
-    }
-
     template <std::size_t K>
     static constexpr std::size_t trailing_alignment() noexcept
     {
@@ -161,6 +167,12 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     }
 
     template <std::size_t K>
+    static constexpr std::size_t size_type_trailing_alignment() noexcept
+    {
+        return std::get<K>(TRAILING_ALIGNMENTS).size_type;
+    }
+
+    template <std::size_t K>
     static constexpr std::size_t previous_trailing_alignment() noexcept
     {
         if constexpr (K == 0)
@@ -169,8 +181,18 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         }
         else
         {
-            return trailing_alignment<(K - 1)>();
+            return std::get<(K - 1)>(TRAILING_ALIGNMENTS).value;
         }
+    }
+
+    template <std::size_t K, std::size_t L, bool IsLhsConst, bool IsRhsConst>
+    static constexpr auto get_data_begin_and_end(
+        const cntgs::BasicContiguousReference<IsLhsConst, Parameter...>& lhs,
+        const cntgs::BasicContiguousReference<IsRhsConst, Parameter...>& rhs) noexcept
+    {
+        return std::tuple{ParameterTraitsAt<K>::data_begin(cntgs::get<K>(lhs)),
+                          ParameterTraitsAt<L>::data_end(cntgs::get<L>(lhs)),
+                          ParameterTraitsAt<K>::data_begin(cntgs::get<K>(rhs))};
     }
 
     template <class ParameterT, bool IgnoreAliasing, std::size_t K, class Args>
@@ -211,7 +233,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
 
     static constexpr std::byte* align_for_first_parameter(std::byte* address) noexcept
     {
-        return detail::align_if<(trailing_alignment<(sizeof...(I) - 1)>()) < STORAGE_ELEMENT_ALIGNMENT,
+        return detail::align_if<(previous_trailing_alignment<sizeof...(Parameter)>()) < STORAGE_ELEMENT_ALIGNMENT,
                                 STORAGE_ELEMENT_ALIGNMENT>(address);
     }
 
@@ -250,7 +272,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
             {
                 const auto [next_offset, next_size, next_padding, next_align] =
                     detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
-                        previous_trailing_alignment<I>(), next_alignment<I>()>(
+                        previous_trailing_alignment<I>(), size_type_trailing_alignment<I>(), next_alignment<I>()>(
                         offset, alignment, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
                 size += next_size;
                 offset = next_offset;

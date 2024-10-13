@@ -163,12 +163,6 @@ class ElementLocator : public BaseElementLocator
         return element_addresses_begin;
     }
 
-    template <class... Args>
-    static auto emplace_at(std::byte* address, const std::byte*, const FixedSizesArray& fixed_sizes, Args&&... args)
-    {
-        ElementTraits::emplace_at_aliased(address, fixed_sizes, std::forward<Args>(args)...);
-    }
-
     void trivially_copy_into(std::byte* CNTGS_RESTRICT old_memory_begin,
                              std::byte* CNTGS_RESTRICT new_memory_begin) noexcept
     {

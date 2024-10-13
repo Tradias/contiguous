@@ -28,6 +28,19 @@ struct AlignedSizeInMemory
     std::size_t alignment;
 };
 
+struct TrailingAlignment
+{
+    std::size_t value;
+    std::size_t size_type{};
+};
+
+struct TrailingAlignmentResult
+{
+    std::size_t offset;
+    std::size_t alignment_bracket;
+    TrailingAlignment trailing_alignment;
+};
+
 template <class T>
 struct VaryingSizeAddresses
 {
@@ -72,7 +85,25 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         return address + VALUE_BYTES;
     }
 
-    template <std::size_t PreviousTrailingAlignment, std::size_t NextAlignment>
+    static constexpr TrailingAlignmentResult trailing_alignment(std::size_t offset, std::size_t alignment) noexcept
+    {
+        std::size_t new_offset{};
+        if (alignment < ALIGNMENT)
+        {
+            new_offset = VALUE_BYTES;
+        }
+        else
+        {
+            const auto alignment_offset = detail::align(offset, ALIGNMENT);
+            const auto size = alignment_offset - offset + VALUE_BYTES;
+            new_offset = offset + size;
+        }
+        alignment = (std::max)(alignment, ALIGNMENT);
+        const auto trailing_alignment = detail::trailing_alignment(new_offset, alignment);
+        return {new_offset, alignment, {trailing_alignment}};
+    }
+
+    template <std::size_t PreviousTrailingAlignment, std::size_t, std::size_t NextAlignment>
     static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t alignment,
                                                                 std::size_t) noexcept
     {
@@ -285,7 +316,39 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
         return new_address;
     }
 
-    template <std::size_t PreviousTrailingAlignment, std::size_t NextAlignment>
+    static constexpr TrailingAlignmentResult trailing_alignment(std::size_t offset, std::size_t alignment) noexcept
+    {
+        const auto size_t_alignment_offset = [&]
+        {
+            if (alignment < ALIGNMENT)
+            {
+                auto alignment_offset = detail::align(offset, alignment);
+                alignment_offset += ALIGNMENT - alignment;
+                alignment = ALIGNMENT;
+                return alignment_offset;
+            }
+            return detail::align(offset, ALIGNMENT);
+        }();
+        const auto value_offset = size_t_alignment_offset + sizeof(std::size_t);
+        const auto size_t_trailing_alignment = (std::min)(
+            alignment, detail::trailing_alignment(sizeof(std::size_t), detail::extract_lowest_set_bit(value_offset)));
+        const auto value_alignment_offset = [&]
+        {
+            if (alignment < VALUE_ALIGNMENT)
+            {
+                auto alignment_offset = detail::align(value_offset, alignment);
+                alignment_offset += VALUE_ALIGNMENT - alignment;
+                alignment = VALUE_ALIGNMENT;
+                return alignment_offset;
+            }
+            return detail::align(value_offset, VALUE_ALIGNMENT);
+        }();
+        const auto trailing_alignment = (std::min)(
+            alignment, detail::trailing_alignment(sizeof(T), detail::extract_lowest_set_bit(value_alignment_offset)));
+        return {{}, trailing_alignment, {trailing_alignment, size_t_trailing_alignment}};
+    }
+
+    template <std::size_t PreviousTrailingAlignment, std::size_t SizeTypeTrailingAlignment, std::size_t NextAlignment>
     static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t alignment,
                                                                 std::size_t) noexcept
     {
@@ -310,13 +373,13 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
                 alignment = VALUE_ALIGNMENT;
                 return alignment_offset;
             }
-            return detail::align_if<(PreviousTrailingAlignment < VALUE_ALIGNMENT), VALUE_ALIGNMENT>(value_offset);
+            return detail::align_if<(SizeTypeTrailingAlignment < VALUE_ALIGNMENT), VALUE_ALIGNMENT>(value_offset);
         }();
         const auto trailing_alignment = (std::min)(
             alignment, detail::trailing_alignment(sizeof(T), detail::extract_lowest_set_bit(value_alignment_offset)));
         const auto next_alignment_difference =
             trailing_alignment < NextAlignment ? NextAlignment - trailing_alignment : 0;
-        return {0, value_alignment_offset - offset, next_alignment_difference, trailing_alignment};
+        return {{}, value_alignment_offset - offset, next_alignment_difference, trailing_alignment};
     }
 
     static auto data_begin(const cntgs::Span<std::add_const_t<T>>& value) noexcept
@@ -334,12 +397,12 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
     {
         address = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address);
         assert(detail::is_aligned(address, ALIGNMENT));
-        auto size = reinterpret_cast<std::size_t*>(address);
+        const auto size_address = reinterpret_cast<std::size_t*>(address);
         address += sizeof(std::size_t);
-        const auto aligned_address = reinterpret_cast<IteratorType>(
+        const auto value_address = reinterpret_cast<IteratorType>(
             detail::align_if<(detail::SIZE_T_TRAILING_ALIGNMENT < VALUE_ALIGNMENT), VALUE_ALIGNMENT>(address));
-        assert(detail::is_aligned(aligned_address, VALUE_ALIGNMENT));
-        return {aligned_address, size};
+        assert(detail::is_aligned(value_address, VALUE_ALIGNMENT));
+        return {value_address, size_address};
     }
 };
 
@@ -383,7 +446,16 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
                                                                aligned_address, size);
     }
 
-    template <std::size_t PreviousTrailingAlignment, std::size_t NextAlignment>
+    static constexpr TrailingAlignmentResult trailing_alignment(std::size_t offset, std::size_t alignment) noexcept
+    {
+        const auto alignment_offset = detail::align(offset, ALIGNMENT);
+        alignment = (std::max)(alignment, ALIGNMENT);
+        const auto leading_alignment = (std::max)(ALIGNMENT, detail::trailing_alignment(alignment_offset, alignment));
+        const auto trailing_alignment = detail::trailing_alignment(sizeof(T), leading_alignment);
+        return {{}, trailing_alignment, {trailing_alignment}};
+    }
+
+    template <std::size_t PreviousTrailingAlignment, std::size_t, std::size_t NextAlignment>
     static constexpr AlignedSizeInMemory aligned_size_in_memory(std::size_t offset, std::size_t alignment,
                                                                 std::size_t fixed_size) noexcept
     {
