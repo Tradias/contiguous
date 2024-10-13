@@ -36,14 +36,14 @@ TEST_CASE("ContiguousVector: Plain size() and capacity()")
 TEST_CASE("ContiguousVector: OneVarying size() and capacity()")
 {
     OneVarying v{2, FLOATS1.size() * sizeof(float)};
-    v.emplace_back(10u, FLOATS1);
+    v.emplace_back(10u, FLOATS1.size(), FLOATS1);
     check_size1_and_capacity2(v);
 }
 
 TEST_CASE("ContiguousVector: TwoVarying size() and capacity()")
 {
     TwoVarying v{2, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float)};
-    v.emplace_back(10u, FLOATS1, FLOATS2);
+    v.emplace_back(10u, FLOATS1.size(), FLOATS1, FLOATS2.size(), FLOATS2);
     check_size1_and_capacity2(v);
 }
 
@@ -64,7 +64,7 @@ TEST_CASE("ContiguousVector: TwoFixed size() and capacity()")
 TEST_CASE("ContiguousVector: OneFixedOneVarying size() and capacity()")
 {
     OneFixedOneVarying v{2, FLOATS2.size() * sizeof(float), {FLOATS1.size()}};
-    v.emplace_back(FLOATS1, 10u, FLOATS2);
+    v.emplace_back(FLOATS1, 10u, FLOATS2.size(), FLOATS2);
     check_size1_and_capacity2(v);
 }
 
@@ -77,15 +77,15 @@ TEST_CASE("ContiguousVector: OneVarying empty()")
 TEST_CASE("ContiguousVector: TwoVarying emplace_back with arrays")
 {
     TwoVarying vector{1, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float)};
-    vector.emplace_back(10u, FLOATS1, FLOATS2);
-    check_equal_using_get(vector[0], 10u, FLOATS1, FLOATS2);
+    vector.emplace_back(10u, FLOATS1.size(), FLOATS1, FLOATS2.size(), FLOATS2);
+    check_equal_using_get(vector[0], 10u, FLOATS1.size(), FLOATS1, FLOATS2.size(), FLOATS2);
 }
 
 TEST_CASE("ContiguousVector: OneVarying emplace_back with lists")
 {
     OneVarying vector{1, FLOATS_LIST.size() * sizeof(float)};
-    vector.emplace_back(10u, FLOATS_LIST);
-    check_equal_using_get(vector[0], 10u, FLOATS_LIST);
+    vector.emplace_back(10u, FLOATS_LIST.size(), FLOATS_LIST);
+    check_equal_using_get(vector[0], 10u, FLOATS_LIST.size(), FLOATS_LIST);
 }
 
 TEST_CASE("ContiguousVector: TwoFixed emplace_back with lists")
@@ -99,9 +99,9 @@ TEST_CASE("ContiguousVector: TwoFixed emplace_back with lists")
     }
 }
 
-template <class Vector>
-void check_pop_back(Vector&& vector)
+TEST_CASE("ContiguousVector: OneFixedUniquePtr pop_back")
 {
+    OneFixedUniquePtr vector{2, {1}};
     vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
     vector.emplace_back(array_one_unique_ptr(30), std::make_unique<int>(40));
     vector.pop_back();
@@ -112,18 +112,25 @@ void check_pop_back(Vector&& vector)
     check_equal_using_get(vector.back(), array_one_unique_ptr(50), 60);
 }
 
-TEST_CASE("ContiguousVector: pop_back")
+TEST_CASE("ContiguousVector: OneVaryingUniquePtr pop_back")
 {
-    check_pop_back(OneFixedUniquePtr{2, {1}});
-    check_pop_back(OneVaryingUniquePtr{2, 2 * (2 * sizeof(std::unique_ptr<int>))});
+    OneVaryingUniquePtr vector{2, 2 * (2 * sizeof(std::unique_ptr<int>))};
+    vector.emplace_back(1, array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(1, array_one_unique_ptr(30), std::make_unique<int>(40));
+    vector.pop_back();
+    CHECK_EQ(1, vector.size());
+    check_equal_using_get(vector.back(), 1, array_one_unique_ptr(10), 20);
+    vector.emplace_back(1, array_one_unique_ptr(50), std::make_unique<int>(60));
+    CHECK_EQ(2, vector.size());
+    check_equal_using_get(vector.back(), 1, array_one_unique_ptr(50), 60);
 }
 
 TEST_CASE("ContiguousVector: OneVarying emplace_back c-style array")
 {
     float carray[]{0.1f, 0.2f};
     OneVarying vector{1, std::size(carray) * sizeof(float)};
-    vector.emplace_back(10, carray);
-    check_equal_using_get(vector[0], 10u, carray);
+    vector.emplace_back(10, std::size(carray), carray);
+    check_equal_using_get(vector[0], 10u, std::size(carray), carray);
 }
 
 #ifdef __cpp_lib_ranges
@@ -135,8 +142,8 @@ TEST_CASE("ContiguousVector: OneVarying emplace_back std::views::iota")
                                                   return float(i);
                                               });
     OneVarying vector{1, std::ranges::size(iota) * sizeof(float)};
-    vector.emplace_back(10, iota);
-    check_equal_using_get(vector[0], 10u, iota);
+    vector.emplace_back(10, 10u, iota);
+    check_equal_using_get(vector[0], 10u, 10u, iota);
 }
 
 TEST_CASE("ContiguousVector: OneFixed emplace_back std::views::iota")
@@ -265,52 +272,53 @@ TEST_CASE("ContiguousVector: OneFixed emplace" * doctest::skip())
     }
 }
 
-TEST_CASE("ContiguousVector: OneVarying emplace" * doctest::skip())
-{
-    OneVarying vector{4, 12 * sizeof(float)};
-    vector.emplace_back(10u, FLOATS2);
-    vector.emplace_back(20u, FLOATS1_ALT);
-    SUBCASE("at begin")
-    {
-        check_emplace_at_begin(vector, std::pair{30u, FLOATS2_ALT}, std::pair{30u, FLOATS2_ALT},
-                               std::pair{10u, FLOATS2}, std::pair{20u, FLOATS1_ALT});
-    }
-    SUBCASE("in the middle")
-    {
-        check_emplace_in_the_middle(vector, std::pair{30u, FLOATS2_ALT}, std::pair{10u, FLOATS2},
-                                    std::pair{30u, FLOATS2_ALT}, std::pair{20u, FLOATS1_ALT});
-    }
-    SUBCASE("at end")
-    {
-        check_emplace_at_end(vector, std::pair{30u, FLOATS2_ALT}, std::pair{10u, FLOATS2}, std::pair{20u, FLOATS1_ALT},
-                             std::pair{30u, FLOATS2_ALT});
-    }
-}
+// TEST_CASE("ContiguousVector: OneVarying emplace" * doctest::skip())
+// {
+//     OneVarying vector{4, 12 * sizeof(float)};
+//     vector.emplace_back(10u, FLOATS2.size(), FLOATS2);
+//     vector.emplace_back(20u, FLOATS1_ALT.size(), FLOATS1_ALT);
+//     SUBCASE("at begin")
+//     {
+//         check_emplace_at_begin(vector, std::pair{30u, FLOATS2_ALT}, std::pair{30u, FLOATS2_ALT},
+//                                std::pair{10u, FLOATS2}, std::pair{20u, FLOATS1_ALT});
+//     }
+//     SUBCASE("in the middle")
+//     {
+//         check_emplace_in_the_middle(vector, std::pair{30u, FLOATS2_ALT}, std::pair{10u, FLOATS2},
+//                                     std::pair{30u, FLOATS2_ALT}, std::pair{20u, FLOATS1_ALT});
+//     }
+//     SUBCASE("at end")
+//     {
+//         check_emplace_at_end(vector, std::pair{30u, FLOATS2_ALT}, std::pair{10u, FLOATS2}, std::pair{20u,
+//         FLOATS1_ALT},
+//                              std::pair{30u, FLOATS2_ALT});
+//     }
+// }
 
-TEST_CASE("ContiguousVector: OneVarying std::string emplace" * doctest::skip())
-{
-    cntgs::ContiguousVector<cntgs::VaryingSize<std::string>, std::string> vector{4, 7 * sizeof(std::string)};
-    vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
-    vector.emplace_back(std::array{STRING1}, STRING2);
-    SUBCASE("at begin")
-    {
-        check_emplace_at_begin(
-            vector, std::pair{std::array{STRING2, STRING2}, STRING2}, std::pair{std::array{STRING2, STRING2}, STRING2},
-            std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING1}, STRING2});
-    }
-    SUBCASE("in the middle")
-    {
-        check_emplace_in_the_middle(
-            vector, std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING2, STRING2}, STRING2},
-            std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING1}, STRING2});
-    }
-    SUBCASE("at end")
-    {
-        check_emplace_at_end(vector, std::pair{std::array{STRING1, STRING2}, STRING1},
-                             std::pair{std::array{STRING1}, STRING2}, std::pair{std::array{STRING2, STRING2}, STRING2},
-                             std::pair{std::array{STRING1, STRING2}, STRING1});
-    }
-}
+// TEST_CASE("ContiguousVector: OneVarying std::string emplace" * doctest::skip())
+// {
+//     cntgs::ContiguousVector<cntgs::VaryingSize<std::string>, std::string> vector{4, 7 * sizeof(std::string)};
+//     vector.emplace_back(std::array{STRING1, STRING2}, STRING1);
+//     vector.emplace_back(std::array{STRING1}, STRING2);
+//     SUBCASE("at begin")
+//     {
+//         check_emplace_at_begin(
+//             vector, std::pair{std::array{STRING2, STRING2}, STRING2}, std::pair{std::array{STRING2, STRING2},
+//             STRING2}, std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING1}, STRING2});
+//     }
+//     SUBCASE("in the middle")
+//     {
+//         check_emplace_in_the_middle(
+//             vector, std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING2, STRING2},
+//             STRING2}, std::pair{std::array{STRING1, STRING2}, STRING1}, std::pair{std::array{STRING1}, STRING2});
+//     }
+//     SUBCASE("at end")
+//     {
+//         check_emplace_at_end(vector, std::pair{std::array{STRING1, STRING2}, STRING1},
+//                              std::pair{std::array{STRING1}, STRING2}, std::pair{std::array{STRING2, STRING2},
+//                              STRING2}, std::pair{std::array{STRING1, STRING2}, STRING1});
+//     }
+// }
 
 TEST_CASE("ContiguousVector: std::string OneFixed emplace_back->reserve->emplace_back")
 {
@@ -334,25 +342,28 @@ TEST_CASE("ContiguousVector: trivial OneFixed emplace_back->reserve->emplace_bac
 
 TEST_CASE("ContiguousVector: trivial VaryingSize emplace_back->reserve->emplace_back")
 {
-    cntgs::ContiguousVector<cntgs::VaryingSize<float>, int> vector{1, FLOATS1.size() * sizeof(float)};
-    vector.emplace_back(FLOATS1, 42);
+    cntgs::ContiguousVector<cntgs::AlignAs<std::size_t, 8>, cntgs::VaryingSize<float>, int> vector{
+        1, FLOATS1.size() * sizeof(float)};
+    vector.emplace_back(FLOATS1.size(), FLOATS1, 42);
     vector.reserve(2, FLOATS1.size() * sizeof(float) + FLOATS2.size() * sizeof(float));
-    vector.emplace_back(FLOATS2, 84);
-    check_equal_using_get(vector[0], FLOATS1, 42);
-    check_equal_using_get(vector[1], FLOATS2, 84);
+    vector.emplace_back(FLOATS2.size(), FLOATS2, 84);
+    check_equal_using_get(vector[0], FLOATS1.size(), FLOATS1, 42);
+    check_equal_using_get(vector[1], FLOATS2.size(), FLOATS2, 84);
 }
 
 TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
 {
-    cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{0, 0};
+    cntgs::ContiguousVector<cntgs::AlignAs<std::size_t, 8>, cntgs::VaryingSize<std::unique_ptr<int>>,
+                            std::unique_ptr<int>>
+        vector{0, 0};
     vector.reserve(1, 3 * sizeof(std::unique_ptr<int>));
-    vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    check_equal_using_get(vector[0], array_one_unique_ptr(), 20);
+    vector.emplace_back(1, array_one_unique_ptr(), std::make_unique<int>(20));
+    check_equal_using_get(vector[0], 1, array_one_unique_ptr(), 20);
     vector.reserve(3, 8 * sizeof(std::unique_ptr<int>));
-    vector.emplace_back(array_two_unique_ptr(), std::make_unique<int>(50));
-    vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    check_equal_using_get(vector[1], array_two_unique_ptr(), 50);
-    check_equal_using_get(vector[2], array_one_unique_ptr(), 20);
+    vector.emplace_back(2, array_two_unique_ptr(), std::make_unique<int>(50));
+    vector.emplace_back(1, array_one_unique_ptr(), std::make_unique<int>(20));
+    check_equal_using_get(vector[1], 2, array_two_unique_ptr(), 50);
+    check_equal_using_get(vector[2], 1, array_one_unique_ptr(), 20);
 }
 
 TEST_CASE("ContiguousVector: trivial OneFixed reserve with polymorphic_allocator")

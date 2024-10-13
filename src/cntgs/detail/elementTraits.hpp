@@ -58,10 +58,13 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
 
   private:
+    static_assert(ParameterTraitsAt<0>::TYPE != detail::ParameterType::VARYING_SIZE,
+                  "VaryingSize must be preceded by a parameter that represents its size");
+
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
     using ContiguousPointer = typename detail::ContiguousVectorTraits<Parameter...>::PointerType;
     using ContiguousReference = typename detail::ContiguousVectorTraits<Parameter...>::ReferenceType;
-    using FixedSizeGetter = detail::FixedSizeGetter<Parameter...>;
+    using SizeGetter = detail::SizeGetter<Parameter...>;
 
     static constexpr auto LARGEST_ALIGNMENT_BETWEEN_VARYING_SIZES = []
     {
@@ -73,17 +76,12 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
             [&]
             {
                 alignment = (std::max)(alignment, detail::ParameterTraits<Parameter>::ALIGNMENT);
+                ++it;
                 if constexpr (detail::ParameterTraits<Parameter>::TYPE == detail::ParameterType::VARYING_SIZE)
                 {
-                    alignment = (std::max)(alignment, detail::ParameterTraits<Parameter>::VALUE_ALIGNMENT);
-                    ++it;
                     detail::fill(begin, it, alignment);
                     begin = it;
                     alignment = {};
-                }
-                else
-                {
-                    ++it;
                 }
             }(),
             ...);
@@ -167,12 +165,6 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     }
 
     template <std::size_t K>
-    static constexpr std::size_t size_type_trailing_alignment() noexcept
-    {
-        return std::get<K>(TRAILING_ALIGNMENTS).size_type;
-    }
-
-    template <std::size_t K>
     static constexpr std::size_t previous_trailing_alignment() noexcept
     {
         if constexpr (K == 0)
@@ -181,7 +173,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         }
         else
         {
-            return std::get<(K - 1)>(TRAILING_ALIGNMENTS).value;
+            return std::get<(K - 1)>(TRAILING_ALIGNMENTS);
         }
     }
 
@@ -206,17 +198,17 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static std::byte* emplace_at(std::byte* address, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         ((address = store_one<Parameter, IgnoreAliasing, I>(
-              address, FixedSizeGetter::template get<Parameter, I>(fixed_sizes), std::forward<Args>(args))),
+              address, SizeGetter::template get_fixed_size<I>(fixed_sizes), std::forward<Args>(args))),
          ...);
         return address;
     }
 
-    template <class ParameterT, std::size_t K, class FixedSizeGetterType, class FixedSizesType>
-    static auto load_one(std::byte* CNTGS_RESTRICT address, const FixedSizesType& fixed_sizes) noexcept
+    template <class ParameterT, std::size_t K, class SizeGetterType, class FixedSizesType>
+    static auto load_one(std::byte* CNTGS_RESTRICT address, const FixedSizesType& CNTGS_RESTRICT fixed_sizes,
+                         const ContiguousPointer& CNTGS_RESTRICT result) noexcept
     {
-        static constexpr auto IS_SIZE_PROVIDED = FixedSizeGetterType::template CAN_PROVIDE_SIZE<ParameterT>;
-        return detail::ParameterTraits<ParameterT>::template load<previous_trailing_alignment<K>(), IS_SIZE_PROVIDED>(
-            address, FixedSizeGetterType::template get<ParameterT, K>(fixed_sizes));
+        return detail::ParameterTraits<ParameterT>::template load<previous_trailing_alignment<K>()>(
+            address, SizeGetterType::template get<ParameterT, K>(fixed_sizes, result));
     }
 
   public:
@@ -250,13 +242,13 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
         return emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
     }
 
-    template <class FixedSizeGetterType = ElementTraits::FixedSizeGetter,
-              class FixedSizesType = ElementTraits::FixedSizesArray>
+    template <class SizeGetterType = ElementTraits::SizeGetter, class FixedSizesType = ElementTraits::FixedSizesArray>
     static ContiguousPointer load_element_at(std::byte* CNTGS_RESTRICT address,
-                                             const FixedSizesType& fixed_sizes) noexcept
+                                             const FixedSizesType& CNTGS_RESTRICT fixed_sizes) noexcept
     {
         ContiguousPointer result;
-        ((std::tie(std::get<I>(result), address) = load_one<Parameter, I, FixedSizeGetterType>(address, fixed_sizes)),
+        ((std::tie(std::get<I>(result), address) =
+              load_one<Parameter, I, SizeGetterType>(address, fixed_sizes, result)),
          ...);
         return result;
     }
@@ -272,8 +264,8 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
             {
                 const auto [next_offset, next_size, next_padding, next_align] =
                     detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
-                        previous_trailing_alignment<I>(), size_type_trailing_alignment<I>(), next_alignment<I>()>(
-                        offset, alignment, FixedSizeGetter::template get<Parameter, I>(fixed_sizes));
+                        previous_trailing_alignment<I>(), next_alignment<I>()>(
+                        offset, alignment, SizeGetter::template get_fixed_size<I>(fixed_sizes));
                 size += next_size;
                 offset = next_offset;
                 alignment = next_align;

@@ -11,16 +11,14 @@
 #include "cntgs/detail/parameterTraits.hpp"
 #include "cntgs/detail/parameterType.hpp"
 #include "cntgs/detail/reference.hpp"
-#include "cntgs/detail/typeTraits.hpp"
 
 #include <array>
 #include <cstddef>
-#include <tuple>
 
 namespace cntgs::detail
 {
 template <class... Parameter>
-class FixedSizeGetter
+class SizeGetter
 {
   private:
     template <std::size_t... I>
@@ -45,25 +43,37 @@ class FixedSizeGetter
         calculate_fixed_size_indices(std::make_index_sequence<sizeof...(Parameter)>{});
 
   public:
-    template <class Type>
-    static constexpr bool CAN_PROVIDE_SIZE = detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE;
-
-    template <class, std::size_t I, std::size_t N>
-    static constexpr auto get(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
+    template <std::size_t I, std::size_t N>
+    static constexpr std::size_t get_fixed_size(const detail::Array<std::size_t, N>& fixed_sizes) noexcept
     {
         return detail::get<std::get<I>(FIXED_SIZE_INDICES)>(fixed_sizes);
+    }
+
+    template <class Type, std::size_t I, std::size_t N, class ContiguousPointer>
+    static constexpr decltype(auto) get([[maybe_unused]] const detail::Array<std::size_t, N>& fixed_sizes,
+                                        [[maybe_unused]] const ContiguousPointer& pointer) noexcept
+    {
+        if constexpr (detail::ParameterType::FIXED_SIZE == detail::ParameterTraits<Type>::TYPE)
+        {
+            return get_fixed_size<I>(fixed_sizes);
+        }
+        else if constexpr (detail::ParameterType::VARYING_SIZE == detail::ParameterTraits<Type>::TYPE)
+        {
+            return *std::get<I - 1>(pointer);
+        }
+        else
+        {
+            return std::size_t{};
+        }
     }
 };
 
 class ContiguousReferenceSizeGetter
 {
   public:
-    template <class Type>
-    static constexpr bool CAN_PROVIDE_SIZE = detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE;
-
-    template <class Type, std::size_t I, bool IsConst, class... Parameter>
-    static constexpr auto get(
-        [[maybe_unused]] const cntgs::BasicContiguousReference<IsConst, Parameter...>& tuple) noexcept
+    template <class Type, std::size_t I, bool IsConst, class... Parameter, class T>
+    static constexpr auto get([[maybe_unused]] const cntgs::BasicContiguousReference<IsConst, Parameter...>& tuple,
+                              const T&) noexcept
     {
         if constexpr (detail::ParameterType::PLAIN != detail::ParameterTraits<Type>::TYPE)
         {

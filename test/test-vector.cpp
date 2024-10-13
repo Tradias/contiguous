@@ -33,14 +33,14 @@ TEST_CASE("ContiguousVector: TwoFixed get_fixed_size<I>()")
 
 TEST_CASE("ContiguousVector: one fixed one varying size: correct memory_consumption()")
 {
-    using Vector =
-        ContiguousVectorWithAllocator<TestAllocator<>, cntgs::FixedSize<uint16_t>, uint32_t, cntgs::VaryingSize<float>>;
+    using Vector = ContiguousVectorWithAllocator<TestAllocator<>, cntgs::FixedSize<uint16_t>, uint32_t,
+                                                 cntgs::AlignAs<std::size_t, 8>, cntgs::VaryingSize<float>>;
     const auto varying_byte_count = 6 * sizeof(float);
     TestMemoryResource resource;
     const auto element_count = 2;
     Vector vector{element_count, varying_byte_count, {3}, resource.get_allocator()};
-    vector.emplace_back(std::initializer_list<uint16_t>{1, 2, 3}, 10, std::array{0.f, 0.1f, 0.2f});
-    vector.emplace_back(std::initializer_list<uint16_t>{4, 5, 6}, 11, std::array{0.3f, 0.4f, 0.5f});
+    vector.emplace_back(std::initializer_list<uint16_t>{1, 2, 3}, 10, 3u, std::array{0.f, 0.1f, 0.2f});
+    vector.emplace_back(std::initializer_list<uint16_t>{4, 5, 6}, 11, 3u, std::array{0.3f, 0.4f, 0.5f});
     const auto size = 3 * sizeof(uint16_t) + sizeof(uint32_t) + 6 + sizeof(std::size_t);
     const auto expected = element_count * (size + 4) + varying_byte_count;
     CHECK_EQ(expected, vector.memory_consumption());
@@ -59,17 +59,17 @@ TEST_CASE("ContiguousVector: TwoFixed correct memory_consumption()")
 TEST_CASE("ContiguousVector: OneVarying subscript operator returns a reference")
 {
     OneVarying vector{1, sizeof(float)};
-    vector.emplace_back(10, std::initializer_list<float>{1});
+    vector.emplace_back(10, 1, std::initializer_list<float>{1});
     SUBCASE("mutable")
     {
-        auto&& [i1, e1] = vector[0];
+        auto&& [i1, s1, e1] = vector[0];
         i1 = 20u;
-        auto&& [i2, e2] = vector[0];
+        auto&& [i2, s2, e2] = vector[0];
         CHECK_EQ(20u, i2);
     }
     SUBCASE("const")
     {
-        auto&& [i, span] = std::as_const(vector)[0];
+        auto&& [i, s, span] = std::as_const(vector)[0];
         CHECK(std::is_same_v<const uint32_t&, decltype(i)>);
         CHECK(std::is_same_v<cntgs::Span<const float>, decltype(span)>);
     }
@@ -89,15 +89,17 @@ TEST_CASE("ContiguousVector: ContiguousVector is conditionally nothrow")
 
 TEST_CASE("ContiguousVector: std::unique_ptr VaryingSize reserve and shrink")
 {
-    cntgs::ContiguousVector<cntgs::VaryingSize<std::unique_ptr<int>>, std::unique_ptr<int>> vector{0, 0};
+    cntgs::ContiguousVector<cntgs::AlignAs<std::size_t, 8>, cntgs::VaryingSize<std::unique_ptr<int>>,
+                            std::unique_ptr<int>>
+        vector{0, 0};
     vector.reserve(1, 3 * sizeof(std::unique_ptr<int>));
-    vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    check_equal_using_get(vector[0], array_one_unique_ptr(), 20);
+    vector.emplace_back(1u, array_one_unique_ptr(), std::make_unique<int>(20));
+    check_equal_using_get(vector[0], 1u, array_one_unique_ptr(), 20);
     vector.reserve(3, 8 * sizeof(std::unique_ptr<int>));
-    vector.emplace_back(array_two_unique_ptr(), std::make_unique<int>(50));
-    vector.emplace_back(array_one_unique_ptr(), std::make_unique<int>(20));
-    check_equal_using_get(vector[1], array_two_unique_ptr(), 50);
-    check_equal_using_get(vector[2], array_one_unique_ptr(), 20);
+    vector.emplace_back(2u, array_two_unique_ptr(), std::make_unique<int>(50));
+    vector.emplace_back(1u, array_one_unique_ptr(), std::make_unique<int>(20));
+    check_equal_using_get(vector[1], 2u, array_two_unique_ptr(), 50);
+    check_equal_using_get(vector[2], 1u, array_one_unique_ptr(), 20);
 }
 
 TEST_CASE("ContiguousVector: trivial OneFixed reserve with polymorphic_allocator")
@@ -132,8 +134,8 @@ template <class Vector>
 void check_varying_vector_unique_ptrs(const Vector& vector)
 {
     CHECK_EQ(2, vector.size());
-    check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
-    check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
+    check_equal_using_get(vector[0], 2, array_two_unique_ptr(10, 20), 30);
+    check_equal_using_get(vector[1], 1, array_one_unique_ptr(40), 50);
 }
 
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap empty vector")
@@ -177,9 +179,9 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr swap")
     }
 }
 
-template <class... T>
-void check_clear_followed_by_emplace_back(cntgs::BasicContiguousVector<T...>& vector)
+TEST_CASE("ContiguousVector: OneFixedString clear")
 {
+    auto vector = fixed_vector_of_strings();
     const auto expected_capacity = vector.capacity();
     vector.clear();
     CHECK_EQ(expected_capacity, vector.capacity());
@@ -188,15 +190,14 @@ void check_clear_followed_by_emplace_back(cntgs::BasicContiguousVector<T...>& ve
     check_equal_using_get(vector[0], std::array{STRING2, STRING2}, STRING2);
 }
 
-TEST_CASE("ContiguousVector: OneFixedString clear")
-{
-    auto vector = fixed_vector_of_strings();
-    check_clear_followed_by_emplace_back(vector);
-}
-
 TEST_CASE("ContiguousVector: OneVaryingString clear")
 {
     auto vector = varying_vector_of_strings();
-    check_clear_followed_by_emplace_back(vector);
+    const auto expected_capacity = vector.capacity();
+    vector.clear();
+    CHECK_EQ(expected_capacity, vector.capacity());
+    CHECK(vector.empty());
+    vector.emplace_back(2, std::array{STRING2, STRING2}, STRING2);
+    check_equal_using_get(vector[0], 2, std::array{STRING2, STRING2}, STRING2);
 }
 }  // namespace test_vector

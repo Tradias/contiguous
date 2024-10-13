@@ -16,7 +16,6 @@
 
 #include <array>
 #include <memory_resource>
-#include <string>
 
 namespace test_element
 {
@@ -177,12 +176,12 @@ TEST_CASE("ContiguousElement: VaryingSize can be copy assigned - std::allocator"
     SUBCASE("larger into smaller")
     {
         value2 = value1;
-        check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+        check_equal_using_get(value2, 2, std::array{STRING1, STRING2}, STRING1);
     }
     SUBCASE("smaller into larger")
     {
         value1 = value2;
-        check_equal_using_get(value1, std::array{STRING1}, STRING2);
+        check_equal_using_get(value1, 1, std::array{STRING1}, STRING2);
     }
 }
 
@@ -219,12 +218,12 @@ TEST_CASE("ContiguousElement: VaryingSize can be copy assigned - std::polymorphi
         SUBCASE("larger into smaller")
         {
             value2 = value1;
-            check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+            check_equal_using_get(value2, 2, std::array{STRING1, STRING2}, STRING1);
         }
         SUBCASE("smaller into larger")
         {
             value1 = value2;
-            check_equal_using_get(value1, std::array{STRING1}, STRING2);
+            check_equal_using_get(value1, 1, std::array{STRING1}, STRING2);
         }
     }
     SUBCASE("non-equal allocator")
@@ -234,12 +233,12 @@ TEST_CASE("ContiguousElement: VaryingSize can be copy assigned - std::polymorphi
         SUBCASE("larger into smaller")
         {
             value2 = value1;
-            check_equal_using_get(value2, std::array{STRING1, STRING2}, STRING1);
+            check_equal_using_get(value2, 2, std::array{STRING1, STRING2}, STRING1);
         }
         SUBCASE("smaller into larger")
         {
             value1 = value2;
-            check_equal_using_get(value1, std::array{STRING1}, STRING2);
+            check_equal_using_get(value1, 1, std::array{STRING1}, STRING2);
         }
     }
 }
@@ -263,12 +262,12 @@ TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::allocator")
     SUBCASE("larger into smaller")
     {
         value2 = std::move(value1);
-        check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+        check_equal_using_get(value2, 2, array_two_unique_ptr(10, 20), 30);
     }
     SUBCASE("smaller into larger")
     {
         value1 = std::move(value2);
-        check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+        check_equal_using_get(value1, 1, array_one_unique_ptr(40), 50);
     }
 }
 
@@ -284,12 +283,12 @@ TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::polymorphic_
         SUBCASE("larger into smaller")
         {
             value2 = std::move(value1);
-            check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+            check_equal_using_get(value2, 2, array_two_unique_ptr(10, 20), 30);
         }
         SUBCASE("smaller into larger")
         {
             value1 = std::move(value2);
-            check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+            check_equal_using_get(value1, 1, array_one_unique_ptr(40), 50);
         }
     }
     SUBCASE("non-equal allocator")
@@ -299,12 +298,12 @@ TEST_CASE("ContiguousElement: FixedSize can be move assigned - std::polymorphic_
         SUBCASE("larger into smaller")
         {
             value2 = std::move(value1);
-            check_equal_using_get(value2, array_two_unique_ptr(10, 20), 30);
+            check_equal_using_get(value2, 2, array_two_unique_ptr(10, 20), 30);
         }
         SUBCASE("smaller into larger")
         {
             value1 = std::move(value2);
-            check_equal_using_get(value1, array_one_unique_ptr(40), 50);
+            check_equal_using_get(value1, 1, array_one_unique_ptr(40), 50);
         }
     }
 }
@@ -348,8 +347,8 @@ void check_const_and_non_const(Value& value)
 {
     CHECK_EQ(10u, cntgs::get<0>(value));
     CHECK_EQ(10u, cntgs::get<0>(std::as_const(value)));
-    CHECK(range_equal(FLOATS1, cntgs::get<1>(value)));
-    CHECK(range_equal(FLOATS1, cntgs::get<1>(std::as_const(value))));
+    CHECK(range_equal(FLOATS1, cntgs::get<2>(value)));
+    CHECK(range_equal(FLOATS1, cntgs::get<2>(std::as_const(value))));
 }
 
 template <class Vector>
@@ -358,8 +357,8 @@ auto mutate_first_and_check(Vector& vector)
     using ValueType = typename std::decay_t<Vector>::value_type;
     ValueType value{vector[0]};
     check_const_and_non_const(value);
-    cntgs::get<1>(value).front() = 10.f;
-    CHECK_EQ(1.f, cntgs::get<1>(vector[0]).front());
+    cntgs::get<2>(value).front() = 10.f;
+    CHECK_EQ(1.f, cntgs::get<2>(vector[0]).front());
     ValueType value2{std::move(vector[0])};
     check_const_and_non_const(value2);
     return value2;
@@ -368,18 +367,18 @@ auto mutate_first_and_check(Vector& vector)
 TEST_CASE("ContiguousElement: OneVarying mutation does not mutate underlying ContiguousVector")
 {
     OneVarying vector{1, FLOATS1.size() * sizeof(float)};
-    vector.emplace_back(10u, FLOATS1);
+    vector.emplace_back(10u, FLOATS1.size(), FLOATS1);
     mutate_first_and_check(vector);
 }
 
 TEST_CASE("ContiguousElement: OneFixed mutation does not mutate underlying ContiguousVector")
 {
-    OneFixed vector{1, {FLOATS1.size()}};
-    vector.emplace_back(10u, FLOATS1);
+    cntgs::ContiguousVector<uint32_t, uint32_t, cntgs::FixedSize<float>> vector{1, {FLOATS1.size()}};
+    vector.emplace_back(10u, 0u, FLOATS1);
     auto value = mutate_first_and_check(vector);
-    cntgs::get<1>(value).front() = 12.f;
+    cntgs::get<2>(value).front() = 12.f;
     vector[0] = std::move(value);
-    CHECK_EQ(12.f, cntgs::get<1>(vector[0]).front());
+    CHECK_EQ(12.f, cntgs::get<2>(vector[0]).front());
 }
 
 template <bool IsNoexcept>
@@ -445,15 +444,15 @@ TEST_CASE("ContiguousElement: value_type to (const_)reference for memcmp-compati
 TEST_CASE("ContiguousElement: one fixed one varying size: correct memory_consumption()")
 {
     using Vector = ContiguousVectorWithAllocator<TestAllocator<>, cntgs::FixedSize<cntgs::AlignAs<uint16_t, 2>>,
-                                                 uint32_t, cntgs::VaryingSize<char>>;
+                                                 uint32_t, cntgs::AlignAs<std::size_t, 8>, cntgs::VaryingSize<char>>;
     const auto varying_byte_count = sizeof(char);
     TestMemoryResource resource;
     Vector vector{1, varying_byte_count, {3}, resource.get_allocator()};
-    vector.emplace_back(std::array{0, 1, 2}, 42, std::array{'8'});
+    vector.emplace_back(std::array{0, 1, 2}, 42, 1u, std::array{'8'});
     resource.bytes_allocated = {};
     Vector::value_type v{vector.front(), resource.get_allocator()};
     const auto expected = 3 * sizeof(uint16_t) + sizeof(uint32_t) + 6 + sizeof(std::size_t) + varying_byte_count;
     CHECK_EQ(expected + 8 - expected % 8, resource.bytes_allocated);
-    CHECK_EQ('8', cntgs::get<2>(v).front());
+    CHECK(range_equal(std::array{'8'}, cntgs::get<3>(v)));
 }
 }  // namespace test_element

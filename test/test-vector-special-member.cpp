@@ -20,15 +20,15 @@ TEST_CASE("ContiguousVector: OneVaryingUniquePtr move assign empty vector")
     auto expected = varying_vector_of_unique_ptrs();
     decltype(expected) vector{};
     vector = std::move(expected);
-    CHECK_EQ(10, *cntgs::get<0>(vector[0]).front());
+    CHECK_EQ(10, *cntgs::get<1>(vector[0]).front());
 }
 
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr with polymorphic_allocator move assignment")
 {
     auto check_expected = [](auto&& vector)
     {
-        check_equal_using_get(vector[0], array_two_unique_ptr(10, 20), 30);
-        check_equal_using_get(vector[1], array_one_unique_ptr(40), 50);
+        check_equal_using_get(vector[0], 2, array_two_unique_ptr(10, 20), 30);
+        check_equal_using_get(vector[1], 1, array_one_unique_ptr(40), 50);
     };
     TestPmrMemoryResource resource;
     auto vector = varying_vector_of_unique_ptrs(resource.get_allocator());

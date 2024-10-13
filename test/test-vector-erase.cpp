@@ -30,13 +30,13 @@ TEST_CASE("ContiguousVector: OneFixedUniquePtr erase(Iterator)")
 TEST_CASE("ContiguousVector: OneVaryingUniquePtr erase(Iterator)")
 {
     OneVaryingUniquePtr vector{3, 3 * (2 * sizeof(std::unique_ptr<int>))};
-    vector.emplace_back(array_one_unique_ptr(10), std::make_unique<int>(20));
-    vector.emplace_back(array_two_unique_ptr(30, 40), std::make_unique<int>(50));
-    vector.emplace_back(array_two_unique_ptr(60, 70), std::make_unique<int>(80));
+    vector.emplace_back(1, array_one_unique_ptr(10), std::make_unique<int>(20));
+    vector.emplace_back(2, array_two_unique_ptr(30, 40), std::make_unique<int>(50));
+    vector.emplace_back(2, array_two_unique_ptr(60, 70), std::make_unique<int>(80));
     vector.erase(vector.begin());
     CHECK_EQ(2, vector.size());
-    check_equal_using_get(vector.front(), array_two_unique_ptr(30, 40), 50);
-    check_equal_using_get(vector.back(), array_two_unique_ptr(60, 70), 80);
+    check_equal_using_get(vector.front(), 2, array_two_unique_ptr(30, 40), 50);
+    check_equal_using_get(vector.back(), 2, array_two_unique_ptr(60, 70), 80);
 }
 
 TEST_CASE("ContiguousVector: TwoFixed erase(Iterator)")
@@ -58,18 +58,18 @@ TEST_CASE("ContiguousVector: TwoFixed erase(Iterator)")
 TEST_CASE("ContiguousVector: TwoVarying erase(Iterator)")
 {
     CheckedSoft<TwoVarying> vector{4, 21 * sizeof(float)};
-    vector.emplace_back(10u, FLOATS1, FLOATS2);
-    vector.emplace_back(20u, FLOATS2_ALT, FLOATS1);
-    vector.emplace_back(30u, FLOATS1, FLOATS2_ALT);
-    vector.emplace_back(40u, FLOATS2, FLOATS2_ALT);
-    CHECK_EQ(224, vector.memory_consumption());
+    vector.emplace_back(10u, FLOATS1.size(), FLOATS1, FLOATS2.size(), FLOATS2);
+    vector.emplace_back(20u, FLOATS2_ALT.size(), FLOATS2_ALT, FLOATS1.size(), FLOATS1);
+    vector.emplace_back(30u, FLOATS1.size(), FLOATS1, FLOATS2_ALT.size(), FLOATS2_ALT);
+    vector.emplace_back(40u, FLOATS2.size(), FLOATS2, FLOATS2_ALT.size(), FLOATS2_ALT);
+    CHECK_EQ(208, vector.memory_consumption());
     auto it = vector.erase(++vector.begin());
     CHECK_EQ(++vector.begin(), it);
     CheckedSoft<TwoVarying> vector2{3, 16 * sizeof(float)};
-    vector2.emplace_back(10u, FLOATS1, FLOATS2);
-    vector2.emplace_back(30u, FLOATS1, FLOATS2_ALT);
-    vector2.emplace_back(40u, FLOATS2, FLOATS2_ALT);
-    CHECK_EQ(168, vector2.memory_consumption());
+    vector2.emplace_back(10u, FLOATS1.size(), FLOATS1, FLOATS2.size(), FLOATS2);
+    vector2.emplace_back(30u, FLOATS1.size(), FLOATS1, FLOATS2_ALT.size(), FLOATS2_ALT);
+    vector2.emplace_back(40u, FLOATS2.size(), FLOATS2, FLOATS2_ALT.size(), FLOATS2_ALT);
+    CHECK_EQ(160, vector2.memory_consumption());
     CHECK_EQ(vector2, vector);
 }
 
@@ -131,28 +131,28 @@ TEST_CASE("ContiguousVector: TwoFixed erase(Iterator, Iterator)")
 TEST_CASE("ContiguousVector: TwoVarying erase(Iterator, Iterator)")
 {
     TwoVarying vector{4, 60};
-    vector.emplace_back(10u, FLOATS1, FLOATS2);
-    vector.emplace_back(20u, FLOATS2_ALT, FLOATS1);
-    vector.emplace_back(30u, FLOATS1, FLOATS2_ALT);
+    vector.emplace_back(10u, FLOATS1.size(), FLOATS1, FLOATS2.size(), FLOATS2);
+    vector.emplace_back(20u, FLOATS2_ALT.size(), FLOATS2_ALT, FLOATS1.size(), FLOATS1);
+    vector.emplace_back(30u, FLOATS1.size(), FLOATS1, FLOATS2_ALT.size(), FLOATS2_ALT);
     SUBCASE("erase first two")
     {
         auto it = vector.erase(vector.begin(), std::next(vector.begin(), 2));
         CHECK_EQ(vector.begin(), it);
         CHECK_EQ(1, vector.size());
-        check_equal_using_get(vector.front(), 30u, FLOATS1, FLOATS2_ALT);
+        check_equal_using_get(vector.front(), 30u, FLOATS1.size(), FLOATS1, FLOATS2_ALT.size(), FLOATS2_ALT);
     }
     SUBCASE("erase all")
     {
         vector.erase(vector.begin(), vector.end());
         CHECK_EQ(0, vector.size());
-        vector.emplace_back(30u, FLOATS2_ALT, FLOATS2);
-        check_equal_using_get(vector.front(), 30u, FLOATS2_ALT, FLOATS2);
+        vector.emplace_back(30u, FLOATS2_ALT.size(), FLOATS2_ALT, FLOATS2.size(), FLOATS2);
+        check_equal_using_get(vector.front(), 30u, FLOATS2_ALT.size(), FLOATS2_ALT, FLOATS2.size(), FLOATS2);
     }
     SUBCASE("erase none")
     {
         vector.erase(vector.begin(), vector.begin());
         CHECK_EQ(3, vector.size());
-        check_equal_using_get(vector.front(), 10u, FLOATS1, FLOATS2);
+        check_equal_using_get(vector.front(), 10u, FLOATS1.size(), FLOATS1, FLOATS2.size(), FLOATS2);
     }
 }
 }  // namespace test_vector_erase

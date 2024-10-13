@@ -82,32 +82,32 @@ TEST_CASE("ContiguousVector: ContiguousVector of std::string comparison operator
 
 TEST_CASE("ContiguousVector: ContiguousVector of VaryingSize unsigned char comparison operators")
 {
-    using Vector = cntgs::ContiguousVector<cntgs::VaryingSize<UInt8>>;
+    using Vector = cntgs::ContiguousVector<cntgs::AlignAs<std::size_t, 8>, cntgs::VaryingSize<UInt8>>;
     Vector lhs{2, 5};
-    lhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
+    lhs.emplace_back(3, std::array{UInt8{0}, UInt8{1}, UInt8{2}});
     SUBCASE("equal")
     {
         Vector rhs{1, 3};
-        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}});
+        rhs.emplace_back(3, std::array{UInt8{0}, UInt8{1}, UInt8{2}});
         check_equality(lhs, rhs);
     }
     SUBCASE("not equal size")
     {
         Vector rhs{1, 2};
-        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}});
+        rhs.emplace_back(2, std::array{UInt8{0}, UInt8{1}});
         CHECK_NE(lhs, rhs);
     }
     SUBCASE("less")
     {
         Vector rhs{1, 4};
-        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}, UInt8{3}});
+        rhs.emplace_back(4, std::array{UInt8{0}, UInt8{1}, UInt8{2}, UInt8{3}});
         check_less(lhs, rhs);
     }
     SUBCASE("not equal across varying size boundaries")
     {
-        lhs.emplace_back(std::array{UInt8{3}, UInt8{4}});
+        lhs.emplace_back(2, std::array{UInt8{3}, UInt8{4}});
         Vector rhs{1, 5};
-        rhs.emplace_back(std::array{UInt8{0}, UInt8{1}, UInt8{2}, UInt8{3}, UInt8{4}});
+        rhs.emplace_back(5, std::array{UInt8{0}, UInt8{1}, UInt8{2}, UInt8{3}, UInt8{4}});
         CHECK_NE(lhs, rhs);
     }
 }
