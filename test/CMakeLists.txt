@@ -41,7 +41,7 @@ target_sources(
 target_compile_options(cntgs-test-utils PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4> $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
                                                 -Wextra -pedantic-errors>)
 
-target_link_libraries(cntgs-test-utils PRIVATE cntgs)
+target_link_libraries(cntgs-test-utils PRIVATE cntgs cntgs-objects)
 
 target_include_directories(cntgs-test-utils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                                    $<INSTALL_INTERFACE:include>)

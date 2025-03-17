@@ -6,16 +6,14 @@
 #ifndef CNTGS_UTILS_FUNCTIONAL_HPP
 #define CNTGS_UTILS_FUNCTIONAL_HPP
 
-#include <utility>
-
 namespace test
 {
 struct Identity
 {
     template <class T>
-    auto operator()(T&& t) -> decltype(std::forward<T>(t))
+    auto operator()(T&& t) -> decltype(static_cast<T&&>(t))
     {
-        return std::forward<T>(t);
+        return static_cast<T&&>(t);
     }
 };
 
@@ -25,7 +23,7 @@ struct ToValueType
     template <class T>
     auto operator()(T&& t)
     {
-        return typename Vector::value_type{std::forward<T>(t)};
+        return typename Vector::value_type{static_cast<T&&>(t)};
     }
 };
 }  // namespace test

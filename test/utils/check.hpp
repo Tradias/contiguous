@@ -9,7 +9,6 @@
 #include "utils/doctest.hpp"
 #include "utils/range.hpp"
 #include "utils/typeTraits.hpp"
-#include "utils/typedefs.hpp"
 
 #include <cntgs/contiguous.hpp>
 
@@ -52,7 +51,7 @@ bool check_unique_ptr_equal_to(const std::unique_ptr<T>& lhs, std::nullptr_t rhs
 template <class T, std::size_t... I, class... Args>
 bool check_equal_using_get(T&& t, std::index_sequence<I...>, Args&&... args)
 {
-    return (test::check_equal(cntgs::get<I>(std::forward<T>(t)), args) && ...);
+    return (test::check_equal(cntgs::get<I>(static_cast<T&&>(t)), args) && ...);
 }
 }  // namespace detail
 
@@ -108,7 +107,7 @@ bool check_equal(const Lhs& lhs, const Rhs& rhs)
 template <class T, class... Args>
 bool check_equal_using_get(T&& t, Args&&... args)
 {
-    return detail::check_equal_using_get(std::forward<T>(t), std::make_index_sequence<sizeof...(Args)>{}, args...);
+    return detail::check_equal_using_get(static_cast<T&&>(t), std::make_index_sequence<sizeof...(Args)>{}, args...);
 }
 
 template <class T>
@@ -229,7 +228,7 @@ template <class Options, class... Parameter>
 std::size_t used_memory_size(const cntgs::BasicContiguousVector<Options, Parameter...>& vector,
                              std::size_t alignment = 1)
 {
-    return test::align(vector.data_end() - vector.data_begin(), alignment);
+    return test::align(vector.data_end() - vector.allocation_begin(), alignment);
 }
 
 template <class Options, class... Parameter>

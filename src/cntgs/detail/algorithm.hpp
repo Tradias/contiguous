@@ -9,9 +9,43 @@
 #include "cntgs/detail/memory.hpp"
 
 #include <algorithm>
+#include <tuple>
 
 namespace cntgs::detail
 {
+template <class... T>
+struct TypeList;
+
+template <class List>
+inline constexpr std::size_t TYPE_LIST_SIZE = 0;
+
+template <template <class...> class List, class... T>
+inline constexpr std::size_t TYPE_LIST_SIZE<List<T...>> = sizeof...(T);
+
+template <std::size_t N, class List, class IndexSequence>
+struct RotateImpl;
+
+template <std::size_t N, template <class...> class List, class... Ts, std::size_t... I>
+struct RotateImpl<N, List<Ts...>, std::index_sequence<I...>>
+{
+    using Type = List<std::tuple_element_t<(N + I) % sizeof...(Ts), std::tuple<Ts...>>...>;
+};
+
+template <std::size_t N, class TypeList>
+using Rotate = typename RotateImpl<N, TypeList, std::make_index_sequence<TYPE_LIST_SIZE<TypeList>>>::Type;
+
+template <template <class...> class NewList, class OldList>
+struct RebindTypeListImpl;
+
+template <template <class...> class NewList, template <class...> class OldList, class... Ts>
+struct RebindTypeListImpl<NewList, OldList<Ts...>>
+{
+    using Type = NewList<Ts...>;
+};
+
+template <template <class...> class NewList, class OldList>
+using RebindTypeList = typename RebindTypeListImpl<NewList, OldList>::Type;
+
 // Some compilers (e.g. MSVC) perform hand rolled optimizations or call C functions if the argument type
 // fulfills certain criteria. These checks are not always performed correctly for std::byte, therefore
 // cast it to a more reliable type.

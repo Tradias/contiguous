@@ -148,7 +148,8 @@ class ElementLocator : public BaseElementLocator
     auto emplace_back(std::byte* memory_begin, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         const auto last_element = ElementTraits::align_for_first_parameter(this->last_element_);
-        const auto new_last_element = ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
+        const auto new_last_element =
+            ElementTraits::emplace_at(last_element, fixed_sizes, static_cast<Args&&>(args)...);
         this->element_addresses_.put_back(last_element - memory_begin);
         this->last_element_ = new_last_element;
         return new_last_element;
@@ -158,7 +159,7 @@ class ElementLocator : public BaseElementLocator
     auto emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         const auto element_addresses_begin = ElementTraits::emplace_at_aliased(
-            memory_begin + this->element_addresses_[index], fixed_sizes, std::forward<Args>(args)...);
+            memory_begin + this->element_addresses_[index], fixed_sizes, static_cast<Args&&>(args)...);
         this->element_addresses_[index + 1] = element_addresses_begin - memory_begin;
         return element_addresses_begin;
     }
@@ -170,7 +171,7 @@ class ElementLocator : public BaseElementLocator
     }
 
     static constexpr std::size_t calculate_new_memory_size(std::size_t max_element_count,
-                                                           std::size_t varying_size_bytes,
+                                                           std::size_t varying_size_bytes, std::size_t,
                                                            const FixedSizesArray& fixed_sizes) noexcept
     {
         return ElementTraits::calculate_needed_memory_size(max_element_count, varying_size_bytes,
@@ -242,8 +243,8 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
     AllFixedSizeElementLocator() = default;
 
     template <class Allocator>
-    constexpr AllFixedSizeElementLocator(std::size_t, std::byte*, ElementSize element_stride, const Allocator&) noexcept
-        : BaseAllFixedSizeElementLocator({}, element_stride.stride)
+    constexpr AllFixedSizeElementLocator(std::size_t, std::byte*, ElementSize element_size, const Allocator&) noexcept
+        : BaseAllFixedSizeElementLocator({}, element_size.stride)
     {
     }
 
@@ -258,7 +259,7 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
     auto emplace_back(std::byte* memory_begin, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         const auto last_element = element_address(element_count_, memory_begin);
-        const auto end = ElementTraits::emplace_at(last_element, fixed_sizes, std::forward<Args>(args)...);
+        const auto end = ElementTraits::emplace_at(last_element, fixed_sizes, static_cast<Args&&>(args)...);
         ++element_count_;
         return end;
     }
@@ -267,7 +268,7 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
     auto emplace_at(std::size_t index, std::byte* memory_begin, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         return ElementTraits::emplace_at_aliased(element_address(index, memory_begin), fixed_sizes,
-                                                 std::forward<Args>(args)...);
+                                                 static_cast<Args&&>(args)...);
     }
 
     void trivially_copy_into(const std::byte* old_memory_begin, std::byte* new_memory_begin) noexcept
@@ -276,9 +277,9 @@ class AllFixedSizeElementLocator : public BaseAllFixedSizeElementLocator
     }
 
     constexpr std::size_t calculate_new_memory_size(std::size_t max_element_count, std::size_t varying_size_bytes,
-                                                    const FixedSizesArray&) noexcept
+                                                    std::size_t distance_to_first, const FixedSizesArray&) noexcept
     {
-        return varying_size_bytes + stride_ * max_element_count;
+        return distance_to_first + varying_size_bytes + stride_ * max_element_count;
     }
 
   private:

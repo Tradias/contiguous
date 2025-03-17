@@ -45,11 +45,11 @@ constexpr auto uninitialized_move(Range&& source, TargetIterator&& target)
 {
 #ifdef __cpp_lib_ranges
     return std::ranges::uninitialized_move(
-               std::forward<Range>(source),
-               std::ranges::subrange{std::forward<TargetIterator>(target), std::unreachable_sentinel})
+               static_cast<Range&&>(source),
+               std::ranges::subrange{static_cast<TargetIterator&&>(target), std::unreachable_sentinel})
         .out;
 #else
-    return std::uninitialized_move(std::begin(source), std::end(source), std::forward<TargetIterator>(target));
+    return std::uninitialized_move(std::begin(source), std::end(source), static_cast<TargetIterator&&>(target));
 #endif
 }
 
@@ -58,11 +58,11 @@ constexpr auto uninitialized_copy(Range&& source, TargetIterator&& target)
 {
 #ifdef __cpp_lib_ranges
     return std::ranges::uninitialized_copy(
-               std::forward<Range>(source),
-               std::ranges::subrange{std::forward<TargetIterator>(target), std::unreachable_sentinel})
+               static_cast<Range&&>(source),
+               std::ranges::subrange{static_cast<TargetIterator&&>(target), std::unreachable_sentinel})
         .out;
 #else
-    return std::uninitialized_copy(std::begin(source), std::end(source), std::forward<TargetIterator>(target));
+    return std::uninitialized_copy(std::begin(source), std::end(source), static_cast<TargetIterator&&>(target));
 #endif
 }
 
@@ -70,12 +70,13 @@ template <class SourceIterator, class DifferenceType, class TargetIterator>
 constexpr auto uninitialized_copy_n(SourceIterator&& source, DifferenceType count, TargetIterator&& target)
 {
 #ifdef __cpp_lib_ranges
-    return std::ranges::uninitialized_copy_n(std::forward<SourceIterator>(source),
+    return std::ranges::uninitialized_copy_n(static_cast<SourceIterator&&>(source),
                                              static_cast<std::iter_difference_t<SourceIterator>>(count),
-                                             std::forward<TargetIterator>(target), std::unreachable_sentinel)
+                                             static_cast<TargetIterator&&>(target), std::unreachable_sentinel)
         .out;
 #else
-    return std::uninitialized_copy_n(std::forward<SourceIterator>(source), count, std::forward<TargetIterator>(target));
+    return std::uninitialized_copy_n(static_cast<SourceIterator&&>(source), count,
+                                     static_cast<TargetIterator&&>(target));
 #endif
 }
 
@@ -92,25 +93,25 @@ auto uninitialized_range_construct(Range&& range, TargetType* address)
     {
         if constexpr (!std::is_lvalue_reference_v<Range>)
         {
-            return reinterpret_cast<std::byte*>(detail::uninitialized_move(std::forward<Range>(range), address));
+            return reinterpret_cast<std::byte*>(detail::uninitialized_move(static_cast<Range&&>(range), address));
         }
         else
         {
-            return reinterpret_cast<std::byte*>(detail::uninitialized_copy(std::forward<Range>(range), address));
+            return reinterpret_cast<std::byte*>(detail::uninitialized_copy(static_cast<Range&&>(range), address));
         }
     }
 }
 
 template <bool IgnoreAliasing, class TargetType, class Range>
-auto uninitialized_construct(Range&& range, TargetType* address,
-                             std::size_t) -> std::enable_if_t<detail::IS_RANGE<Range>, std::byte*>
+auto uninitialized_construct(Range&& range, TargetType* address, std::size_t)
+    -> std::enable_if_t<detail::IS_RANGE<Range>, std::byte*>
 {
-    return detail::uninitialized_range_construct<IgnoreAliasing>(std::forward<Range>(range), address);
+    return detail::uninitialized_range_construct<IgnoreAliasing>(static_cast<Range&&>(range), address);
 }
 
 template <bool IgnoreAliasing, class TargetType, class Iterator>
-auto uninitialized_construct(const Iterator& iterator, TargetType* address,
-                             std::size_t size) -> std::enable_if_t<!detail::IS_RANGE<Iterator>, std::byte*>
+auto uninitialized_construct(const Iterator& iterator, TargetType* address, std::size_t size)
+    -> std::enable_if_t<!detail::IS_RANGE<Iterator>, std::byte*>
 {
     using IteratorValueType = typename std::iterator_traits<Iterator>::value_type;
     if constexpr (IgnoreAliasing && std::is_pointer_v<Iterator> &&
@@ -133,9 +134,9 @@ auto uninitialized_construct(const Iterator& iterator, TargetType* address,
 using std::construct_at;
 #else
 template <class T, class... Args>
-constexpr T* construct_at(T* ptr, Args&&... args)
+T* construct_at(T* ptr, Args&&... args)
 {
-    return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(std::forward<Args>(args)...);
+    return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(static_cast<Args&&>(args)...);
 }
 #endif
 
@@ -145,7 +146,7 @@ using std::assume_aligned;
 template <std::size_t Alignment, class T>
 [[nodiscard]] constexpr T* assume_aligned(T* const ptr) noexcept
 {
-    return static_cast<T*>(::__builtin_assume_aligned(ptr, Alignment));
+    return static_cast<T*>(__builtin_assume_aligned(ptr, Alignment));
 }
 #endif
 
@@ -157,13 +158,13 @@ template <std::size_t Alignment, class T>
     return void_ptr == ptr;
 }
 
-[[nodiscard]] constexpr auto align(std::uintptr_t position, std::size_t alignment) noexcept
+[[nodiscard]] constexpr std::uintptr_t align(std::uintptr_t position, std::size_t alignment) noexcept
 {
     return (position - 1u + alignment) & (alignment * std::numeric_limits<std::size_t>::max());
 }
 
 template <std::size_t Alignment>
-[[nodiscard]] constexpr auto align(std::uintptr_t position) noexcept
+[[nodiscard]] constexpr std::uintptr_t align(std::uintptr_t position) noexcept
 {
     if constexpr (Alignment > 1)
     {
@@ -176,11 +177,11 @@ template <std::size_t Alignment>
 }
 
 template <std::size_t Alignment, class T>
-[[nodiscard]] constexpr T* align(T* ptr) noexcept
+[[nodiscard]] T* align(T* ptr) noexcept
 {
     if constexpr (Alignment > 1)
     {
-        const auto uintptr = reinterpret_cast<std::uintptr_t>(ptr);
+        const auto uintptr = reinterpret_cast<std::uintptr_t>(static_cast<const void*>(ptr));
         const auto aligned = detail::align<Alignment>(uintptr);
         return detail::assume_aligned<Alignment>(reinterpret_cast<T*>(aligned));
     }
@@ -191,7 +192,7 @@ template <std::size_t Alignment, class T>
 }
 
 template <bool NeedsAlignment, std::size_t Alignment, class T>
-[[nodiscard]] constexpr auto align_if(T* ptr) noexcept
+[[nodiscard]] T* align_if(T* ptr) noexcept
 {
     if constexpr (NeedsAlignment && Alignment > 1)
     {
@@ -201,13 +202,26 @@ template <bool NeedsAlignment, std::size_t Alignment, class T>
 }
 
 template <bool NeedsAlignment, std::size_t Alignment>
-[[nodiscard]] constexpr auto align_if(std::uintptr_t position) noexcept
+[[nodiscard]] std::uintptr_t align_if(std::uintptr_t position) noexcept
 {
     if constexpr (NeedsAlignment && Alignment > 1)
     {
         position = detail::align<Alignment>(position);
     }
     return position;
+}
+
+[[nodiscard]] constexpr std::uintptr_t align_down(std::uintptr_t position, std::size_t alignment) noexcept
+{
+    return position & ~(alignment - 1u);
+}
+
+template <class T>
+[[nodiscard]] T* align_down(T* ptr, std::size_t alignment) noexcept
+{
+    const auto uintptr = reinterpret_cast<std::uintptr_t>(static_cast<const void*>(ptr));
+    const auto aligned = detail::align_down(uintptr, alignment);
+    return reinterpret_cast<T*>(aligned);
 }
 
 template <class T>

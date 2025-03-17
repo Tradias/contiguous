@@ -42,6 +42,7 @@ struct ElementSize
 {
     std::size_t size;
     std::size_t stride;
+    std::size_t distance_to_first;
 };
 
 template <class, class...>
@@ -58,9 +59,6 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     using ParameterTraitsAt = typename ListTraits::template ParameterTraitsAt<K>;
 
   private:
-    static_assert(ParameterTraitsAt<0>::TYPE != detail::ParameterType::VARYING_SIZE,
-                  "VaryingSize must be preceded by a parameter that represents its size");
-
     using FixedSizesArray = typename ListTraits::FixedSizesArray;
     using ContiguousPointer = typename detail::ContiguousVectorTraits<Parameter...>::PointerType;
     using ContiguousReference = typename detail::ContiguousVectorTraits<Parameter...>::ReferenceType;
@@ -109,6 +107,28 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     }
 
     static constexpr auto TRAILING_ALIGNMENTS = calculate_trailing_alignments();
+
+    static constexpr std::size_t INDEX_OF_PARAMETER_WITH_LARGEST_ALIGNMENT = []
+    {
+        std::size_t index{};
+        std::size_t alignment{};
+        const bool has_no_varying_size = (
+            [&]
+            {
+                if (alignment < detail::ParameterTraits<Parameter>::ALIGNMENT)
+                {
+                    index = I;
+                    alignment = detail::ParameterTraits<Parameter>::ALIGNMENT;
+                }
+                return detail::ParameterTraits<Parameter>::TYPE != detail::ParameterType::VARYING_SIZE;
+            }() &&
+            ...);
+        if (has_no_varying_size)
+        {
+            return index;
+        }
+        return std::size_t{};
+    }();
 
     template <template <class> class Predicate>
     static constexpr auto calculate_consecutive_indices() noexcept
@@ -198,7 +218,7 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     static std::byte* emplace_at(std::byte* address, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
         ((address = store_one<Parameter, IgnoreAliasing, I>(
-              address, SizeGetter::template get_fixed_size<I>(fixed_sizes), std::forward<Args>(args))),
+              address, SizeGetter::template get_fixed_size<I>(fixed_sizes), static_cast<Args&&>(args))),
          ...);
         return address;
     }
@@ -211,8 +231,77 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
             address, SizeGetterType::template get<ParameterT, K>(fixed_sizes, result));
     }
 
+    static constexpr ElementSize calculate_element_size_all_fixed_size(const FixedSizesArray& fixed_sizes) noexcept
+    {
+        BackwardSizeInMemory backward{};
+        ForwardSizeInMemory forward{};
+        (
+            [&]
+            {
+                if constexpr (I < INDEX_OF_PARAMETER_WITH_LARGEST_ALIGNMENT)
+                {
+                    const auto next_backward = detail::ParameterTraits<Parameter>::backward_size_in_memory(
+                        backward.offset,
+                        SizeGetter::template get_fixed_size<(INDEX_OF_PARAMETER_WITH_LARGEST_ALIGNMENT + I) %
+                                                            sizeof...(Parameter)>(fixed_sizes));
+                    backward = next_backward;
+                }
+                else
+                {
+                    const auto next_forward = detail::ParameterTraits<Parameter>::forward_size_in_memory(
+                        forward.offset, SizeGetter::template get_fixed_size<I>(fixed_sizes));
+                    forward = next_forward;
+                }
+            }(),
+            ...);
+        const auto size = backward.offset + forward.offset;
+        const auto distance_to_first = detail::align(backward.offset, STORAGE_ELEMENT_ALIGNMENT) - backward.offset;
+        const auto leftover = (distance_to_first + size) % STORAGE_ELEMENT_ALIGNMENT;
+        const auto padding = leftover > distance_to_first ? (STORAGE_ELEMENT_ALIGNMENT - leftover) + distance_to_first
+                                                          : distance_to_first - leftover;
+        return {size, size + padding, distance_to_first};
+    }
+
+    template <std::size_t IndexOfFirst, std::size_t LargestAlignmentWithinFirst>
+    static constexpr ElementSize calculate_element_size_impl(const FixedSizesArray& fixed_sizes) noexcept
+    {
+        std::size_t size{};
+        std::size_t offset{};
+        std::size_t padding{};
+        std::size_t alignment{STORAGE_ELEMENT_ALIGNMENT};
+        std::size_t distance_to_first{};
+        (
+            [&]
+            {
+                const auto [next_offset, next_size, next_padding, next_align] =
+                    detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
+                        previous_trailing_alignment<I>(), next_alignment<I>()>(
+                        offset, alignment,
+                        SizeGetter::template get_fixed_size<(IndexOfFirst + I) % sizeof...(Parameter)>(fixed_sizes));
+                if constexpr (0 != LargestAlignmentWithinFirst && IndexOfFirst - 1 == I)
+                {
+                    distance_to_first = next_offset + next_padding;
+                    distance_to_first =
+                        distance_to_first -
+                        detail::align_down(distance_to_first, ParameterTraitsAt<IndexOfFirst>::ALIGNMENT);
+                }
+                size += next_size;
+                offset = next_offset;
+                alignment = next_align;
+                if constexpr (I == sizeof...(Parameter) - 1)
+                {
+                    padding = next_padding;
+                }
+            }(),
+            ...);
+        const auto stride = size + padding;
+        return {size, stride, distance_to_first};
+    }
+
   public:
     using StorageElementType = detail::Aligned<STORAGE_ELEMENT_ALIGNMENT>;
+
+    static constexpr bool FIRST_ELEMENT_HAS_OFFSET = 0 != INDEX_OF_PARAMETER_WITH_LARGEST_ALIGNMENT;
 
     template <class StorageType, class Allocator>
     static constexpr StorageType allocate_memory(std::size_t size_in_bytes, const Allocator& allocator)
@@ -233,13 +322,13 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
     CNTGS_RESTRICT_RETURN static std::byte* emplace_at(std::byte* CNTGS_RESTRICT address,
                                                        const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        return emplace_at<true>(address, fixed_sizes, std::forward<Args>(args)...);
+        return emplace_at<true>(address, fixed_sizes, static_cast<Args&&>(args)...);
     }
 
     template <class... Args>
     static std::byte* emplace_at_aliased(std::byte* address, const FixedSizesArray& fixed_sizes, Args&&... args)
     {
-        return emplace_at<false>(address, fixed_sizes, std::forward<Args>(args)...);
+        return emplace_at<false>(address, fixed_sizes, static_cast<Args&&>(args)...);
     }
 
     template <class SizeGetterType = ElementTraits::SizeGetter, class FixedSizesType = ElementTraits::FixedSizesArray>
@@ -255,35 +344,22 @@ class ElementTraits<std::index_sequence<I...>, Parameter...>
 
     static constexpr ElementSize calculate_element_size(const FixedSizesArray& fixed_sizes) noexcept
     {
-        std::size_t size{};
-        std::size_t offset{};
-        std::size_t padding{};
-        std::size_t alignment{STORAGE_ELEMENT_ALIGNMENT};
-        (
-            [&]
-            {
-                const auto [next_offset, next_size, next_padding, next_align] =
-                    detail::ParameterTraits<Parameter>::template aligned_size_in_memory<
-                        previous_trailing_alignment<I>(), next_alignment<I>()>(
-                        offset, alignment, SizeGetter::template get_fixed_size<I>(fixed_sizes));
-                size += next_size;
-                offset = next_offset;
-                alignment = next_align;
-                if constexpr (I == sizeof...(Parameter) - 1)
-                {
-                    padding = next_padding;
-                }
-            }(),
-            ...);
-        return {size, size + padding};
+        if constexpr (FIRST_ELEMENT_HAS_OFFSET)
+        {
+            return calculate_element_size_all_fixed_size(fixed_sizes);
+        }
+        else
+        {
+            return calculate_element_size_impl<0, 0>(fixed_sizes);
+        }
     }
 
     static constexpr std::size_t calculate_needed_memory_size(std::size_t max_element_count,
                                                               std::size_t varying_size_bytes, ElementSize size) noexcept
     {
-        const auto [element_size, element_stride] = size;
+        const auto [element_size, element_stride, distance_to_first] = size;
         const auto padding = max_element_count == 0 ? 0 : (element_stride - element_size);
-        return varying_size_bytes + element_stride * max_element_count - padding;
+        return distance_to_first + varying_size_bytes + element_stride * max_element_count - padding;
     }
 
     template <bool UseMove, bool IsConst>

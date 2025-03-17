@@ -60,10 +60,19 @@ if(CNTGS_BUILD_TESTS)
                -fno-rtti>)
 
     if(CNTGS_ENABLE_DYNAMIC_ANALYSIS)
-        target_compile_options(cntgs-objects PUBLIC -fsanitize=address,undefined -fno-sanitize=alignment
-                                                    -fno-omit-frame-pointer)
+        target_compile_options(
+            cntgs-objects
+            INTERFACE
+                $<$<OR:$<CXX_COMPILER_ID:GNU,AppleClang>,$<STREQUAL:${CMAKE_CXX_COMPILER_FRONTEND_VARIANT},GNU>>:-fsanitize=undefined,leak
+                -fno-omit-frame-pointer>
+                $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address
+                /Zi>)
 
-        target_link_libraries(cntgs-objects PUBLIC asan ubsan)
+        target_link_options(
+            cntgs-objects
+            INTERFACE
+            $<$<OR:$<CXX_COMPILER_ID:GNU,AppleClang>,$<STREQUAL:${CMAKE_CXX_COMPILER_FRONTEND_VARIANT},GNU>>:-fsanitize=undefined,leak>
+            $<$<CXX_COMPILER_ID:MSVC>:/DEBUG>)
     endif()
 
     # amalgamate

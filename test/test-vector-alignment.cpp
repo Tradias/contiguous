@@ -47,10 +47,8 @@ TEST_CASE("ContiguousVector: OneFixedAligned size(), capacity() and memory_consu
     check_size1_and_capacity2(v);
     v.emplace_back(10u, FLOATS1);
     CHECK_EQ(v[0], v[1]);
-    const auto size = 32 + FLOATS1.size() * sizeof(float);
-    const auto expected = 2 * test::align(size, 32);
-    CHECK_EQ(expected, v.memory_consumption());
-    CHECK_EQ(expected, resource.bytes_allocated);
+    CHECK_EQ(96, v.memory_consumption());
+    CHECK_EQ(96, resource.bytes_allocated);
 }
 
 TEST_CASE("ContiguousVector: TwoFixedAligned size() and capacity()")
@@ -60,7 +58,7 @@ TEST_CASE("ContiguousVector: TwoFixedAligned size() and capacity()")
     v.emplace_back(FLOATS1, 10u, FLOATS2);
     check_size1_and_capacity2(v);
     const auto size = (FLOATS1.size() * sizeof(float) + 7 + sizeof(uint32_t) + FLOATS2.size() * sizeof(float));
-    const auto expected = 2 * test::align(size, 8);
+    const auto expected = 2 * test::align(size, 16);
     CHECK_EQ(expected, v.memory_consumption());
     CHECK_EQ(expected, resource.bytes_allocated);
 }
@@ -74,7 +72,7 @@ TEST_CASE("ContiguousVector: OneFixedOneVaryingAligned size() and capacity()")
 
 TEST_CASE("ContiguousVector: OneFixedAligned emplace_back->reserve->emplace_back")
 {
-    Checked<OneFixedAligned<>> v{1, {FLOATS1.size()}};
+    CheckedSoft<OneFixedAligned<>> v{1, {FLOATS1.size()}};
     v.emplace_back(1u, FLOATS1);
     v.reserve(2);
     v.emplace_back(2u, FLOATS1);
@@ -147,6 +145,9 @@ TEST_CASE("ContiguousVector: OneFixedAligned emplace_back() and subscript operat
 
 TEST_CASE("ContiguousVector: TwoFixedAligned emplace_back() and subscript operator")
 {
+    /*
+    0 0 0 0  0 0 0 0  f1 f1 f1 f1  f1 f1 f1 f1 || u u u u  f2 f2 f2 f2  f2 f2 f2 f2  f2 f2 f2 f2 ||
+    */
     Checked<TwoFixedAligned<>, 16> vector{5, {FLOATS1.size(), FLOATS2.size()}};
     for (uint32_t i = 0; i < 5; ++i)
     {

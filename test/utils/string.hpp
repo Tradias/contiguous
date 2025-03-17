@@ -28,7 +28,7 @@ void format_one(std::ostringstream& stream, std::string_view format, Iterator& i
     const auto next = std::find(iterator, format.end(), '{');
     const auto next_string_view = detail::to_string_view(iterator, next);
     iterator = std::next(next, 2);
-    stream << next_string_view << std::forward<Arg>(arg);
+    stream << next_string_view << static_cast<Arg&&>(arg);
 }
 }  // namespace detail
 
@@ -39,7 +39,7 @@ auto format(std::string_view format, Args&&... args)
 {
     std::ostringstream stream;
     auto iterator = format.begin();
-    (detail::format_one(stream, format, iterator, std::forward<Args>(args)), ...);
+    (detail::format_one(stream, format, iterator, static_cast<Args&&>(args)), ...);
     if (iterator != format.end())
     {
         stream << detail::to_string_view(iterator, format.end());

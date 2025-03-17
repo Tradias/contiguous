@@ -6,12 +6,11 @@
 #ifndef CNTGS_DETAIL_ALLOCATOR_HPP
 #define CNTGS_DETAIL_ALLOCATOR_HPP
 
-#include "cntgs/detail/memory.hpp"
 #include "cntgs/detail/utility.hpp"
 
 #include <cstddef>
 #include <memory>
-#include <type_traits>
+#include <utility>
 
 namespace cntgs::detail
 {
@@ -55,23 +54,12 @@ class AllocatorAwarePointer
         }
     }
 
-    static constexpr auto allocate_if_not_zero(std::size_t size, Allocator allocator)
-    {
-#ifdef __cpp_lib_is_constant_evaluated
-        if (std::is_constant_evaluated() && size == 0)
-        {
-            return Pointer{};
-        }
-#endif
-        return AllocatorTraits::allocate(allocator, size);
-    }
-
   public:
     AllocatorAwarePointer() = default;
 
-    constexpr AllocatorAwarePointer(std::size_t size, const Allocator& allocator)
-        : impl_(AllocatorAwarePointer::allocate_if_not_zero(size, allocator), size, allocator)
+    constexpr AllocatorAwarePointer(std::size_t size, const Allocator& allocator) : impl_({}, size, allocator)
     {
+        get() = allocate();
     }
 
     constexpr AllocatorAwarePointer(pointer ptr, std::size_t size, const Allocator& allocator) noexcept
@@ -90,13 +78,7 @@ class AllocatorAwarePointer
     {
     }
 
-#if __cpp_constexpr_dynamic_alloc
-    constexpr
-#endif
-        ~AllocatorAwarePointer() noexcept
-    {
-        deallocate();
-    }
+    ~AllocatorAwarePointer() noexcept { deallocate(); }
 
     constexpr AllocatorAwarePointer& operator=(const AllocatorAwarePointer& other)
     {
@@ -114,10 +96,14 @@ class AllocatorAwarePointer
                     return *this;
                 }
             }
-            propagate_on_container_copy_assignment(other);
-            if (size() < other.size() || !get())
+            const bool needs_resize = size() < other.size();
+            if (needs_resize)
             {
                 deallocate();
+            }
+            propagate_on_container_copy_assignment(other);
+            if (needs_resize)
+            {
                 size() = other.size();
                 get() = allocate();
             }
@@ -129,8 +115,8 @@ class AllocatorAwarePointer
     {
         if (this != std::addressof(other))
         {
-            propagate_on_container_move_assignment(other);
             deallocate();
+            propagate_on_container_move_assignment(other);
             get() = other.release();
             size() = other.size();
         }
@@ -139,7 +125,7 @@ class AllocatorAwarePointer
 
     constexpr decltype(auto) get_allocator() noexcept { return impl_.get(); }
 
-    constexpr auto get_allocator() const noexcept { return impl_.get(); }
+    constexpr const auto& get_allocator() const noexcept { return impl_.get(); }
 
     constexpr auto& get() noexcept { return impl_.ptr_; }
 

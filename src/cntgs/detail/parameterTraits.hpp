@@ -28,6 +28,17 @@ struct AlignedSizeInMemory
     std::size_t alignment;
 };
 
+struct ForwardSizeInMemory
+{
+    std::size_t offset;
+};
+
+struct BackwardSizeInMemory
+{
+    std::size_t offset;
+    std::size_t padding;
+};
+
 struct TrailingAlignmentResult
 {
     std::size_t offset;
@@ -74,7 +85,7 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
     {
         address = detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address);
         assert(detail::is_aligned(address, ALIGNMENT));
-        detail::construct_at(reinterpret_cast<T*>(address), std::forward<Arg>(arg));
+        detail::construct_at(reinterpret_cast<T*>(address), static_cast<Arg&&>(arg));
         return address + VALUE_BYTES;
     }
 
@@ -116,6 +127,20 @@ struct ParameterTraits<cntgs::AlignAs<T, Alignment>>
         }
         const auto padding_offset = detail::align_if<(TRAILING_ALIGNMENT < NextAlignment), NextAlignment>(new_offset);
         return {new_offset, size, padding_offset - new_offset, (std::max)(alignment, ALIGNMENT)};
+    }
+
+    static constexpr ForwardSizeInMemory forward_size_in_memory(std::size_t offset, std::size_t) noexcept
+    {
+        const auto padding = detail::align(offset, ALIGNMENT) - offset;
+        const auto next_offset = offset + padding + VALUE_BYTES;
+        return {next_offset};
+    }
+
+    static constexpr BackwardSizeInMemory backward_size_in_memory(std::size_t offset, std::size_t) noexcept
+    {
+        const auto next_offset = offset + VALUE_BYTES;
+        const auto padding = detail::align(next_offset, ALIGNMENT) - next_offset;
+        return {next_offset, padding};
     }
 
     static auto data_begin(ConstReferenceType reference) noexcept
@@ -311,7 +336,7 @@ struct ParameterTraits<cntgs::VaryingSize<cntgs::AlignAs<T, Alignment>>> : BaseC
         const auto aligned_address = reinterpret_cast<IteratorType>(
             detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address));
         assert(detail::is_aligned(aligned_address, ALIGNMENT));
-        return detail::uninitialized_construct<IgnoreAliasing>(std::forward<Range>(range), aligned_address, {});
+        return detail::uninitialized_construct<IgnoreAliasing>(static_cast<Range&&>(range), aligned_address, {});
     }
 
     static constexpr TrailingAlignmentResult trailing_alignment(std::size_t offset, std::size_t alignment) noexcept
@@ -379,7 +404,7 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
         const auto aligned_address = reinterpret_cast<IteratorType>(
             detail::align_if<(PreviousTrailingAlignment < ALIGNMENT), ALIGNMENT>(address));
         assert(detail::is_aligned(aligned_address, ALIGNMENT));
-        return detail::uninitialized_construct<IgnoreAliasing>(std::forward<RangeOrIterator>(range_or_iterator),
+        return detail::uninitialized_construct<IgnoreAliasing>(static_cast<RangeOrIterator&&>(range_or_iterator),
                                                                aligned_address, size);
     }
 
@@ -413,6 +438,20 @@ struct ParameterTraits<cntgs::FixedSize<cntgs::AlignAs<T, Alignment>>> : BaseCon
         }
         const auto padding_offset = detail::align_if<(TRAILING_ALIGNMENT < NextAlignment), NextAlignment>(new_offset);
         return {new_offset, size, padding_offset - new_offset, (std::max)(alignment, ALIGNMENT)};
+    }
+
+    static constexpr ForwardSizeInMemory forward_size_in_memory(std::size_t offset, std::size_t fixed_size) noexcept
+    {
+        const auto padding = detail::align(offset, ALIGNMENT) - offset;
+        const auto next_offset = offset + padding + fixed_size * VALUE_BYTES;
+        return {next_offset};
+    }
+
+    static constexpr BackwardSizeInMemory backward_size_in_memory(std::size_t offset, std::size_t fixed_size) noexcept
+    {
+        const auto next_offset = offset + fixed_size * VALUE_BYTES;
+        const auto padding = detail::align(next_offset, ALIGNMENT) - next_offset;
+        return {next_offset, padding};
     }
 
     static void copy(const cntgs::Span<std::add_const_t<T>>& source,

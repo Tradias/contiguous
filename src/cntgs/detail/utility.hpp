@@ -109,7 +109,7 @@ constexpr decltype(auto) as_ref(T& value) noexcept
 template <class T>
 constexpr decltype(auto) as_const_ref(T&& value) noexcept
 {
-    return detail::as_const(detail::as_ref(std::forward<T>(value)));
+    return detail::as_const(detail::as_ref(static_cast<T&&>(value)));
 }
 
 template <bool UseMove, class T>
